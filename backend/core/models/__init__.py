@@ -1,0 +1,24 @@
+from .articulo_divulgacion import ArticuloDivulgacion
+from .actividad_docencia import ActividadDocencia
+from .categoria_utn import CategoriaUtn
+from .distinciones import DistincionRecibida
+from .documentacion_autores import DocumentacionBibliografica, Autor, autor_libro
+from .equipamiento import Equipamiento
+from .erogacion import Erogacion, TipoErogacion
+from .fuente_financiamiento import FuenteFinanciamiento
+from .grupo import GrupoInvestigacionUtn
+from .participacion_relevante import ParticipacionRelevante
+from .personal import Investigador, Becario, TipoFormacion, TipoDedicacion, Personal
+from .programa_actividades import PlanificacionGrupo
+from .programa_incentivos import ProgramaIncentivos
+from .proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, investigador_proyecto, becario_proyecto
+from .registro_patente import RegistrosPropiedad, TipoRegistroPropiedad
+from .tipo_personal import TipoPersonal
+from .trabajo_reunion import TrabajoReunionCientifica
+from .trabajo_revista import TrabajosRevistasReferato
+from .transferencia_socio import TransferenciaSocioProductiva, TipoContrato
+from .usuario import Usuario
+from .visita_grupo import VisitaAcademica
+
+
+
