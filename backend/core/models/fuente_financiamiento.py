@@ -6,8 +6,8 @@ class FuenteFinanciamiento(db.Model):
     nombre = db.Column(db.Text) 
 
     # Relación uno-a-muchos con Becario
-    becarios = db.relationship('Becario', back_populates='fuente_financiamiento')
-    proyectos_investigacion = db.relationship('ProyectoInvestigacion', back_populates='fuente_financiamiento')
+    becarios = db.relationship('Becario', back_populates='fuente_financiamiento', lazy="dynamic")
+    proyectos_investigacion = db.relationship('ProyectoInvestigacion', back_populates='fuente_financiamiento', lazy="dynamic")
     erogaciones = db.relationship('Erogacion', back_populates='fuente_financiamiento', cascade="all, delete-orphan")
     
     def serialize(self):
@@ -16,10 +16,8 @@ class FuenteFinanciamiento(db.Model):
         data["becarios"] = [b.nombre_apellido for b in self.becarios]
         return data
     
-    def get_total_proyectos(self):
-        return len(self.proyectos_investigacion)
-
     def get_total_becarios(self):
-        return len(self.becarios)
-    
-    
+        return self.becarios.count()
+
+    def get_total_proyectos(self):
+        return self.proyectos_investigacion.count()

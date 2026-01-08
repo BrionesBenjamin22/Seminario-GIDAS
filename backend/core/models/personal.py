@@ -76,7 +76,7 @@ class TipoFormacion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    becarios = db.relationship('Becario', back_populates='tipo_formacion')
+    becarios = db.relationship('Becario', back_populates='tipo_formacion', lazy="dynamic")
     
     def serialize(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
@@ -87,7 +87,7 @@ class TipoDedicacion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    investigadores = db.relationship('Investigador', back_populates='tipo_dedicacion')
+    investigadores = db.relationship('Investigador', back_populates='tipo_dedicacion', lazy="dynamic")
     
     def serialize(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
@@ -101,8 +101,8 @@ class Investigador(db.Model):
     
     # --- Claves Foráneas ---
     tipo_dedicacion_id = db.Column(db.Integer, db.ForeignKey('tipo_dedicacion.id')) 
-    categoria_utn_id = db.Column(db.Integer, db.ForeignKey('categoria_utn.id')) 
-    programa_incentivos_id = db.Column(db.Integer, db.ForeignKey('programa_incentivos_investigador.id')) 
+    categoria_utn_id = db.Column(db.Integer, db.ForeignKey('categoria_utn.id'), nullable=True) 
+    programa_incentivos_id = db.Column(db.Integer, db.ForeignKey('programa_incentivos_investigador.id'), nullable=True) 
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))    
     
     # --- Relaciones (Muchos-a-Uno) ---
