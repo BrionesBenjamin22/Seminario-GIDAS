@@ -1,4 +1,4 @@
-from backend.extension import db
+from extension import db
 
 class RegistrosPropiedad(db.Model):
     __tablename__ = 'registros_patente_grupo'

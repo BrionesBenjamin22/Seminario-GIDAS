@@ -8,7 +8,8 @@ class FuenteFinanciamiento(db.Model):
     # Relación uno-a-muchos con Becario
     becarios = db.relationship('Becario', back_populates='fuente_financiamiento')
     proyectos_investigacion = db.relationship('ProyectoInvestigacion', back_populates='fuente_financiamiento')
-	
+    erogaciones = db.relationship('Erogacion', back_populates='fuente_financiamiento', cascade="all, delete-orphan")
+    
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         data["proyectos"] = [p.codigo_proyecto for p in self.proyectos_investigacion]

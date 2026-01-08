@@ -13,8 +13,6 @@ class Equipamiento(db.Model):
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='equipamiento')
 
-    fuente_financiamiento_id = db.Column(db.Integer, db.ForeignKey('fuente_financiamiento.id'))
-    fuente_financiamiento = db.relationship('FuenteFinanciamiento', back_populates='equipamiento')
 
     def serialize(self):
         """Serializa la instancia de Equipamiento en un diccionario."""

@@ -25,6 +25,7 @@ class GrupoInvestigacionUtn(db.Model):  # antes GrupoUtn, ahora GrupoInvestigaci
     trabajos_reunion_cientifica = db.relationship('TrabajoReunionCientifica', back_populates='grupo_utn', cascade="all, delete-orphan")
     erogaciones = db.relationship('Erogacion', back_populates='grupo_utn', cascade="all, delete-orphan")
     transferencias_socio_productivas = db.relationship('TransferenciaSocioProductiva', back_populates='grupo_utn', cascade="all, delete-orphan")
+    articulos_divulgacion = db.relationship('ArticuloDivulgacion', back_populates='grupo_utn', cascade="all, delete-orphan")
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}

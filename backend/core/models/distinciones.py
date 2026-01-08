@@ -12,7 +12,6 @@ class DistincionRecibida(db.Model):
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
 
     proyecto_investigacion = db.relationship('ProyectoInvestigacion', back_populates='distinciones')
-    grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='distinciones')
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}

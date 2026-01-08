@@ -1,5 +1,5 @@
 from extension import db
-from models.proyecto_investigacion import becario_proyecto, investigador_proyecto
+from core.models.proyecto_investigacion import becario_proyecto, investigador_proyecto
 
 
 class Personal(db.Model):
