@@ -8,6 +8,7 @@ from core.routes.tipo_formacion_rutas import tipo_formacion_becario_bp
 from core.routes.becario_rutas import becario_bp
 from core.routes.fuente_financiamiento_rutas import fuente_financiamiento_bp
 from core.routes.investigador_rutas import investigador_bp
+from core.routes.personal_completo_ruta import personal_completo_bp
 
 
 blueprints = [
@@ -21,4 +22,5 @@ blueprints = [
     becario_bp,
     fuente_financiamiento_bp,
     investigador_bp,
+    personal_completo_bp
 ]
