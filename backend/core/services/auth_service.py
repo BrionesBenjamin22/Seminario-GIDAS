@@ -49,7 +49,17 @@ class AuthService:
         if not user or not user.verificar_password(password):
             raise Exception("Credenciales inválidas")
 
-        return AuthService.generate_tokens(user)
+        tokens = AuthService.generate_tokens(user)
+
+        return {
+            "access_token": tokens["access_token"],
+            "refresh_token": tokens["refresh_token"],
+            "user": {
+                "id": user.id,
+                "nombre_usuario": user.nombre_usuario,
+                "mail": user.mail
+            }
+        }
 
     # -------------------------
     # Registro

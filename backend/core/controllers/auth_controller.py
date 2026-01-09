@@ -25,20 +25,21 @@ class AuthController:
         data = req.get_json()
 
         try:
-            tokens = AuthService.login(
+            result = AuthService.login(
                 nombre_usuario=data["nombre_usuario"],
                 password=data["password"]
             )
 
             response = jsonify({
-                "access_token": tokens["access_token"]
+                "access_token": result["access_token"],
+                "user": result["user"]
             })
 
             response.set_cookie(
                 "refresh_token",
-                tokens["refresh_token"],
+                result["refresh_token"],
                 httponly=True,
-                secure=False,        # True solo con HTTPS
+                secure=False,       
                 samesite="Lax",
                 max_age=7 * 24 * 60 * 60
             )
