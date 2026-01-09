@@ -12,7 +12,10 @@ from core.routes.personal_completo_ruta import personal_completo_bp
 from core.routes.programa_actividades_rutas import planificacion_grupo_bp
 from core.routes.programa_incentivos_rutas import programa_incentivos_bp
 from core.routes.visita_rutas import visita_academica_bp
-
+from core.routes.tipo_registro_rutas import tipo_registro_propiedad_bp
+from core.routes.registro_propiedad_rutas import registros_propiedad_bp
+from core.routes.autores_rutas import autor_bp
+from core.routes.documentacion_rutas import documentacion_bibliografica_bp
 
 blueprints = [
     auth_bp,
@@ -29,4 +32,8 @@ blueprints = [
     tipo_formacion_becario_bp,
     tipo_dedicacion_bp,
     visita_academica_bp,
+    tipo_registro_propiedad_bp,
+    registros_propiedad_bp,
+    autor_bp,
+    documentacion_bibliografica_bp
 ]
