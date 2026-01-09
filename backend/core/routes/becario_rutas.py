@@ -26,3 +26,4 @@ def actualizar(id):
 @becario_bp.route("/<int:id>", methods=["DELETE"])
 def eliminar(id):
     return BecarioController.eliminar(request, id)
+

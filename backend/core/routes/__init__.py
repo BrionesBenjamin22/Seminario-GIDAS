@@ -9,18 +9,24 @@ from core.routes.becario_rutas import becario_bp
 from core.routes.fuente_financiamiento_rutas import fuente_financiamiento_bp
 from core.routes.investigador_rutas import investigador_bp
 from core.routes.personal_completo_ruta import personal_completo_bp
+from core.routes.programa_actividades_rutas import planificacion_grupo_bp
+from core.routes.programa_incentivos_rutas import programa_incentivos_bp
+from core.routes.visita_rutas import visita_academica_bp
 
 
 blueprints = [
     auth_bp,
-    tipo_personal_bp,
+    becario_bp,
     categoria_utn_bp,
+    fuente_financiamiento_bp,
     grupo_utn_bp,
+    investigador_bp,
     personal_bp,
+    personal_completo_bp,
+    planificacion_grupo_bp,
+    programa_incentivos_bp,
+    tipo_personal_bp,
     tipo_formacion_becario_bp,
     tipo_dedicacion_bp,
-    becario_bp,
-    fuente_financiamiento_bp,
-    investigador_bp,
-    personal_completo_bp
+    visita_academica_bp,
 ]
