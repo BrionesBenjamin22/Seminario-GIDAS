@@ -1,1 +1,22 @@
-Single-database configuration for Flask.
+# Configuración del proyecto (Flask + SQLite)
+
+## 1. Crear y activar entorno virtual
+
+## python -m venv venv
+## venv\Scripts\activate
+
+## 2. Instalar dependencias
+## pip install -r requirements.txt
+
+## 3. Configurar base de datos
+## flask db upgrade
+
+## 4. Ejecutar la aplicación
+## flask run
+
+
+### Notas importantes
+# - El archivo `requirements.txt` ya está incluido en el repositorio
+# - No es necesario ejecutar `flask db init` ni 'flask db migrate'
+# - Si la base de datos se reinicia, volver a ejecutar `flask db upgrade`
+# - Los endpoints requieren que la base tenga las tablas creadas
