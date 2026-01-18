@@ -1,8 +1,8 @@
-"""inicializando esquema
+"""Esquema inicial
 
-Revision ID: 12e2f5cf18c3
+Revision ID: 144cc08f8bc9
 Revises: 
-Create Date: 2026-01-07 23:47:10.652864
+Create Date: 2026-01-16 18:34:09.718087
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '12e2f5cf18c3'
+revision = '144cc08f8bc9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -263,7 +263,8 @@ def upgrade():
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['investigador_id'], ['investigador.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('titulo_trabajo')
     )
     op.create_table('becarioxproyecto',
     sa.Column('id_becario', sa.Integer(), nullable=False),
@@ -277,8 +278,6 @@ def upgrade():
     sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('descripcion', sa.Text(), nullable=False),
     sa.Column('proyecto_investigacion_id', sa.Integer(), nullable=True),
-    sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['proyecto_investigacion_id'], ['proyecto_investigacion.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

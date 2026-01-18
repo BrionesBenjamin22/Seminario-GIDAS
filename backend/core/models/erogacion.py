@@ -30,6 +30,11 @@ class Erogacion(db.Model):
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+        data.pop("tipo_erogacion_id", None)
+        data.pop("fuente_financiamiento_id", None)
+        data.pop("grupo_utn_id", None)
+
         data["grupo"] = {
             "id": self.grupo_utn.id,
             "nombre": self.grupo_utn.nombre_sigla_grupo

@@ -18,7 +18,6 @@ class Equipamiento(db.Model):
         """Serializa la instancia de Equipamiento en un diccionario."""
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
-        data["fuente_financiamiento"] = self.fuente_financiamiento.nombre if self.fuente_financiamiento else None
         return data
     
     

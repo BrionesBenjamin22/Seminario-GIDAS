@@ -3,7 +3,7 @@ from extension import db
 class TrabajoReunionCientifica(db.Model):
     __tablename__ = 'trabajo_reunion_cientifica'
     id = db.Column(db.Integer, primary_key=True)
-    titulo_trabajo = db.Column(db.Text, nullable=False)
+    titulo_trabajo = db.Column(db.Text, nullable=False, unique=True)
     nombre_reunion = db.Column(db.Text, nullable=False)
     ciudad = db.Column(db.Text, nullable=False)
     fecha_inicio = db.Column(db.Date, nullable=False)
@@ -20,5 +20,5 @@ class TrabajoReunionCientifica(db.Model):
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         data["investigador"] = self.investigador.nombre_apellido if self.investigador else None
-        data["grupo_utn"] = self.grupo_utn.nombre if self.grupo_utn else None
+        data["grupo_utn"] = self.grupo_utn.nombre_unidad_academica if self.grupo_utn else None
         return data

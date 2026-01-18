@@ -103,7 +103,7 @@ class Investigador(db.Model):
     tipo_dedicacion_id = db.Column(db.Integer, db.ForeignKey('tipo_dedicacion.id')) 
     categoria_utn_id = db.Column(db.Integer, db.ForeignKey('categoria_utn.id'), nullable=True) 
     programa_incentivos_id = db.Column(db.Integer, db.ForeignKey('programa_incentivos_investigador.id'), nullable=True) 
-    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))    
+    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=True)    
     
     # --- Relaciones (Muchos-a-Uno) ---
     categoria_utn = db.relationship('CategoriaUtn', back_populates='investigadores')    

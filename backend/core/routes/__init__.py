@@ -16,6 +16,11 @@ from core.routes.tipo_registro_rutas import tipo_registro_propiedad_bp
 from core.routes.registro_propiedad_rutas import registros_propiedad_bp
 from core.routes.autores_rutas import autor_bp
 from core.routes.documentacion_rutas import documentacion_bibliografica_bp
+from core.routes.tipo_erogacion_rutas import tipo_erogacion_bp
+from core.routes.erogacion_rutas import erogacion_bp
+from core.routes.equipamiento_rutas import equipamiento_bp
+from core.routes.distinciones_rutas import distincion_recibida_bp
+from core.routes.trabajo_reunion_rutas import trabajo_reunion_cientifica_bp
 
 blueprints = [
     auth_bp,
@@ -35,5 +40,10 @@ blueprints = [
     tipo_registro_propiedad_bp,
     registros_propiedad_bp,
     autor_bp,
-    documentacion_bibliografica_bp
+    documentacion_bibliografica_bp,
+    tipo_erogacion_bp,
+    erogacion_bp,
+    equipamiento_bp,
+    distincion_recibida_bp,
+    trabajo_reunion_cientifica_bp,
 ]

@@ -83,4 +83,8 @@ class ProyectoInvestigacion(db.Model):
             "nombre": self.tipo_proyecto.nombre
         } if self.tipo_proyecto else None
 
+        data["distinciones"] = [
+            d.serialize() for d in self.distinciones
+        ]
+        
         return data

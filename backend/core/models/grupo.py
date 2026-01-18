@@ -2,7 +2,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 from extension import db
 
-class GrupoInvestigacionUtn(db.Model):  # antes GrupoUtn, ahora GrupoInvestigacionUtn
+class GrupoInvestigacionUtn(db.Model):
     __tablename__ = 'grupo_utn'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -11,7 +11,7 @@ class GrupoInvestigacionUtn(db.Model):  # antes GrupoUtn, ahora GrupoInvestigaci
     objetivo_desarrollo = db.Column(db.Text, nullable=False)
     nombre_sigla_grupo = db.Column(db.Text, nullable=False)
 
-    # --- Relaciones (Uno-a-Muchos) ---
+    # --- Relaciones ---
     investigadores = db.relationship('Investigador', back_populates='grupo_utn', cascade="all, delete-orphan")
     becarios = db.relationship('Becario', back_populates="grupo_utn", cascade="all, delete-orphan")
     personal = db.relationship('Personal', back_populates="grupo_utn", cascade="all, delete-orphan")
@@ -28,19 +28,28 @@ class GrupoInvestigacionUtn(db.Model):  # antes GrupoUtn, ahora GrupoInvestigaci
     articulos_divulgacion = db.relationship('ArticuloDivulgacion', back_populates='grupo_utn', cascade="all, delete-orphan")
 
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        data["investigadores"] = [i.nombre_apellido for i in self.investigadores]
-        data["proyectos"] = [p.codigo_proyecto for p in self.proyectos_investigacion]
-        data["documentacion"] = [d.titulo for d in self.documentacion]
-        data["equipamiento"] = [e.descripcion for e in self.equipamiento]
-        data["planificaciones"] = [p.descripcion for p in self.planificaciones]
-        data["visitas"] = [v.institucion for v in self.visitas]
-        data["registros_propiedad"] = [r.titulo for r in self.registros_propiedad]
-        data["trabajos_revistas"] = [t.titulo for t in self.trabajos_revistas]
-        data["trabajos_reunion_cientifica"] = [t.titulo for t in self.trabajos_reunion_cientifica]
-        data["erogaciones"] = [e.monto for e in self.erogaciones]
-        data["transferencias_socio_productivas"] = [t.descripcion for t in self.transferencias_socio_productivas]
-        return data
+        """
+        Serialización liviana del grupo.
+        NO carga colecciones grandes.
+        """
+        return {
+            "id": self.id,
+            "mail": self.mail,
+            "nombre_unidad_academica": self.nombre_unidad_academica,
+            "objetivo_desarrollo": self.objetivo_desarrollo,
+            "nombre_sigla_grupo": self.nombre_sigla_grupo,
+
+            # métricas resumidas 
+            "cant_investigadores": len(self.investigadores),
+            "cant_becarios": len(self.becarios),
+            "cant_personal": len(self.personal),
+            "cant_proyectos": len(self.proyectos_investigacion),
+            "cant_documentacion": len(self.documentacion),
+            "cant_equipamiento": len(self.equipamiento),
+            "cant_erogaciones": len(self.erogaciones),
+            "cant_patentes": len(self.registros_propiedad)
+        }
+
 
     @classmethod
     def load(cls) -> "GrupoInvestigacionUtn":

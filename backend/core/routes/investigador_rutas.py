@@ -7,11 +7,11 @@ investigador_bp = Blueprint(
     url_prefix="/investigadores"
 )
 
-@investigador_bp.route("/", methods=["POST"])
+@investigador_bp.route("", methods=["POST"])
 def crear():
     return InvestigadorController.crear(request)
 
-@investigador_bp.route("/", methods=["GET"])
+@investigador_bp.route("", methods=["GET"])
 def listar():
     return InvestigadorController.listar(request)
 
