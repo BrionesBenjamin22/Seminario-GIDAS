@@ -12,7 +12,7 @@ class TrabajosRevistasReferato(db.Model):
     pais = db.Column(db.Text, nullable=False) 
 
     # --- Clave Foránea y Relación ---
-    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyecto_investigacion.id'))
+    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyecto_investigacion.id'), nullable=False)
     proyecto_investigacion = db.relationship('ProyectoInvestigacion', back_populates='trabajos_revistas')
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='trabajos_revistas')
@@ -29,5 +29,3 @@ class TrabajosRevistasReferato(db.Model):
         assert re.match(r'^\d{4}-\d{3}[\dX]$', value), "Formato ISSN inválido"
         return value
 
-    def resumen(self):
-        return f"{self.titulo_trabajo} en {self.nombre_revista} ({self.pais})"

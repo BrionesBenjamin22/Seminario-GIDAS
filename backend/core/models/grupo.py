@@ -39,7 +39,7 @@ class GrupoInvestigacionUtn(db.Model):
             "objetivo_desarrollo": self.objetivo_desarrollo,
             "nombre_sigla_grupo": self.nombre_sigla_grupo,
 
-            # métricas resumidas 
+            # métricas resumidas, para evitar devolver listas completas
             "cant_investigadores": len(self.investigadores),
             "cant_becarios": len(self.becarios),
             "cant_personal": len(self.personal),

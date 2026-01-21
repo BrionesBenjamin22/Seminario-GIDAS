@@ -24,33 +24,39 @@ from core.routes.trabajo_reunion_rutas import trabajo_reunion_cientifica_bp
 from core.routes.actividad_docencia_rutas import actividad_docencia_bp
 from core.routes.tipo_contrato_rutas import tipo_contrato_bp
 from core.routes.transferencia_socio_rutas import transferencia_socio_productiva_bp
-
+from core.routes.trabajo_revista_rutas import trabajos_revistas_referato_bp
+from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
+from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 
 blueprints = [
+    actividad_docencia_bp,
     auth_bp,
+    autor_bp,
     becario_bp,
     categoria_utn_bp,
+    distincion_recibida_bp,
+    documentacion_bibliografica_bp,
+    equipamiento_bp,
+    erogacion_bp,
     fuente_financiamiento_bp,
     grupo_utn_bp,
     investigador_bp,
     personal_bp,
     personal_completo_bp,
     planificacion_grupo_bp,
+    proyecto_investigacion_bp,
     programa_incentivos_bp,
-    tipo_personal_bp,
-    tipo_formacion_becario_bp,
-    tipo_dedicacion_bp,
-    visita_academica_bp,
-    tipo_registro_propiedad_bp,
     registros_propiedad_bp,
-    autor_bp,
-    documentacion_bibliografica_bp,
-    tipo_erogacion_bp,
-    erogacion_bp,
-    equipamiento_bp,
-    distincion_recibida_bp,
-    trabajo_reunion_cientifica_bp,
-    actividad_docencia_bp,
     tipo_contrato_bp,
-    transferencia_socio_productiva_bp
-    ]
+    tipo_dedicacion_bp,
+    tipo_erogacion_bp,
+    tipo_formacion_becario_bp,
+    tipo_personal_bp,
+    tipo_registro_propiedad_bp, 
+    tipo_proyecto_bp,
+    trabajo_reunion_cientifica_bp,
+    trabajos_revistas_referato_bp,
+    transferencia_socio_productiva_bp,
+    visita_academica_bp
+
+]

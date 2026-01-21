@@ -15,6 +15,9 @@ becario_proyecto = db.Table(
 
 class TipoProyecto(db.Model):
     __tablename__ = 'tipo_proyecto_investigacion'
+    __table_args__ = (
+        db.UniqueConstraint('nombre', name='uq_tipo_proyecto_nombre'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.Text, nullable=False)
     proyectos_investigacion = db.relationship('ProyectoInvestigacion', back_populates='tipo_proyecto')
@@ -28,7 +31,7 @@ class ProyectoInvestigacion(db.Model):
     nombre_proyecto = db.Column(db.Text, nullable=False)
     descripcion_proyecto = db.Column(db.Text, nullable=False)
     fecha_inicio = db.Column(db.Date, nullable=False)
-    fecha_fin = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
     dificultades_proyecto = db.Column(db.Text, nullable=True)
 
     tipo_proyecto_id = db.Column(db.Integer, db.ForeignKey('tipo_proyecto_investigacion.id'), nullable=False)
