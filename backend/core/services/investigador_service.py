@@ -20,15 +20,21 @@ def crear_investigador(data):
     grupo_utn_id = data.get("grupo_utn_id")
     proyectos_ids = data.get("proyectos", [])
 
+    # ---- Validaciones obligatorias ----
     if not nombre or not isinstance(nombre, str):
         raise ValueError("El nombre y apellido es obligatorio.")
 
     if not isinstance(horas, int) or horas <= 0:
         raise ValueError("Las horas semanales deben ser un número positivo.")
 
-    if tipo_dedicacion_id and not TipoDedicacion.query.get(tipo_dedicacion_id):
+    if not tipo_dedicacion_id:
+        raise ValueError("El tipo de dedicación es obligatorio.")
+
+    tipo_dedicacion = TipoDedicacion.query.get(tipo_dedicacion_id)
+    if not tipo_dedicacion:
         raise ValueError("Tipo de dedicación inválido.")
 
+    # ---- Validaciones opcionales ----
     if categoria_utn_id and not CategoriaUtn.query.get(categoria_utn_id):
         raise ValueError("Categoría UTN inválida.")
 
@@ -47,11 +53,15 @@ def crear_investigador(data):
         grupo_utn_id=grupo_utn_id
     )
 
-    # Asignar proyectos (M:N)
+    # ---- Relación M:N proyectos ----
     if proyectos_ids:
         proyectos = ProyectoInvestigacion.query.filter(
             ProyectoInvestigacion.id.in_(proyectos_ids)
         ).all()
+
+        if len(proyectos) != len(proyectos_ids):
+            raise ValueError("Uno o más proyectos son inválidos.")
+
         investigador.proyectos.extend(proyectos)
 
     db.session.add(investigador)
@@ -61,9 +71,7 @@ def crear_investigador(data):
     except IntegrityError:
         db.session.rollback()
         raise ValueError("Error de integridad al crear el investigador.")
-    except Exception:
-        db.session.rollback()
-        raise
+
 
 
 def actualizar_investigador(id, data):
@@ -83,11 +91,18 @@ def actualizar_investigador(id, data):
             raise ValueError("Horas inválidas.")
         investigador.horas_semanales = horas
 
+    # ---- Tipo de dedicación (NO puede quedar null) ----
     if "tipo_dedicacion_id" in data:
-        if data["tipo_dedicacion_id"] and not TipoDedicacion.query.get(data["tipo_dedicacion_id"]):
+        if not data["tipo_dedicacion_id"]:
+            raise ValueError("El tipo de dedicación no puede ser nulo.")
+
+        tipo = TipoDedicacion.query.get(data["tipo_dedicacion_id"])
+        if not tipo:
             raise ValueError("Tipo de dedicación inválido.")
+
         investigador.tipo_dedicacion_id = data["tipo_dedicacion_id"]
 
+    # ---- Opcionales ----
     if "categoria_utn_id" in data:
         if data["categoria_utn_id"] and not CategoriaUtn.query.get(data["categoria_utn_id"]):
             raise ValueError("Categoría UTN inválida.")
@@ -107,6 +122,10 @@ def actualizar_investigador(id, data):
         proyectos = ProyectoInvestigacion.query.filter(
             ProyectoInvestigacion.id.in_(data["proyectos"])
         ).all()
+
+        if len(proyectos) != len(data["proyectos"]):
+            raise ValueError("Uno o más proyectos son inválidos.")
+
         investigador.proyectos = proyectos
 
     try:
@@ -115,6 +134,7 @@ def actualizar_investigador(id, data):
     except Exception:
         db.session.rollback()
         raise
+
 
 
 def eliminar_investigador(id):

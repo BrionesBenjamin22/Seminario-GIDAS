@@ -27,9 +27,11 @@ from core.routes.transferencia_socio_rutas import transferencia_socio_productiva
 from core.routes.trabajo_revista_rutas import trabajos_revistas_referato_bp
 from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
 from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
+from core.routes.participacion_relevante_rutas import participacion_relevante_bp
 
 blueprints = [
     actividad_docencia_bp,
+    
     auth_bp,
     autor_bp,
     becario_bp,
@@ -41,6 +43,7 @@ blueprints = [
     fuente_financiamiento_bp,
     grupo_utn_bp,
     investigador_bp,
+    participacion_relevante_bp,
     personal_bp,
     personal_completo_bp,
     planificacion_grupo_bp,
