@@ -21,6 +21,10 @@ from core.routes.erogacion_rutas import erogacion_bp
 from core.routes.equipamiento_rutas import equipamiento_bp
 from core.routes.distinciones_rutas import distincion_recibida_bp
 from core.routes.trabajo_reunion_rutas import trabajo_reunion_cientifica_bp
+from core.routes.actividad_docencia_rutas import actividad_docencia_bp
+from core.routes.tipo_contrato_rutas import tipo_contrato_bp
+from core.routes.transferencia_socio_rutas import transferencia_socio_productiva_bp
+
 
 blueprints = [
     auth_bp,
@@ -46,4 +50,7 @@ blueprints = [
     equipamiento_bp,
     distincion_recibida_bp,
     trabajo_reunion_cientifica_bp,
-]
+    actividad_docencia_bp,
+    tipo_contrato_bp,
+    transferencia_socio_productiva_bp
+    ]

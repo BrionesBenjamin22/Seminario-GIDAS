@@ -17,6 +17,8 @@ class TransferenciaSocioProductiva(db.Model):
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data.pop("tipo_contrato_id")
+        data.pop("grupo_utn_id")
         data["tipo_contrato"] = (
             self.tipo_contrato_transferencia.nombre if self.tipo_contrato_transferencia else None
         )
