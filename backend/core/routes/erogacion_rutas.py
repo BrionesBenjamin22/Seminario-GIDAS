@@ -7,7 +7,7 @@ erogacion_bp = Blueprint(
     url_prefix="/erogaciones"
 )
 
-erogacion_bp.route("/", methods=["GET"])(
+erogacion_bp.route("", methods=["GET"])(
     ErogacionController.get_all
 )
 
@@ -15,7 +15,7 @@ erogacion_bp.route("/<int:erogacion_id>", methods=["GET"])(
     ErogacionController.get_by_id
 )
 
-erogacion_bp.route("/", methods=["POST"])(
+erogacion_bp.route("", methods=["POST"])(
     ErogacionController.create
 )
 

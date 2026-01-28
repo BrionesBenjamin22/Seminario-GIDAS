@@ -1,12 +1,16 @@
 from flask import jsonify, request
 from core.services.erogacion_service import ErogacionService
 
+
 class ErogacionController:
 
     @staticmethod
     def get_all():
         try:
-            return jsonify(ErogacionService.get_all()), 200
+            filters = request.args.to_dict()
+            return jsonify(
+                ErogacionService.get_all(filters)
+            ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
@@ -23,6 +27,9 @@ class ErogacionController:
     def create():
         try:
             data = request.get_json()
+            if not data:
+                return jsonify({"error": "El body es obligatorio"}), 400
+
             return jsonify(
                 ErogacionService.create(data)
             ), 201
@@ -33,6 +40,9 @@ class ErogacionController:
     def update(erogacion_id):
         try:
             data = request.get_json()
+            if not data:
+                return jsonify({"error": "El body es obligatorio"}), 400
+
             return jsonify(
                 ErogacionService.update(erogacion_id, data)
             ), 200

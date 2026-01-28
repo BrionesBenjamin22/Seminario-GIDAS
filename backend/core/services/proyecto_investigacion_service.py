@@ -1,18 +1,22 @@
+from datetime import datetime
+from extension import db
+
 from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.fuente_financiamiento import FuenteFinanciamiento
 from core.models.programa_actividades import PlanificacionGrupo
-from extension import db
-from datetime import datetime, date
+from core.models.personal import Becario, Investigador
 
 
 class ProyectoInvestigacionService:
 
+    # =========================
+    # GET ALL
+    # =========================
     @staticmethod
     def get_all(filters: dict = None):
         query = ProyectoInvestigacion.query
 
-        # ---- FILTROS ----
         if filters:
             if filters.get("tipo_proyecto_id"):
                 query = query.filter(
@@ -24,7 +28,6 @@ class ProyectoInvestigacionService:
                     ProyectoInvestigacion.grupo_utn_id == filters["grupo_utn_id"]
                 )
 
-        # ---- ORDEN ----
         orden = filters.get("orden") if filters else None
         if orden == "asc":
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.asc())
@@ -33,7 +36,9 @@ class ProyectoInvestigacionService:
 
         return [p.serialize() for p in query.all()]
 
-
+    # =========================
+    # GET BY ID
+    # =========================
     @staticmethod
     def get_by_id(proyecto_id: int):
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
@@ -41,38 +46,48 @@ class ProyectoInvestigacionService:
             raise Exception("Proyecto de investigación no encontrado")
         return proyecto.serialize()
 
-
+    # =========================
+    # CREATE
+    # =========================
     @staticmethod
     def create(data: dict):
-        # ---- Validar fechas ----
+        # ---- Fecha inicio ----
         try:
-            fecha_inicio = datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date()
-            fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date()
+            fecha_inicio = datetime.strptime(
+                data["fecha_inicio"], "%Y-%m-%d"
+            ).date()
         except (KeyError, ValueError):
-            raise Exception("Las fechas son obligatorias y deben tener formato YYYY-MM-DD")
+            raise Exception("La fecha_inicio es obligatoria y debe tener formato YYYY-MM-DD")
 
-        if fecha_fin < fecha_inicio:
+        # ---- Fecha fin (opcional) ----
+        fecha_fin = None
+        if data.get("fecha_fin"):
+            try:
+                fecha_fin = datetime.strptime(
+                    data["fecha_fin"], "%Y-%m-%d"
+                ).date()
+            except ValueError:
+                raise Exception("La fecha_fin debe tener formato YYYY-MM-DD")
+
+        if fecha_fin and fecha_fin < fecha_inicio:
             raise Exception("La fecha fin no puede ser anterior a la fecha inicio")
 
-        # ---- Validar tipo de proyecto ----
+        # ---- Tipo de proyecto ----
         tipo = TipoProyecto.query.get(data.get("tipo_proyecto_id"))
         if not tipo:
             raise Exception("Tipo de proyecto inválido")
 
         # ---- Validaciones opcionales ----
         if data.get("grupo_utn_id"):
-            grupo = GrupoInvestigacionUtn.query.get(data["grupo_utn_id"])
-            if not grupo:
+            if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
                 raise Exception("Grupo UTN inválido")
-            
+
         if data.get("fuente_financiamiento_id"):
-            fuente = FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"])
-            if not fuente:
+            if not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
                 raise Exception("Fuente de financiamiento inválida")
 
         if data.get("planificacion_id"):
-            planificacion = PlanificacionGrupo.query.get(data["planificacion_id"])
-            if not planificacion:
+            if not PlanificacionGrupo.query.get(data["planificacion_id"]):
                 raise Exception("Planificación inválida")
 
         proyecto = ProyectoInvestigacion(
@@ -92,7 +107,9 @@ class ProyectoInvestigacionService:
         db.session.commit()
         return proyecto.serialize()
 
-
+    # =========================
+    # UPDATE
+    # =========================
     @staticmethod
     def update(proyecto_id: int, data: dict):
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
@@ -115,14 +132,17 @@ class ProyectoInvestigacionService:
             ).date()
 
         if "fecha_fin" in data:
-            proyecto.fecha_fin = datetime.strptime(
-                data["fecha_fin"], "%Y-%m-%d"
-            ).date()
+            if data["fecha_fin"] is None:
+                proyecto.fecha_fin = None
+            else:
+                proyecto.fecha_fin = datetime.strptime(
+                    data["fecha_fin"], "%Y-%m-%d"
+                ).date()
 
-        if proyecto.fecha_fin < proyecto.fecha_inicio:
+        if proyecto.fecha_fin and proyecto.fecha_fin < proyecto.fecha_inicio:
             raise Exception("La fecha fin no puede ser anterior a la fecha inicio")
 
-        # ---- Tipo de proyecto ----
+        # ---- Tipo proyecto ----
         if "tipo_proyecto_id" in data:
             if not TipoProyecto.query.get(data["tipo_proyecto_id"]):
                 raise Exception("Tipo de proyecto inválido")
@@ -133,35 +153,34 @@ class ProyectoInvestigacionService:
             if data["grupo_utn_id"] is None:
                 proyecto.grupo_utn_id = None
             else:
-                grupo = GrupoInvestigacionUtn.query.get(data["grupo_utn_id"])
-                if not grupo:
+                if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
                     raise Exception("Grupo UTN inválido")
                 proyecto.grupo_utn_id = data["grupo_utn_id"]
 
-        # ---- Fuente de financiamiento ----
+        # ---- Fuente financiamiento ----
         if "fuente_financiamiento_id" in data:
             if data["fuente_financiamiento_id"] is None:
                 proyecto.fuente_financiamiento_id = None
             else:
-                fuente = FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"])
-                if not fuente:
+                if not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
                     raise Exception("Fuente de financiamiento inválida")
                 proyecto.fuente_financiamiento_id = data["fuente_financiamiento_id"]
 
-        
+        # ---- Planificación ----
         if "planificacion_id" in data:
             if data["planificacion_id"] is None:
                 proyecto.planificacion_id = None
             else:
-                planificacion = PlanificacionGrupo.query.get(data["planificacion_id"])
-                if not planificacion:
+                if not PlanificacionGrupo.query.get(data["planificacion_id"]):
                     raise Exception("Planificación inválida")
                 proyecto.planificacion_id = data["planificacion_id"]
 
         db.session.commit()
         return proyecto.serialize()
 
-
+    # =========================
+    # DELETE
+    # =========================
     @staticmethod
     def delete(proyecto_id: int):
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
@@ -171,3 +190,108 @@ class ProyectoInvestigacionService:
         db.session.delete(proyecto)
         db.session.commit()
         return {"message": "Proyecto eliminado correctamente"}
+
+    # =========================
+    # VINCULAR / DESVINCULAR BECARIOS
+    # =========================
+    @staticmethod
+    def vincular_becarios_a_proyecto(proyecto_id, becarios_ids):
+        if proyecto_id is None:
+            raise ValueError("El id del proyecto es obligatorio.")
+
+        if not isinstance(becarios_ids, list) or not becarios_ids:
+            raise ValueError("Debe enviarse una lista de ids de becarios.")
+
+        proyecto = ProyectoInvestigacion.query.get(proyecto_id)
+        if not proyecto:
+            raise ValueError("Proyecto no encontrado.")
+
+        becarios = Becario.query.filter(Becario.id.in_(becarios_ids)).all()
+        if not becarios:
+            raise ValueError("No se encontraron becarios válidos.")
+
+        for becario in becarios:
+            if becario not in proyecto.becarios:
+                proyecto.becarios.append(becario)
+
+        db.session.commit()
+        return proyecto.serialize()
+
+    @staticmethod
+    def desvincular_becarios_de_proyecto(proyecto_id, becarios_ids):
+        if proyecto_id is None:
+            raise ValueError("El id del proyecto es obligatorio.")
+
+        if not isinstance(becarios_ids, list) or not becarios_ids:
+            raise ValueError("Debe enviarse una lista de ids de becarios.")
+
+        proyecto = ProyectoInvestigacion.query.get(proyecto_id)
+        if not proyecto:
+            raise ValueError("Proyecto no encontrado.")
+
+        becarios = Becario.query.filter(Becario.id.in_(becarios_ids)).all()
+        if not becarios:
+            raise ValueError("No se encontraron becarios válidos.")
+
+        for becario in becarios:
+            if becario in proyecto.becarios:
+                proyecto.becarios.remove(becario)
+
+        db.session.commit()
+        return proyecto.serialize()
+
+    # =========================
+    # VINCULAR / DESVINCULAR INVESTIGADORES
+    # =========================
+    @staticmethod
+    def vincular_investigadores_a_proyecto(proyecto_id, investigadores_ids):
+        if proyecto_id is None:
+            raise ValueError("El id del proyecto es obligatorio.")
+
+        if not isinstance(investigadores_ids, list) or not investigadores_ids:
+            raise ValueError("Debe enviarse una lista de ids de investigadores.")
+
+        proyecto = ProyectoInvestigacion.query.get(proyecto_id)
+        if not proyecto:
+            raise ValueError("Proyecto no encontrado.")
+
+        investigadores = Investigador.query.filter(
+            Investigador.id.in_(investigadores_ids)
+        ).all()
+
+        if not investigadores:
+            raise ValueError("No se encontraron investigadores válidos.")
+
+        for investigador in investigadores:
+            if investigador not in proyecto.investigadores:
+                proyecto.investigadores.append(investigador)
+
+        db.session.commit()
+        return proyecto.serialize()
+
+    @staticmethod
+    def desvincular_investigadores_de_proyecto(proyecto_id, investigadores_ids):
+        if proyecto_id is None:
+            raise ValueError("El id del proyecto es obligatorio.")
+
+        if not isinstance(investigadores_ids, list) or not investigadores_ids:
+            raise ValueError("Debe enviarse una lista de ids de investigadores.")
+
+        proyecto = ProyectoInvestigacion.query.get(proyecto_id)
+        if not proyecto:
+            raise ValueError("Proyecto no encontrado.")
+
+        investigadores = Investigador.query.filter(
+            Investigador.id.in_(investigadores_ids)
+        ).all()
+
+        if not investigadores:
+            raise ValueError("No se encontraron investigadores válidos.")
+
+        for investigador in investigadores:
+            if investigador in proyecto.investigadores:
+                proyecto.investigadores.remove(investigador)
+
+        db.session.commit()
+        return proyecto.serialize()
+

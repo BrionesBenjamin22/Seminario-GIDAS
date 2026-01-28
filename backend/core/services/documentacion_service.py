@@ -1,15 +1,29 @@
 from core.models.documentacion_autores import DocumentacionBibliografica, Autor
 from extension import db
 
+
 class DocumentacionBibliograficaService:
 
+    # =========================
+    # GET ALL (con orden alfabético)
+    # =========================
     @staticmethod
-    def get_all():
-        return [
-            d.serialize()
-            for d in DocumentacionBibliografica.query.all()
-        ]
+    def get_all(filters: dict = None):
+        query = DocumentacionBibliografica.query
 
+        # ---- ORDEN ALFABÉTICO POR TÍTULO ----
+        if filters:
+            orden = filters.get("orden")
+            if orden == "asc":
+                query = query.order_by(DocumentacionBibliografica.titulo.asc())
+            elif orden == "desc":
+                query = query.order_by(DocumentacionBibliografica.titulo.desc())
+
+        return [d.serialize() for d in query.all()]
+
+    # =========================
+    # GET BY ID
+    # =========================
     @staticmethod
     def get_by_id(doc_id: int):
         doc = DocumentacionBibliografica.query.get(doc_id)
@@ -17,6 +31,9 @@ class DocumentacionBibliograficaService:
             raise Exception("Documentación bibliográfica no encontrada")
         return doc.serialize()
 
+    # =========================
+    # CREATE
+    # =========================
     @staticmethod
     def create(data: dict):
         doc = DocumentacionBibliografica(
@@ -30,6 +47,9 @@ class DocumentacionBibliograficaService:
         db.session.commit()
         return doc.serialize()
 
+    # =========================
+    # UPDATE
+    # =========================
     @staticmethod
     def update(doc_id: int, data: dict):
         doc = DocumentacionBibliografica.query.get(doc_id)
@@ -44,6 +64,9 @@ class DocumentacionBibliograficaService:
         db.session.commit()
         return doc.serialize()
 
+    # =========================
+    # DELETE
+    # =========================
     @staticmethod
     def delete(doc_id: int):
         doc = DocumentacionBibliografica.query.get(doc_id)
@@ -54,8 +77,9 @@ class DocumentacionBibliograficaService:
         db.session.commit()
         return {"message": "Documentación bibliográfica eliminada correctamente"}
 
-    # -------- RELACIÓN DOCUMENTO - AUTOR --------
-
+    # =========================
+    # RELACIÓN DOCUMENTO - AUTOR
+    # =========================
     @staticmethod
     def add_autor(doc_id: int, autor_id: int):
         doc = DocumentacionBibliografica.query.get(doc_id)
