@@ -7,6 +7,7 @@ class Personal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_apellido = db.Column(db.String(120), nullable=False)
     horas_semanales = db.Column(db.Integer, nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
     tipo_personal_id = db.Column(db.Integer, db.ForeignKey('tipo_personal.id'), nullable=False)
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=False)
     
@@ -18,6 +19,7 @@ class Personal(db.Model):
             "id": self.id,
             "nombre_apellido": self.nombre_apellido,
             "horas_semanales": self.horas_semanales,
+            "activo": self.activo,
             "tipo_personal_id": self.tipo_personal_id,
             "grupo_utn_id": self.grupo_utn_id,
 
@@ -33,6 +35,7 @@ class Becario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     horas_semanales = db.Column(db.Integer, nullable=False)
     nombre_apellido = db.Column(db.String(120), nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
     
     tipo_formacion_id = db.Column(db.Integer, db.ForeignKey('tipo_formacion_becario.id'), nullable=False)
     tipo_formacion = db.relationship('TipoFormacion', back_populates='becarios')
@@ -53,6 +56,7 @@ class Becario(db.Model):
             "tipo_formacion_id": self.tipo_formacion_id,
             "fuente_financiamiento_id": self.fuente_financiamiento_id,
             "grupo_utn_id": self.grupo_utn_id,
+            "activo": self.activo,
 
             
             "tipo_formacion": self.tipo_formacion.nombre if self.tipo_formacion else None,
@@ -98,6 +102,7 @@ class Investigador(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_apellido = db.Column(db.String(120), nullable=False)
     horas_semanales = db.Column(db.Integer, nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
     
     # --- Claves Foráneas ---
     tipo_dedicacion_id = db.Column(db.Integer, db.ForeignKey('tipo_dedicacion.id')) 
@@ -123,6 +128,7 @@ class Investigador(db.Model):
             "id": self.id,
             "nombre_apellido": self.nombre_apellido,
             "horas_semanales": self.horas_semanales,
+            "activo": self.activo,
 
             "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
             "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,

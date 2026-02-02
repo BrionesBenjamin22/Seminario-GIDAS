@@ -24,7 +24,8 @@ class BecarioController:
     @staticmethod
     def listar(req: Request) -> Response:
         try:
-            becarios = listar_becarios()
+            activos = req.args.get("activos")  
+            becarios = listar_becarios(activos)
             return jsonify([b.serialize() for b in becarios]), 200
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
@@ -51,10 +52,10 @@ class BecarioController:
             return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
-    def eliminar(req, id):
+    def eliminar(req: Request, id: int) -> Response:
         try:
             eliminar_becario(id)
-            return jsonify({"message": "Becario eliminado correctamente"}), 200
+            return jsonify({"message": "Becario dado de baja correctamente"}), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception:

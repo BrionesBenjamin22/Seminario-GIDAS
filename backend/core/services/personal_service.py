@@ -29,7 +29,8 @@ def crear_personal(data):
         nombre_apellido=nombre.strip(),
         horas_semanales=horas,
         tipo_personal_id=tipo_personal_id,
-        grupo_utn_id=grupo_utn_id
+        grupo_utn_id=grupo_utn_id,
+        activo=True
     )
 
     db.session.add(nuevo)
@@ -45,6 +46,30 @@ def actualizar_personal(id, data):
     personal = Personal.query.get(id)
     if not personal:
         raise ValueError("Personal no encontrado.")
+
+   
+    if "activo" in data:
+        if not isinstance(data["activo"], bool):
+            raise ValueError("El campo 'activo' debe ser booleano.")
+
+        if personal.activo == data["activo"]:
+            estado = "activo" if personal.activo else "inactivo"
+            raise ValueError(f"El personal ya se encuentra {estado}.")
+
+        personal.activo = data["activo"]
+
+        try:
+            db.session.commit()
+            return personal
+        except Exception:
+            db.session.rollback()
+            raise
+        
+    if not personal.activo:
+        raise ValueError(
+            "No se puede modificar personal dado de baja. Reactívelo primero."
+        )
+
 
     if "nombre_apellido" in data:
         nombre = data["nombre_apellido"]
@@ -64,6 +89,12 @@ def actualizar_personal(id, data):
             raise ValueError("Tipo de personal inválido.")
         personal.tipo_personal_id = tipo_id
 
+    if "grupo_utn_id" in data:
+        grupo_id = data["grupo_utn_id"]
+        if not GrupoInvestigacionUtn.query.get(grupo_id):
+            raise ValueError("Grupo UTN inválido.")
+        personal.grupo_utn_id = grupo_id
+
     try:
         db.session.commit()
         return personal
@@ -77,17 +108,37 @@ def eliminar_personal(id):
     if not personal:
         raise ValueError("Personal no encontrado.")
 
-    db.session.delete(personal)
+    if not personal.activo:
+        raise ValueError("El personal ya se encuentra dado de baja.")
+
+    personal.activo = False
+
     try:
         db.session.commit()
-        return personal
     except Exception:
         db.session.rollback()
         raise
 
+    return {
+        "message": "Personal dado de baja correctamente.",
+        "id": personal.id
+    }
 
-def listar_personal():
-    return Personal.query.all()
+
+
+def listar_personal(activos=None):
+    query = Personal.query
+
+    if activos == "true":
+        query = query.filter_by(activo=True)
+    elif activos == "false":
+        query = query.filter_by(activo=False)
+    elif activos == "all":
+        pass
+    else:
+        query = query.filter_by(activo=True)
+
+    return query.all()
 
 
 def obtener_personal_por_id(id):

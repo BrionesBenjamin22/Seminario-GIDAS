@@ -50,7 +50,8 @@ def crear_investigador(data):
         tipo_dedicacion_id=tipo_dedicacion_id,
         categoria_utn_id=categoria_utn_id,
         programa_incentivos_id=programa_id,
-        grupo_utn_id=grupo_utn_id
+        grupo_utn_id=grupo_utn_id,
+        activo = True
     )
 
     # ---- Relación M:N proyectos ----
@@ -78,6 +79,30 @@ def actualizar_investigador(id, data):
     investigador = Investigador.query.get(id)
     if not investigador:
         raise ValueError("Investigador no encontrado.")
+
+  
+    if "activo" in data:
+        if not isinstance(data["activo"], bool):
+            raise ValueError("El campo 'activo' debe ser booleano.")
+
+        if investigador.activo == data["activo"]:
+            estado = "activo" if investigador.activo else "inactivo"
+            raise ValueError(f"El investigador ya se encuentra {estado}.")
+
+        investigador.activo = data["activo"]
+
+        try:
+            db.session.commit()
+            return investigador
+        except Exception:
+            db.session.rollback()
+            raise
+
+  
+    if not investigador.activo:
+        raise ValueError(
+            "No se puede modificar un investigador dado de baja. Reactívelo primero."
+        )
 
     if "nombre_apellido" in data:
         nombre = data["nombre_apellido"]
@@ -118,12 +143,18 @@ def actualizar_investigador(id, data):
             raise ValueError("Grupo UTN inválido.")
         investigador.grupo_utn_id = data["grupo_utn_id"]
 
+    # ---- Proyectos (M:N) ----
     if "proyectos" in data:
+        proyectos_ids = data["proyectos"]
+
+        if not isinstance(proyectos_ids, list):
+            raise ValueError("El campo 'proyectos' debe ser una lista de IDs.")
+
         proyectos = ProyectoInvestigacion.query.filter(
-            ProyectoInvestigacion.id.in_(data["proyectos"])
+            ProyectoInvestigacion.id.in_(proyectos_ids)
         ).all()
 
-        if len(proyectos) != len(data["proyectos"]):
+        if len(proyectos) != len(proyectos_ids):
             raise ValueError("Uno o más proyectos son inválidos.")
 
         investigador.proyectos = proyectos
@@ -141,16 +172,43 @@ def eliminar_investigador(id):
     investigador = Investigador.query.get(id)
     if not investigador:
         raise ValueError("Investigador no encontrado.")
+    
+    if not investigador.activo:
+        raise ValueError("El investigador ya se encuentra dado de baja.")
 
-    # Limpiar relación M:N
-    investigador.proyectos.clear()
+    investigador.activo = False
 
-    db.session.delete(investigador)
+    db.session.commit()
+    return {
+        "message": "Investigador dado de baja correctamente",
+        "id": investigador.id
+    }
+
+
+def reactivar_investigador(id):
+    investigador = Investigador.query.get(id)
+    if not investigador:
+        raise ValueError("Investigador no encontrado.")
+
+    investigador.activo = True
     db.session.commit()
 
+    return investigador.serialize()
 
-def listar_investigadores():
-    return Investigador.query.all()
+def listar_investigadores(activos=None):
+    query = Investigador.query
+
+    if activos == "true":
+        query = query.filter_by(activo=True)
+    elif activos == "false":
+        query = query.filter_by(activo=False)
+    elif activos == "all":
+        pass
+    else:
+        query = query.filter_by(activo=True)
+
+    return query.all()
+
 
 
 def obtener_investigador_por_id(id):

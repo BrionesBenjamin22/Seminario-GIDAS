@@ -37,7 +37,8 @@ def crear_becario(data):
         horas_semanales=horas,
         tipo_formacion_id=tipo_formacion_id,
         grupo_utn_id=grupo_utn_id,
-        fuente_financiamiento_id=fuente_id
+        fuente_financiamiento_id=fuente_id,
+        activo=True
     )
 
     # Asignar proyectos (M:N)
@@ -45,7 +46,12 @@ def crear_becario(data):
         proyectos = ProyectoInvestigacion.query.filter(
             ProyectoInvestigacion.id.in_(proyectos_ids)
         ).all()
+
+        if len(proyectos) != len(proyectos_ids):
+            raise ValueError("Uno o más proyectos son inválidos.")
+
         becario.proyectos.extend(proyectos)
+
 
     db.session.add(becario)
     try:
@@ -60,6 +66,30 @@ def actualizar_becario(id, data):
     becario = Becario.query.get(id)
     if not becario:
         raise ValueError("Becario no encontrado.")
+
+
+    if "activo" in data:
+        if not isinstance(data["activo"], bool):
+            raise ValueError("El campo 'activo' debe ser booleano.")
+
+        # Si no cambia el estado
+        if becario.activo == data["activo"]:
+            estado = "activo" if becario.activo else "inactivo"
+            raise ValueError(f"El becario ya se encuentra {estado}.")
+
+        becario.activo = data["activo"]
+
+        try:
+            db.session.commit()
+            return becario
+        except Exception:
+            db.session.rollback()
+            raise
+
+    if not becario.activo:
+        raise ValueError(
+            "No se puede modificar un becario dado de baja. Reactívelo primero."
+        )
 
     if "nombre_apellido" in data:
         nombre = data["nombre_apellido"]
@@ -90,10 +120,20 @@ def actualizar_becario(id, data):
 
     # Reemplazar proyectos
     if "proyectos" in data:
+        proyectos_ids = data["proyectos"]
+
+        if not isinstance(proyectos_ids, list):
+            raise ValueError("El campo 'proyectos' debe ser una lista de IDs.")
+
         proyectos = ProyectoInvestigacion.query.filter(
-            ProyectoInvestigacion.id.in_(data["proyectos"])
+            ProyectoInvestigacion.id.in_(proyectos_ids)
         ).all()
+
+        if len(proyectos) != len(proyectos_ids):
+            raise ValueError("Uno o más proyectos son inválidos.")
+
         becario.proyectos = proyectos
+
 
     try:
         db.session.commit()
@@ -108,14 +148,40 @@ def eliminar_becario(id):
     if not becario:
         raise ValueError("Becario no encontrado.")
 
-    becario.proyectos.clear()
-    db.session.delete(becario)
-    db.session.commit()
+    if not becario.activo:
+        raise ValueError("El becario ya se encuentra dado de baja.")
+
+    becario.activo = False
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
+    return {
+        "message": "Becario dado de baja correctamente.",
+        "id": becario.id
+    }
 
 
 
-def listar_becarios():
-    return Becario.query.all()
+
+def listar_becarios(activos=None):
+    query = Becario.query
+
+    if activos == "true":
+        query = query.filter_by(activo=True)
+    elif activos == "false":
+        query = query.filter_by(activo=False)
+    elif activos == "all":
+        pass  
+    else:
+        
+        query = query.filter_by(activo=True)
+
+    return query.all()
+
 
 
 def obtener_becario_por_id(id):

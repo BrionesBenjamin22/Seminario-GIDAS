@@ -24,8 +24,11 @@ class PersonalController:
     @staticmethod
     def listar(req: Request) -> Response:
         try:
-            personal = listar_personal()
+            activos = req.args.get("activos")  # true | false | all | None
+            personal = listar_personal(activos)
             return jsonify([p.serialize() for p in personal]), 200
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
 
@@ -53,8 +56,8 @@ class PersonalController:
     @staticmethod
     def eliminar(req: Request, id: int) -> Response:
         try:
-            personal = eliminar_personal(id)
-            return jsonify(personal.serialize()), 200
+            eliminar_personal(id)
+            return jsonify({"message": "Personal dado de baja correctamente"}), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception:

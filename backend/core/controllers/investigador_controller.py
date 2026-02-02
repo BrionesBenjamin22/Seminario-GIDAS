@@ -24,8 +24,11 @@ class InvestigadorController:
     @staticmethod
     def listar(req: Request) -> Response:
         try:
-            investigadores = listar_investigadores()
+            activos = req.args.get("activos")  # true | false | all | None
+            investigadores = listar_investigadores(activos)
             return jsonify([i.serialize() for i in investigadores]), 200
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
 
@@ -54,7 +57,7 @@ class InvestigadorController:
     def eliminar(req: Request, id: int) -> Response:
         try:
             eliminar_investigador(id)
-            return jsonify({"message": "Investigador eliminado correctamente"}), 200
+            return jsonify({"message": "Investigador dado de baja correctamente"}), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception:
