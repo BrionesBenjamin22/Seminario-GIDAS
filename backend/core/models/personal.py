@@ -80,10 +80,11 @@ class TipoFormacion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     
-    becarios = db.relationship('Becario', back_populates='tipo_formacion', lazy="dynamic")
-    
     def serialize(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
+        return {
+            "id": self.id,
+            "nombre": self.nombre
+        }
 
 
 class TipoDedicacion(db.Model):

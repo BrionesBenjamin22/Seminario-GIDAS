@@ -8,4 +8,7 @@ class CategoriaUtn(db.Model):
     investigadores = db.relationship('Investigador', back_populates='categoria_utn', lazy='dynamic')
     
     def serialize(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
+        return {
+            "id": self.id,
+            "nombre": self.nombre
+        }

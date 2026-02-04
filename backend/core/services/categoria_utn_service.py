@@ -73,7 +73,6 @@ def eliminar_categoria_utn(id):
 
     try:
         db.session.commit()
-        return categoria
     except Exception:
         db.session.rollback()
         raise

@@ -1,8 +1,8 @@
-"""Esquema inicial
+"""Migracion inicial desde modelos existentes
 
-Revision ID: 144cc08f8bc9
+Revision ID: 256f23d68132
 Revises: 
-Create Date: 2026-01-16 18:34:09.718087
+Create Date: 2026-02-04 18:52:52.490915
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '144cc08f8bc9'
+revision = '256f23d68132'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -39,6 +39,8 @@ def upgrade():
     sa.Column('nombre_unidad_academica', sa.Text(), nullable=False),
     sa.Column('objetivo_desarrollo', sa.Text(), nullable=False),
     sa.Column('nombre_sigla_grupo', sa.Text(), nullable=False),
+    sa.Column('director', sa.Text(), nullable=True),
+    sa.Column('vicedirector', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('programa_incentivos_investigador',
@@ -74,7 +76,8 @@ def upgrade():
     op.create_table('tipo_proyecto_investigacion',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('nombre', name='uq_tipo_proyecto_nombre')
     )
     op.create_table('tipo_registro_propiedad',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -103,6 +106,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('horas_semanales', sa.Integer(), nullable=False),
     sa.Column('nombre_apellido', sa.String(length=120), nullable=False),
+    sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('tipo_formacion_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
     sa.Column('fuente_financiamiento_id', sa.Integer(), nullable=True),
@@ -146,6 +150,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre_apellido', sa.String(length=120), nullable=False),
     sa.Column('horas_semanales', sa.Integer(), nullable=False),
+    sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('tipo_dedicacion_id', sa.Integer(), nullable=True),
     sa.Column('categoria_utn_id', sa.Integer(), nullable=True),
     sa.Column('programa_incentivos_id', sa.Integer(), nullable=True),
@@ -160,6 +165,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre_apellido', sa.String(length=120), nullable=False),
     sa.Column('horas_semanales', sa.Integer(), nullable=False),
+    sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('tipo_personal_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
@@ -240,7 +246,7 @@ def upgrade():
     sa.Column('nombre_proyecto', sa.Text(), nullable=False),
     sa.Column('descripcion_proyecto', sa.Text(), nullable=False),
     sa.Column('fecha_inicio', sa.Date(), nullable=False),
-    sa.Column('fecha_fin', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
     sa.Column('dificultades_proyecto', sa.Text(), nullable=True),
     sa.Column('tipo_proyecto_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
@@ -295,7 +301,7 @@ def upgrade():
     sa.Column('editorial', sa.Text(), nullable=False),
     sa.Column('issn', sa.Text(), nullable=False),
     sa.Column('pais', sa.Text(), nullable=False),
-    sa.Column('proyecto_id', sa.Integer(), nullable=True),
+    sa.Column('proyecto_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['proyecto_id'], ['proyecto_investigacion.id'], ),

@@ -10,6 +10,8 @@ class GrupoInvestigacionUtn(db.Model):
     nombre_unidad_academica = db.Column(db.Text, nullable=False)
     objetivo_desarrollo = db.Column(db.Text, nullable=False)
     nombre_sigla_grupo = db.Column(db.Text, nullable=False)
+    director = db.Column(db.Text, nullable=True)
+    vicedirector = db.Column(db.Text, nullable=True)
 
     # --- Relaciones ---
     investigadores = db.relationship('Investigador', back_populates='grupo_utn', cascade="all, delete-orphan")
@@ -38,6 +40,8 @@ class GrupoInvestigacionUtn(db.Model):
             "nombre_unidad_academica": self.nombre_unidad_academica,
             "objetivo_desarrollo": self.objetivo_desarrollo,
             "nombre_sigla_grupo": self.nombre_sigla_grupo,
+            "director": self.director,
+            "vicedirector": self.vicedirector,
 
             # métricas resumidas, para evitar devolver listas completas
             "cant_investigadores": len(self.investigadores),
@@ -52,22 +56,5 @@ class GrupoInvestigacionUtn(db.Model):
 
 
     @classmethod
-    def load(cls) -> "GrupoInvestigacionUtn":
-        try:
-            return db.session.query(cls).filter_by(id=1).one()
-        except NoResultFound:
-            try:
-                with db.session.begin_nested():
-                    instancia = cls(
-                        id=1,
-                        mail="grupo@frlp.utn.edu.ar",
-                        nombre_unidad_academica="Grupo Innovación y Desarrollo Aplicado a Sistemas de Información",
-                        objetivo_desarrollo="Desarrollar investigaciones en el área de sistemas de potencia",
-                        nombre_sigla_grupo="GIDAS"
-                    )
-                    db.session.add(instancia)
-                    db.session.commit()
-                    return instancia
-            except IntegrityError:
-                db.session.rollback()
-                return cls.query.get(1)
+    def load(cls):
+        return db.session.query(cls).first()
