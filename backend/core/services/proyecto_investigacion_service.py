@@ -16,25 +16,43 @@ class ProyectoInvestigacionService:
     @staticmethod
     def get_all(filters: dict = None):
         query = ProyectoInvestigacion.query
+        filters = filters or {}
 
-        if filters:
-            if filters.get("tipo_proyecto_id"):
-                query = query.filter(
-                    ProyectoInvestigacion.tipo_proyecto_id == filters["tipo_proyecto_id"]
-                )
+        # -------------------------
+        # Filtro: tipo de proyecto
+        # -------------------------
+        if filters.get("tipo_proyecto_id"):
+            query = query.filter(
+                ProyectoInvestigacion.tipo_proyecto_id == filters["tipo_proyecto_id"]
+            )
 
-            if filters.get("grupo_utn_id"):
-                query = query.filter(
-                    ProyectoInvestigacion.grupo_utn_id == filters["grupo_utn_id"]
-                )
+        # -------------------------
+        # Filtro: grupo UTN
+        # -------------------------
+        if filters.get("grupo_utn_id"):
+            query = query.filter(
+                ProyectoInvestigacion.grupo_utn_id == filters["grupo_utn_id"]
+            )
 
-        orden = filters.get("orden") if filters else None
+        # -------------------------
+        # Filtro: proyectos con distinciones
+        # -------------------------
+        if filters.get("tiene_distinciones"):
+            query = query.filter(
+                ProyectoInvestigacion.distinciones.any()
+            )
+
+        # -------------------------
+        # Ordenamiento
+        # -------------------------
+        orden = filters.get("orden")
         if orden == "asc":
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.asc())
         else:
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.desc())
 
         return [p.serialize() for p in query.all()]
+
 
     # =========================
     # GET BY ID

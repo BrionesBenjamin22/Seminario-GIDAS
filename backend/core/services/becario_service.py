@@ -177,7 +177,7 @@ def listar_becarios(activos=None):
     elif activos == "all":
         pass  
     else:
-        
+        # default: solo activos
         query = query.filter_by(activo=True)
 
     return query.all()
