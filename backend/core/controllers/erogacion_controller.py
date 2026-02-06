@@ -25,16 +25,17 @@ class ErogacionController:
 
     @staticmethod
     def create():
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({"error": "El body es obligatorio"}), 400
+        data = request.get_json(silent=True)
 
-            return jsonify(
-                ErogacionService.create(data)
-            ), 201
+        if not data:
+            return jsonify({"error": "Body JSON requerido"}), 400
+
+        try:
+            return jsonify(ErogacionService.create(data)), 201
         except Exception as e:
+            print("ERROR REAL:", e)
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def update(erogacion_id):

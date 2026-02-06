@@ -13,7 +13,11 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(DevelopmentConfig)
 
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    CORS(
+    app,
+    resources={r"/*": {"origins": "http://localhost:5173"}},
+    supports_credentials=True
+)
 
     db.init_app(app)
     mail.init_app(app)
