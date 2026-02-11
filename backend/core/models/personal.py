@@ -18,6 +18,7 @@ class Personal(db.Model):
 
     tipo_personal = db.relationship('TipoPersonal', back_populates='personal')
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='personal')
+    
 
     def serialize(self):
         return {

@@ -12,14 +12,22 @@ class PersonalController:
 
     @staticmethod
     def crear(req: Request) -> Response:
-        data = req.get_json()
+        data = req.get_json(force=True, silent=False)
+        print("DATA RECIBIDA:", data)
+
         try:
             personal = crear_personal(data)
             return jsonify(personal.serialize()), 201
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
+
 
     @staticmethod
     def listar(req: Request) -> Response:

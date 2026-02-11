@@ -4,6 +4,7 @@ from core.models.tipo_personal import TipoPersonal
 from core.models.grupo import GrupoInvestigacionUtn
 
 
+
 def crear_personal(data):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
@@ -12,7 +13,7 @@ def crear_personal(data):
     horas = data.get("horas_semanales")
     tipo_personal_id = data.get("tipo_personal_id")
     grupo_utn_id = data.get("grupo_utn_id")
-
+    
     if not nombre or not isinstance(nombre, str):
         raise ValueError("El nombre y apellido es obligatorio.")
 
@@ -24,6 +25,7 @@ def crear_personal(data):
 
     if not grupo_utn_id or not GrupoInvestigacionUtn.query.get(grupo_utn_id):
         raise ValueError("Grupo UTN inválido.")
+    
 
     nuevo = Personal(
         nombre_apellido=nombre.strip(),

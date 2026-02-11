@@ -131,3 +131,56 @@ def listar_personal_completo():
         })
 
     return resultado
+
+
+def obtener_personal_por_tipo(rol, id):
+
+    if rol == "personal":
+        p = Personal.query.get(id)
+        if not p:
+            return None
+
+        return {
+            "id": p.id,
+            "rol": "personal",
+            "nombre_apellido": p.nombre_apellido,
+            "horas_semanales": p.horas_semanales,
+            "grupo": {
+                "id": p.grupo_utn.id,
+                "nombre": p.grupo_utn.nombre_sigla_grupo
+            } if p.grupo_utn else None
+        }
+
+    if rol == "becario":
+        b = Becario.query.get(id)
+        if not b:
+            return None
+
+        return {
+            "id": b.id,
+            "rol": "becario",
+            "nombre_apellido": b.nombre_apellido,
+            "horas_semanales": b.horas_semanales,
+            "grupo": {
+                "id": b.grupo_utn.id,
+                "nombre": b.grupo_utn.nombre_sigla_grupo
+            } if b.grupo_utn else None
+        }
+
+    if rol == "investigador":
+        i = Investigador.query.get(id)
+        if not i:
+            return None
+
+        return {
+            "id": i.id,
+            "rol": "investigador",
+            "nombre_apellido": i.nombre_apellido,
+            "horas_semanales": i.horas_semanales,
+            "grupo": {
+                "id": i.grupo_utn.id,
+                "nombre": i.grupo_utn.nombre_sigla_grupo
+            } if i.grupo_utn else None
+        }
+
+    return None
