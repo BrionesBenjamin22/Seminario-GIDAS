@@ -5,6 +5,7 @@ from core.models.grupo import GrupoInvestigacionUtn
 
 
 
+
 def crear_personal(data):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
@@ -115,15 +116,25 @@ def actualizar_personal(id, data, rol):
         raise
 
 
-def eliminar_personal(id, rol):
-    personal = Personal.query.get(id, rol)
-    if not personal:
-        raise ValueError("Personal no encontrado.")
+def eliminar_personal_por_rol(id, rol):
+    rol = rol.lower()
 
-    if not personal.activo:
-        raise ValueError("El personal ya se encuentra dado de baja.")
+    if rol == "personal":
+        entidad = Personal.query.get(id)
+    elif rol == "becario":
+        entidad = Becario.query.get(id)
+    elif rol == "investigador":
+        entidad = Investigador.query.get(id)
+    else:
+        raise ValueError("Rol inválido.")
 
-    personal.activo = False
+    if not entidad:
+        raise ValueError("Entidad no encontrada.")
+
+    if not entidad.activo:
+        raise ValueError("Ya se encuentra dado de baja.")
+
+    entidad.activo = False
 
     try:
         db.session.commit()
@@ -132,25 +143,26 @@ def eliminar_personal(id, rol):
         raise
 
     return {
-        "message": "Personal dado de baja correctamente.",
-        "id": personal.id
+        "message": "Dado de baja correctamente.",
+        "id": entidad.id
     }
 
 
+def obtener_personal_por_tipo(rol):
+    rol = rol.lower()
 
-def listar_personal(activos=None):
-    query = Personal.query
+    if rol == "personal":
+        return Personal.query.filter(Personal.activo == True).all()
 
-    if activos == "true":
-        query = query.filter_by(activo=True)
-    elif activos == "false":
-        query = query.filter_by(activo=False)
-    elif activos == "all":
-        pass
+    elif rol == "becario":
+        return Becario.query.filter(Becario.activo == True).all()
+
+    elif rol == "investigador":
+        return Investigador.query.filter(Investigador.activo == True).all()
+
     else:
-        query = query.filter_by(activo=True)
+        raise ValueError("Rol inválido.")
 
-    return query.all()
 
 
 def obtener_personal_por_id(id):

@@ -1,10 +1,14 @@
-from core.services.personal_completo_service import obtener_personal_por_tipo
+
 from flask import Request, Response, jsonify
 from core.services.personal_service import (
     crear_personal,
     actualizar_personal,
-    eliminar_personal,
-    listar_personal
+    eliminar_personal_por_rol,
+)
+
+from core.services.personal_completo_service import (
+    listar_personal_completo,
+    obtener_personal_por_tipo
 )
 
 
@@ -33,7 +37,7 @@ class PersonalController:
     def listar(req: Request) -> Response:
         try:
             activos = req.args.get("activos")  # true | false | all | None
-            personal = listar_personal(activos)
+            personal = listar_personal_completo(activos)
             return jsonify([p.serialize() for p in personal]), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
@@ -76,11 +80,12 @@ class PersonalController:
 
 
     @staticmethod
-    def eliminar(req: Request, rol: str, id: int) -> Response:
+    def eliminar(req, rol, id):
         try:
-            eliminar_personal(id)
-            return jsonify({"message": "Personal dado de baja correctamente"}), 200
+            result = eliminar_personal_por_rol(id, rol)
+            return jsonify(result), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
+
