@@ -15,14 +15,14 @@ def crear():
 def listar():
     return PersonalController.listar(request)
 
-@personal_bp.route("/<int:id>", methods=["GET"])
-def obtener(id):
-    return PersonalController.obtener_por_id(request, id)
+@personal_bp.route("/<string:rol>/<int:id>", methods=["GET"])
+def obtener(rol, id):
+    return PersonalController.obtener_por_id(request, rol, id)
 
-@personal_bp.route("/<int:id>", methods=["PUT"])
-def actualizar(id):
-    return PersonalController.actualizar(request, id)
+@personal_bp.route("/<string:rol>/<int:id>", methods=["PUT"])
+def actualizar(rol, id):
+    return PersonalController.actualizar(request, rol, id)
 
-@personal_bp.route("/<int:id>", methods=["DELETE"])
-def eliminar(id):
-    return PersonalController.eliminar(request, id)
+@personal_bp.route("/<string:rol>/<int:id>", methods=["DELETE"])
+def eliminar(rol, id):
+    return PersonalController.eliminar(request, rol, id)

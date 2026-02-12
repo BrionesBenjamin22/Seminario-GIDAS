@@ -72,19 +72,11 @@ def actualizar_becario(id, data):
         if not isinstance(data["activo"], bool):
             raise ValueError("El campo 'activo' debe ser booleano.")
 
-        # Si no cambia el estado
-        if becario.activo == data["activo"]:
-            estado = "activo" if becario.activo else "inactivo"
-            raise ValueError(f"El becario ya se encuentra {estado}.")
-
-        becario.activo = data["activo"]
-
-        try:
+        # Solo cambiar si es distinto
+        if becario.activo != data["activo"]:
+            becario.activo = data["activo"]
             db.session.commit()
             return becario
-        except Exception:
-            db.session.rollback()
-            raise
 
     if not becario.activo:
         raise ValueError(
