@@ -6,6 +6,7 @@ class PlanificacionGrupo(db.Model): #antes Planificacion. ahora PlanificacionGru
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     descripcion = db.Column(db.Text, nullable=False)
     anio = db.Column(db.Integer, nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
 
     # --- Clave Foránea y Relación ---
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 

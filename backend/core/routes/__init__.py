@@ -28,10 +28,10 @@ from core.routes.trabajo_revista_rutas import trabajos_revistas_referato_bp
 from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
 from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 from core.routes.participacion_relevante_rutas import participacion_relevante_bp
+from core.routes.search_rutas import search_bp
 
 blueprints = [
     actividad_docencia_bp,
-    
     auth_bp,
     autor_bp,
     becario_bp,
@@ -60,6 +60,7 @@ blueprints = [
     trabajo_reunion_cientifica_bp,
     trabajos_revistas_referato_bp,
     transferencia_socio_productiva_bp,
-    visita_academica_bp
+    visita_academica_bp,
+    search_bp
 
 ]
