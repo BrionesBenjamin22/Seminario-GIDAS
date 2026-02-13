@@ -60,7 +60,7 @@ class DocumentacionBibliograficaService:
         doc.editorial = data.get("editorial", doc.editorial)
         doc.anio = data.get("anio", doc.anio)
         doc.grupo_id = data.get("grupo_id", doc.grupo_id)
-
+        
         db.session.commit()
         return doc.serialize()
 

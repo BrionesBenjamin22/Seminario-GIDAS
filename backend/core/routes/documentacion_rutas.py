@@ -40,7 +40,7 @@ documentacion_bibliografica_bp.route(
 
 documentacion_bibliografica_bp.route(
     "/<int:doc_id>/autores/<int:autor_id>",
-    methods=["DELETE"]
+    methods=["DELETE", "OPTIONS"]
 )(
     DocumentacionBibliograficaController.remove_autor
 )
