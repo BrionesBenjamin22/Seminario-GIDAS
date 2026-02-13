@@ -5,9 +5,9 @@ def listar_personal_completo():
     resultado = []
 
     # --------------------
-    # PERSONAL
+    # PERSONAL (solo activos)
     # --------------------
-    for p in Personal.query.all():
+    for p in Personal.query.filter(Personal.activo == True).all():
         resultado.append({
             "id": p.id,
             "nombre_apellido": p.nombre_apellido,
@@ -28,9 +28,9 @@ def listar_personal_completo():
         })
 
     # --------------------
-    # BECARIOS
+    # BECARIOS (solo activos)
     # --------------------
-    for b in Becario.query.all():
+    for b in Becario.query.filter(Becario.activo == True).all():
         resultado.append({
             "id": b.id,
             "nombre_apellido": b.nombre_apellido,
@@ -65,9 +65,9 @@ def listar_personal_completo():
         })
 
     # --------------------
-    # INVESTIGADORES
+    # INVESTIGADORES (solo activos)
     # --------------------
-    for i in Investigador.query.all():
+    for i in Investigador.query.filter(Investigador.activo == True).all():
         resultado.append({
             "id": i.id,
             "nombre_apellido": i.nombre_apellido,
@@ -131,3 +131,51 @@ def listar_personal_completo():
         })
 
     return resultado
+
+
+def obtener_personal_por_tipo(rol, id):
+    rol = rol.lower()
+
+    if rol == "personal":
+        p = Personal.query.filter_by(id=id, activo=True).first()
+        if not p:
+            return None
+
+        return {
+            "id": p.id,
+            "nombre_apellido": p.nombre_apellido,
+            "horas_semanales": p.horas_semanales,
+            "rol": "personal",
+            "tipo_de_personal": p.tipo_personal.nombre if p.tipo_personal else None
+        }
+
+    if rol == "becario":
+        b = Becario.query.filter_by(id=id, activo=True).first()
+        if not b:
+            return None
+
+        return {
+        "id": b.id,
+        "nombre_apellido": b.nombre_apellido,
+        "horas_semanales": b.horas_semanales,
+        "activo": b.activo,
+        "tipo_formacion": b.tipo_formacion.nombre if b.tipo_formacion else None,
+        "fuente_financiamiento": b.fuente_financiamiento.nombre if b.fuente_financiamiento else None
+    }
+
+    if rol == "investigador":
+        i = Investigador.query.filter_by(id=id, activo=True).first()
+        if not i:
+            return None
+
+        return {
+        "id": i.id,
+        "nombre_apellido": i.nombre_apellido,
+        "horas_semanales": i.horas_semanales,
+        "activo": i.activo,
+        "tipo_dedicacion": i.tipo_dedicacion.nombre if i.tipo_dedicacion else None,
+        "categoria_utn": i.categoria_utn.nombre if i.categoria_utn else None,
+        "programa_incentivos": i.programa_incentivos.nombre if i.programa_incentivos else None
+    }
+
+    return None

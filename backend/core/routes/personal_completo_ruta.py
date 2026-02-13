@@ -15,3 +15,14 @@ personal_completo_bp = Blueprint(
 @personal_completo_bp.route("/", methods=["GET"])
 def listar():
     return PersonalCompletoController.listar()
+
+@personal_completo_bp.route("/<string:rol>/<int:id>", methods=["GET"])
+def obtener_por_id(rol, id):
+    from core.services.personal_completo_service import obtener_personal_por_tipo
+
+    data = obtener_personal_por_tipo(rol, id)
+
+    if not data:
+        return {"error": "No encontrado"}, 404
+
+    return data, 200

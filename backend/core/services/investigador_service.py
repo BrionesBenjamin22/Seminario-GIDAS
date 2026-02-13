@@ -85,19 +85,10 @@ def actualizar_investigador(id, data):
         if not isinstance(data["activo"], bool):
             raise ValueError("El campo 'activo' debe ser booleano.")
 
-        if investigador.activo == data["activo"]:
-            estado = "activo" if investigador.activo else "inactivo"
-            raise ValueError(f"El investigador ya se encuentra {estado}.")
-
-        investigador.activo = data["activo"]
-
-        try:
+        if investigador.activo != data["activo"]:
+            investigador.activo = data["activo"]
             db.session.commit()
             return investigador
-        except Exception:
-            db.session.rollback()
-            raise
-
   
     if not investigador.activo:
         raise ValueError(

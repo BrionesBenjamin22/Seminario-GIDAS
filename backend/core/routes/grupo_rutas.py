@@ -12,14 +12,14 @@ grupo_utn_bp = Blueprint(
 # -------------------------
 @grupo_utn_bp.route("/", methods=["POST"], strict_slashes=False)
 def crear():
-    return GrupoUtnController.crear(request)
+    return GrupoUtnController.crear()
 
 # -------------------------
 # Obtener grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["GET"], strict_slashes=False)
 def obtener():
-    return GrupoUtnController.obtener(request)
+    return GrupoUtnController.obtener()
 
 
 # -------------------------
@@ -27,11 +27,11 @@ def obtener():
 # -------------------------
 @grupo_utn_bp.route("/", methods=["PUT"], strict_slashes=False)
 def actualizar():
-    return GrupoUtnController.actualizar(request)
+    return GrupoUtnController.actualizar()
 
 # -------------------------
 # Eliminar grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["DELETE"], strict_slashes=False)
 def eliminar():
-    return GrupoUtnController.eliminar(request)
+    return GrupoUtnController.eliminar()

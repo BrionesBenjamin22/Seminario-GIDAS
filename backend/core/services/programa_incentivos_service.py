@@ -10,7 +10,7 @@ def crear_programa_incentivos(data):
     if not nombre or not isinstance(nombre, str):
         raise ValueError("El nombre debe ser un texto no vacío.")
 
-    nombre = nombre.strip().lower()
+    nombre = nombre.strip()
     if not nombre:
         raise ValueError("El nombre no puede estar vacío.")
 
@@ -37,7 +37,7 @@ def actualizar_programa_incentivos(id, data):
     if not nombre or not isinstance(nombre, str):
         raise ValueError("El nombre debe ser un texto no vacío.")
 
-    nombre = nombre.strip().lower()
+    nombre = nombre.strip()
     if not nombre:
         raise ValueError("El nombre no puede estar vacío.")
 

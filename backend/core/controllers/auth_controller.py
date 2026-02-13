@@ -10,6 +10,7 @@ class AuthController:
         data = req.get_json()
 
         try:
+            print(req.json)
             user = AuthService.register(
                 nombre_usuario=data["nombre_usuario"],
                 mail=data["mail"],

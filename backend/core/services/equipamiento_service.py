@@ -1,4 +1,5 @@
 from core.models.equipamiento import Equipamiento
+from core.models.grupo import GrupoInvestigacionUtn
 from extension import db
 from datetime import datetime
 
@@ -18,56 +19,48 @@ class EquipamientoService:
 
     @staticmethod
     def create(data: dict):
-        monto = data.get("monto_invertido")
+
+        # 🔹 Obtener automáticamente el grupo UTN
+        grupo = GrupoInvestigacionUtn.query.first()
+        if not grupo:
+            raise Exception("No hay grupo UTN configurado")
 
         # --- Validaciones ---
-        
         denominacion = data.get("denominacion")
-
         if not denominacion or not isinstance(denominacion, str):
             raise ValueError("La denominación es obligatoria.")
 
-        denominacion = denominacion.strip()
-        if not denominacion:
-            raise ValueError("La denominación no puede estar vacía.")
-
         descripcion = data.get("descripcion_breve")
-        
         if not descripcion or not isinstance(descripcion, str):
             raise ValueError("La descripción es obligatoria.")
-        
-        if descripcion.isdigit():
-            raise ValueError("La descripción no puede ser solo un número.")
 
-        descripcion = descripcion.strip()
-        if not descripcion:
-            raise ValueError("La descripción no puede estar vacía.")
-
-
-        if monto is None:
-            raise Exception("El monto invertido es obligatorio")
-
+        monto = data.get("monto_invertido")
         try:
             monto = float(monto)
         except (TypeError, ValueError):
-            raise Exception("El monto invertido debe ser numérico")
+            raise ValueError("El monto debe ser numérico")
 
         if monto <= 0:
-            raise Exception("El monto invertido debe ser mayor a 0")
+            raise ValueError("El monto debe ser mayor a 0")
+
+        fecha = data.get("fecha_incorporacion")
+        if not fecha:
+            raise ValueError("La fecha de incorporación es obligatoria")
 
         # --- Crear equipamiento ---
         equipamiento = Equipamiento(
-            denominacion=denominacion,
-            descripcion_breve=descripcion,
-            fecha_incorporacion=datetime.strptime(
-                data["fecha_incorporacion"], "%Y-%m-%d"
-            ).date(),
-            monto_invertido=monto,
-            grupo_utn_id=data.get("grupo_utn_id")
-        )
+        denominacion=denominacion,
+        descripcion_breve=descripcion,
+        fecha_incorporacion=datetime.strptime(
+            data["fecha_incorporacion"], "%Y-%m-%d"
+        ).date(),
+        monto_invertido=monto,
+        grupo_utn_id=grupo.id
+    )
 
         db.session.add(equipamiento)
         db.session.commit()
+
         return equipamiento.serialize()
 
 

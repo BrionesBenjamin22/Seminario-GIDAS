@@ -16,6 +16,7 @@ class Erogacion(db.Model):
     __tablename__ = 'erogacion'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    numero_erogacion = db.Column(db.Integer, nullable=True)  # nuevo campo para el número de erogación
     egresos = db.Column(db.Float, nullable=False)   # mejor Float para montos
     ingresos = db.Column(db.Float, nullable=False)
 
@@ -30,6 +31,8 @@ class Erogacion(db.Model):
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+        data["numeroErogacion"] = self.numero_erogacion
 
         data.pop("tipo_erogacion_id", None)
         data.pop("fuente_financiamiento_id", None)

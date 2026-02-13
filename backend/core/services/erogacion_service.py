@@ -49,6 +49,7 @@ class ErogacionService:
         return erogacion.serialize()
 
 
+    
 
     @staticmethod
     def create(data: dict):
@@ -97,8 +98,13 @@ class ErogacionService:
         if data.get("grupo_utn_id"):
             if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
                 raise Exception("Grupo UTN inválido")
+        
+        numero = data.get("numeroErogacion")
+        if not numero:
+            raise ValueError("El número de erogación es obligatorio")
 
         erogacion = Erogacion(
+            numero_erogacion=numero,
             egresos=egresos,
             ingresos=ingresos,
             tipo_erogacion_id=data.get("tipo_erogacion_id"),
