@@ -107,7 +107,7 @@ def listar_personal_completo():
                 "actividades_docencia": [
                     {
                         "id": a.id,
-                        "curso": a.denominacion_curso_catedra
+                        "curso": a.curso
                     }
                     for a in i.actividades_docencia
                 ],

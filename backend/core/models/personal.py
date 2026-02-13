@@ -199,20 +199,24 @@ class Investigador(db.Model):
             "horas_semanales": self.horas_semanales,
             "activo": self.activo,
 
-            "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
-            "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
-            "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
-            "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
+            # 🔥 IDS
+        "categoria_utn_id": self.categoria_utn_id,
+        "programa_incentivos_id": self.programa_incentivos_id,
+        "tipo_dedicacion_id": self.tipo_dedicacion_id,
+        "grupo_utn_id": self.grupo_utn_id,
+
+        # 🔥 NOMBRES
+        "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
+        "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
+        "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
+        "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
 
             "proyectos": [
                 {"id": p.id, "codigo": p.codigo_proyecto, "nombre": p.nombre_proyecto}
                 for p in self.proyectos
             ],
 
-            "actividades_docencia": [
-                {"id": a.id, "curso": a.denominacion_curso_catedra}
-                for a in self.actividades_docencia
-            ],
+            
 
             "participaciones_relevantes": [
                 {"id": p.id, "evento": p.nombre_evento}
@@ -224,3 +228,5 @@ class Investigador(db.Model):
                 for t in self.trabajos_reunion_cientifica
             ]
         }
+
+    
