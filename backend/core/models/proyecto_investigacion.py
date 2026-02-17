@@ -73,11 +73,11 @@ class ProyectoInvestigacion(db.Model):
         } if self.planificacion else None
 
         data["investigadores"] = [
-            {"id": i.id, "nombre": i.nombre_apellido}
+            {"id": i.id, "nombre_apellido": i.nombre_apellido}
             for i in self.investigadores
         ]
         data["becarios"] = [
-            {"id": b.id, "nombre": b.nombre_apellido}
+            {"id": b.id, "nombre_apellido": b.nombre_apellido}
             for b in self.becarios
         ]
 

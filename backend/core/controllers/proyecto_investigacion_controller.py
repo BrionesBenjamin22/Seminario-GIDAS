@@ -65,10 +65,10 @@ class ProyectoInvestigacionController:
     # DELETE
     # =========================
     @staticmethod
-    def delete(proyecto_id):
+    def cerrar(proyecto_id):
         try:
             return jsonify(
-                ProyectoInvestigacionService.delete(proyecto_id)
+                ProyectoInvestigacionService.cerrar_proyecto(proyecto_id)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
