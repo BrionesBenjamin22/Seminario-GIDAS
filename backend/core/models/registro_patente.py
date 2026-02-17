@@ -5,6 +5,7 @@ class RegistrosPropiedad(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     nombre_articulo = db.Column(db.Text, nullable=False)
     organismo_registrante = db.Column(db.Text, nullable=False)
+    fecha_registro = db.Column(db.Date, nullable=False)
     
     # --- Clave Foránea y Relación ---
     tipo_registro_id = db.Column(db.Integer, db.ForeignKey('tipo_registro_propiedad.id'), nullable=False)

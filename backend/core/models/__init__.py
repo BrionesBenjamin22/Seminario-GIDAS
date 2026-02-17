@@ -1,5 +1,5 @@
 from .articulo_divulgacion import ArticuloDivulgacion
-from .actividad_docencia import ActividadDocencia
+from .actividad_docencia import ActividadDocencia, RolActividad, GradoAcademico
 from .categoria_utn import CategoriaUtn
 from .distinciones import DistincionRecibida
 from .documentacion_autores import DocumentacionBibliografica, Autor, autor_libro

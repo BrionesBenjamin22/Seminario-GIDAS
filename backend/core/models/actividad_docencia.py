@@ -51,6 +51,7 @@ class RolActividad(db.Model):
             "nombre": self.nombre
         }
         
+        
 class GradoAcademico(db.Model):
     __tablename__ = 'grado_academico'
     id = db.Column(db.Integer, primary_key=True)

@@ -28,6 +28,7 @@ from core.routes.trabajo_revista_rutas import trabajos_revistas_referato_bp
 from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
 from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 from core.routes.participacion_relevante_rutas import participacion_relevante_bp
+from core.routes.grado_academico_rutas import grado_academico_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -42,6 +43,7 @@ blueprints = [
     erogacion_bp,
     fuente_financiamiento_bp,
     grupo_utn_bp,
+    grado_academico_bp,
     investigador_bp,
     participacion_relevante_bp,
     personal_bp,

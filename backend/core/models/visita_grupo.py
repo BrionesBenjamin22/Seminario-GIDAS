@@ -5,7 +5,6 @@ class VisitaAcademica(db.Model): #antes Visita.ahora VisitaAcademica
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     tipo_visita = db.Column(db.Text, nullable=False)
     razon = db.Column(db.Text, nullable=False)
-    procedencia = db.Column(db.Text, nullable=False)
     fecha = db.Column(db.Date, nullable=False)
 
     # --- Clave Foránea y Relación ---
