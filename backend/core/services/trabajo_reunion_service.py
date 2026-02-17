@@ -215,3 +215,47 @@ class TrabajoReunionCientificaService:
         db.session.delete(trabajo)
         db.session.commit()
         return {"message": "Trabajo eliminado correctamente"}
+
+
+    @staticmethod
+    def vincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        trabajo = TrabajoReunionCientifica.query.get(trabajo_id)
+        if not trabajo:
+            raise Exception("Trabajo en reunión científica no encontrado")
+
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+        if len(investigadores) != len(investigadores_ids):
+            raise Exception("Uno o más investigadores no existen")
+
+        for inv in investigadores:
+            if inv not in trabajo.investigadores:
+                trabajo.investigadores.append(inv)
+
+        db.session.commit()
+            
+        return trabajo.serialize()
+    
+    @staticmethod
+    def desvincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        trabajo = TrabajoReunionCientifica.query.get(trabajo_id)
+        if not trabajo:
+            raise Exception("Trabajo en reunión científica no encontrado")
+
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+        if len(investigadores) != len(investigadores_ids):
+            raise Exception("Uno o más investigadores no existen")
+
+        for inv in investigadores:
+            if inv in trabajo.investigadores:
+                trabajo.investigadores.remove(inv)
+            db.session.commit()
+            
+        return trabajo.serialize()

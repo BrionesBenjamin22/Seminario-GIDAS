@@ -19,6 +19,7 @@ class Erogacion(db.Model):
     numero_erogacion = db.Column(db.Integer, nullable=True)  # nuevo campo para el número de erogación
     egresos = db.Column(db.Float, nullable=False)   # mejor Float para montos
     ingresos = db.Column(db.Float, nullable=False)
+    fecha = db.Column(db.Date, nullable=False)
 
     tipo_erogacion_id = db.Column(db.Integer, db.ForeignKey('tipo_erogacion.id'))
     tipo_erogacion = db.relationship('TipoErogacion', back_populates='erogaciones')
@@ -32,8 +33,8 @@ class Erogacion(db.Model):
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
-        data["numeroErogacion"] = self.numero_erogacion
-
+        data["numero_erogacion"] = self.numero_erogacion # antes era numeroErogacion, ahora numero_erogacion para seguir la convención de nombres en Python
+        data["fecha"] = self.fecha.isoformat() if self.fecha else None
         data.pop("tipo_erogacion_id", None)
         data.pop("fuente_financiamiento_id", None)
         data.pop("grupo_utn_id", None)

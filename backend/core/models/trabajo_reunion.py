@@ -52,6 +52,17 @@ class TipoReunion(db.Model):
         back_populates='tipo_reunion_cientifica',
         lazy='select'
     )
+    trabajos_revistas = db.relationship(
+        'TrabajosRevistasReferato',
+        back_populates='tipo_reunion',
+        lazy='select'
+    )
+    
+    visitas = db.relationship(
+        'VisitaAcademica',
+        back_populates='procedencia_visita',
+        lazy='select'
+    )
 
     def serialize(self):
         return {

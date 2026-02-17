@@ -1,8 +1,14 @@
 import re
 from sqlalchemy.orm import validates
 from extension import db
+from core.models.trabajo_reunion import TipoReunion
 
-# tabla M:M con investigador
+
+investigador_x_trabajo_revista = db.Table(
+    'investigador_x_trabajo_revista',
+    db.Column('investigador_id', db.Integer, db.ForeignKey('investigador.id'), primary_key=True),
+    db.Column('trabajos_revista_id', db.Integer, db.ForeignKey('trabajos_revista.id'), primary_key=True)
+)
 
 class TrabajosRevistasReferato(db.Model):
     __tablename__ = 'trabajos_revista'
@@ -16,11 +22,18 @@ class TrabajosRevistasReferato(db.Model):
     # --- Clave Foránea y Relación ---
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='trabajos_revistas') 
+    tipo_reunion_id = db.Column(db.Integer, db.ForeignKey('tipo_reunion_cientifica.id'), nullable=False)
+    tipo_reunion = db.relationship('TipoReunion', back_populates='trabajos_revistas')
+    investigadores = db.relationship('Investigador', secondary=investigador_x_trabajo_revista, back_populates='trabajos_revistas')
     
     
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
+        data["investigadores"] = [  {
+            "id": inv.id,
+            "nombre_apellido": inv.nombre_apellido 
+        } for inv in self.investigadores ]
         return data
     
     @validates('issn')

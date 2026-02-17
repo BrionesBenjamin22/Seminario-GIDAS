@@ -1,3 +1,4 @@
+from core.models.personal import Investigador
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.proyecto_investigacion import ProyectoInvestigacion
 from core.models.trabajo_revista import TrabajosRevistasReferato
@@ -53,6 +54,7 @@ class TrabajosRevistasReferatoService:
             "editorial",
             "issn",
             "pais",
+            "fecha",
             "proyecto_id"
         ]
 
@@ -78,6 +80,7 @@ class TrabajosRevistasReferatoService:
             editorial=data["editorial"],
             issn=data["issn"],
             pais=data["pais"],
+            fecha=data["fecha"],
             proyecto_id=data["proyecto_id"],
             grupo_utn_id=grupo_utn_id
         )
@@ -107,6 +110,9 @@ class TrabajosRevistasReferatoService:
 
         if "pais" in data:
             trabajo.pais = data["pais"]
+            
+        if "fecha" in data:
+            trabajo.fecha = data["fecha"]
 
         if "proyecto_id" in data:
             proyecto = ProyectoInvestigacion.query.get(data["proyecto_id"])
@@ -136,3 +142,52 @@ class TrabajosRevistasReferatoService:
         db.session.delete(trabajo)
         db.session.commit()
         return {"message": "Trabajo en revista eliminado correctamente"}
+    
+    @staticmethod
+    def vincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        if not investigadores_ids or not isinstance(investigadores_ids, list):
+            raise ValueError("Debe enviarse una lista de ids de investigadores")
+
+        trabajo = db.session.get(TrabajosRevistasReferato, trabajo_id)
+        if not trabajo:
+            raise ValueError("Trabajo en revista no encontrado")
+
+        # Traemos todos los investigadores que existan
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+
+        if len(investigadores) != len(investigadores_ids):
+            raise ValueError("Uno o más investigadores no existen")
+
+        # Vinculamos solo los que no estén ya vinculados
+        for inv in investigadores:
+            if inv not in trabajo.investigadores:
+                trabajo.investigadores.append(inv)
+
+        db.session.commit()
+
+        return trabajo.serialize()
+
+
+    @staticmethod
+    def desvincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        trabajo = db.session.get(TrabajosRevistasReferato, trabajo_id)
+        if not trabajo:
+            raise ValueError("Trabajo en revista no encontrado")
+
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+
+        for inv in investigadores:
+            if inv in trabajo.investigadores:
+                trabajo.investigadores.remove(inv)
+
+        db.session.commit()
+
+        return trabajo.serialize()

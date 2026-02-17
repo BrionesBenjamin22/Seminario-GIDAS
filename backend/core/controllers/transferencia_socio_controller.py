@@ -62,3 +62,60 @@ class TransferenciaSocioProductivaController:
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
+    @staticmethod
+    def add_adoptantes(transferencia_id):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({"error": "Body requerido"}), 400
+
+            adoptantes_ids = data.get("adoptantes_ids")
+
+            if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
+                return jsonify({
+                    "error": "adoptantes_ids debe ser una lista no vacía"
+                }), 400
+
+            result = TransferenciaSocioProductivaService.add_adoptantes(
+                transferencia_id,
+                adoptantes_ids
+            )
+
+            return jsonify(result), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500
+
+
+    @staticmethod
+    def remove_adoptantes(transferencia_id):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({"error": "Body requerido"}), 400
+
+            adoptantes_ids = data.get("adoptantes_ids")
+
+            if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
+                return jsonify({
+                    "error": "adoptantes_ids debe ser una lista no vacía"
+                }), 400
+
+            result = TransferenciaSocioProductivaService.remove_adoptantes(
+                transferencia_id,
+                adoptantes_ids
+            )
+
+            return jsonify(result), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500

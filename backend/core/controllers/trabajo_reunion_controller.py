@@ -63,3 +63,54 @@ class TrabajoReunionCientificaController:
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+        
+    
+    @staticmethod
+    def add_investigadores(trabajo_id):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({"error": "Body requerido"}), 400
+
+            investigadores_ids = data.get("investigadores_ids")
+
+            if not isinstance(investigadores_ids, list) or not investigadores_ids:
+                return jsonify({
+                    "error": "investigadores_ids debe ser una lista no vacía"
+                }), 400
+
+            result = TrabajoReunionCientificaService.add_investigadores(
+                trabajo_id,
+                investigadores_ids
+            )
+
+            return jsonify(result), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        
+    @staticmethod
+    def remove_investigadores(trabajo_id):
+        try:
+            data = request.get_json()
+
+            if not data:
+                return jsonify({"error": "Body requerido"}), 400
+
+            investigadores_ids = data.get("investigadores_ids")
+
+            if not isinstance(investigadores_ids, list) or not investigadores_ids:
+                return jsonify({
+                    "error": "investigadores_ids debe ser una lista no vacía"
+                }), 400
+
+            result = TrabajoReunionCientificaService.remove_investigadores(
+                trabajo_id,
+                investigadores_ids
+            )
+
+            return jsonify(result), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400

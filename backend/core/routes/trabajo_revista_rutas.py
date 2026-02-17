@@ -27,3 +27,12 @@ trabajos_revistas_referato_bp.route("/<int:trabajo_id>", methods=["PUT"])(
 trabajos_revistas_referato_bp.route("/<int:trabajo_id>", methods=["DELETE"])(
     TrabajosRevistasReferatoController.delete
 )
+
+trabajos_revistas_referato_bp.route("/<int:trabajo_id>/investigadores", methods=["POST"])(
+    TrabajosRevistasReferatoController.add_investigadores
+)
+
+trabajos_revistas_referato_bp.route("/<int:trabajo_id>/investigadores", methods=["DELETE"])(
+    TrabajosRevistasReferatoController.remove_investigadores
+)
+        

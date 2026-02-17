@@ -1,7 +1,7 @@
 from extension import db
 from core.models.proyecto_investigacion import becario_proyecto, investigador_proyecto
 from core.models.trabajo_reunion import investigador_x_trabajo_reunion
-
+from core.models.trabajo_revista import investigador_x_trabajo_revista
 
 # =====================================================
 # PERSONAL
@@ -186,6 +186,13 @@ class Investigador(db.Model):
         back_populates='investigador',
         cascade='all, delete-orphan'
     )
+
+    trabajos_revistas = db.relationship(
+        'TrabajosRevistasReferato',
+        secondary=investigador_x_trabajo_revista,
+        back_populates='investigadores'
+    )
+
 
     proyectos = db.relationship(
         'ProyectoInvestigacion',

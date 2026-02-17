@@ -1,13 +1,43 @@
 from extension import db
 
+
+adoptante_transferencia = db.Table(
+    'adoptante_x_transferencia',
+    db.Column('adoptante_id', db.Integer, db.ForeignKey('adoptante.id'), primary_key=True),
+    db.Column('transferencia_socio_productiva_id', db.Integer, db.ForeignKey('transferencia_socio_productiva.id'), primary_key=True)
+)
+
+
+class Adoptante(db.Model):
+    __tablename__ = 'adoptante'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    nombre = db.Column(db.Text, nullable=False)
+    
+    transferencias = db.relationship(
+        'TransferenciaSocioProductiva',
+        secondary=adoptante_transferencia,
+        back_populates='adoptantes'
+    )
+
+    def serialize(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
 class TransferenciaSocioProductiva(db.Model):
     __tablename__ = 'transferencia_socio_productiva'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
-    adoptante = db.Column(db.Text, nullable=False)
     demandante = db.Column(db.Text, nullable=False)
     descripcion_actividad = db.Column(db.Text, nullable=False)
-    monto = db.Column(db.Float, nullable=False)
+    monto = db.Column(db.Float, nullable=True)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+    
+    adoptantes = db.relationship(
+        'Adoptante',
+        secondary=adoptante_transferencia,
+        back_populates='transferencias'
+    )
 
     tipo_contrato_id = db.Column(db.Integer, db.ForeignKey('tipo_contrato_transferencia.id'))
     tipo_contrato_transferencia = db.relationship('TipoContrato', back_populates='transferencias')

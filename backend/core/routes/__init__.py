@@ -30,10 +30,11 @@ from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 from core.routes.participacion_relevante_rutas import participacion_relevante_bp
 from core.routes.grado_academico_rutas import grado_academico_bp
 from core.routes.rol_actividad_rutas import rol_actividad_bp
+from core.routes.adoptante_rutas import adoptante_bp
 
 blueprints = [
     actividad_docencia_bp,
-    
+    adoptante_bp,
     auth_bp,
     autor_bp,
     becario_bp,

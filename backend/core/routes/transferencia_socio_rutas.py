@@ -28,3 +28,11 @@ transferencia_socio_productiva_bp.route("/<int:transferencia_id>", methods=["PUT
 transferencia_socio_productiva_bp.route("/<int:transferencia_id>", methods=["DELETE"])(
     TransferenciaSocioProductivaController.delete
 )
+
+transferencia_socio_productiva_bp.route("/<int:transferencia_id>/adoptantes", methods=["POST"])(
+    TransferenciaSocioProductivaController.add_adoptantes
+)
+
+transferencia_socio_productiva_bp.route("/<int:transferencia_id>/adoptantes", methods=["DELETE"])(
+    TransferenciaSocioProductivaController.remove_adoptantes
+)
