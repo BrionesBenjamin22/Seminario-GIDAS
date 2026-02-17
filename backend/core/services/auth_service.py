@@ -159,3 +159,4 @@ class AuthService:
         except Exception:
             db.session.rollback()
             raise Exception("Error al cambiar la contraseña")
+        

@@ -8,6 +8,7 @@ from core.models.equipamiento import Equipamiento
 from core.models.visita_grupo import VisitaAcademica
 from core.models.trabajo_revista import TrabajosRevistasReferato
 from core.models.participacion_relevante import ParticipacionRelevante
+from core.models.erogacion import Erogacion
 
 
 
@@ -41,6 +42,22 @@ SEARCH_ENTITIES = [
                 "grupo": p.grupo_utn.nombre_sigla_grupo if p.grupo_utn else None
             },
             "url": f"/personal/{p.id}"
+        }
+    },
+    
+    {
+        "type": "erogacion",
+        "model": Erogacion,
+        "fields": ["numero_erogacion","ingresos", "egresos", "fuente_financiamiento.nombre", "tipo_erogacion.nombre"],
+        "serializer": lambda e: {
+            "type": "erogacion",
+            "id": e.id,
+            "title": f"Erogación {e.numero_erogacion}",
+            "description": f"Ingresos: ${e.ingresos}, Egresos: ${e.egresos}",
+            "extra": {
+                "grupo": e.grupo_utn.nombre_sigla_grupo if e.grupo_utn else None
+            },
+            "url": f"/erogaciones/{e.id}"
         }
     },
 

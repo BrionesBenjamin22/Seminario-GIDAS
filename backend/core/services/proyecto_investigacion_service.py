@@ -1,5 +1,6 @@
 from datetime import datetime
 from extension import db
+from sqlalchemy import func
 
 from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto
 from core.models.grupo import GrupoInvestigacionUtn
@@ -200,14 +201,14 @@ class ProyectoInvestigacionService:
     # DELETE
     # =========================
     @staticmethod
-    def delete(proyecto_id: int):
+    def cerrar_proyecto(proyecto_id: int):
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
         if not proyecto:
             raise Exception("Proyecto de investigación no encontrado")
 
-        db.session.delete(proyecto)
+        proyecto.fecha_fin = func.current_date()  # Cierra el proyecto al día de hoy
         db.session.commit()
-        return {"message": "Proyecto eliminado correctamente"}
+        return {"message": "Proyecto cerrado correctamente"}
 
     # =========================
     # VINCULAR / DESVINCULAR BECARIOS

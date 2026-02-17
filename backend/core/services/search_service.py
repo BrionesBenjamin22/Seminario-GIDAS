@@ -118,6 +118,22 @@ class SearchService:
         },
         {
             "keywords": [
+                "erogacion",
+                "erogaciones",
+                "egreso",
+                "egresos",
+                "ingreso",
+                "ingresos"
+                ],  
+            "result": {
+                "type": "section",
+                "title": "Erogaciones",
+                "description": "Erogaciones, ingresos y egresos del grupo",
+                "url": "/erogaciones"
+            },
+        },
+        {
+            "keywords": [
                 "distincion",
                 "distinciones",
                 "premio",
@@ -265,7 +281,7 @@ class SearchService:
             matches = (
                 model.query
                 .filter(or_(*filters))
-                .limit(5)   # 🔒 límite por entidad
+                .limit(5)   
                 .all()
             )
 

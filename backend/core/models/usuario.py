@@ -25,6 +25,7 @@ class Usuario(db.Model):
         )
 
     
+    
     def cambiar_password(self, password_actual: str, password_nueva: str):
         if not self.verificar_password(password_actual):
             raise Exception("La contraseña actual es incorrecta")

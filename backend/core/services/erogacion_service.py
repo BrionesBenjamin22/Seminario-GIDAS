@@ -99,7 +99,7 @@ class ErogacionService:
             if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
                 raise Exception("Grupo UTN inválido")
         
-        numero = data.get("numeroErogacion")
+        numero = data.get("numero_erogacion")
         if not numero:
             raise ValueError("El número de erogación es obligatorio")
 

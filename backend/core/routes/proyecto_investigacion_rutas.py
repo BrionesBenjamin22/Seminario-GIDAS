@@ -29,7 +29,7 @@ proyecto_investigacion_bp.route("/<int:proyecto_id>", methods=["PUT"], strict_sl
 )
 
 proyecto_investigacion_bp.route("/<int:proyecto_id>", methods=["DELETE"], strict_slashes=False)(
-    ProyectoInvestigacionController.delete
+    ProyectoInvestigacionController.cerrar
 )
 
 # =========================
