@@ -29,6 +29,7 @@ from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
 from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 from core.routes.participacion_relevante_rutas import participacion_relevante_bp
 from core.routes.grado_academico_rutas import grado_academico_bp
+from core.routes.rol_actividad_rutas import rol_actividad_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -52,6 +53,7 @@ blueprints = [
     proyecto_investigacion_bp,
     programa_incentivos_bp,
     registros_propiedad_bp,
+    rol_actividad_bp,
     tipo_contrato_bp,
     tipo_dedicacion_bp,
     tipo_erogacion_bp,

@@ -47,7 +47,6 @@ class ProyectoInvestigacion(db.Model):
     planificacion = db.relationship('PlanificacionGrupo', back_populates='proyectos_investigacion')
 
     # --- Relaciones (Uno-a-Muchos) ---
-    trabajos_revistas = db.relationship('TrabajosRevistasReferato', back_populates='proyecto_investigacion', cascade="all, delete-orphan")
     distinciones = db.relationship('DistincionRecibida', back_populates='proyecto_investigacion', cascade="all, delete-orphan")
 
     # --- Relaciones (Muchos-a-Muchos) ---
