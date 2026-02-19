@@ -5,6 +5,7 @@ from extension import db
 from core.models.personal import Personal, Becario, Investigador
 from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioProyecto, InvestigadorProyecto, TipoProyecto
 from core.models.actividad_docencia import ActividadDocencia
+from core.models.equipamiento import Equipamiento
 import unicodedata
 
 
@@ -269,23 +270,66 @@ class SearchService:
         # ==================================================
         # TIPO PROYECTO
         # ==================================================
-        tipo_proyecto_results = db.session.query(TipoProyecto).all()
+        tipo_proyecto_results = db.session.query(TipoProyecto)\
+            .options(joinedload(TipoProyecto.proyectos_investigacion))\
+            .all()
 
         for tipo in tipo_proyecto_results:
+
             tipo_nombre_norm = SearchService.normalize_text(tipo.nombre)
 
             if query_normalized in tipo_nombre_norm:
 
-                # Traer proyectos de ese tipo
-                for proyecto in tipo.proyectos_investigacion:
+                # ✅ Si tiene proyectos → devolver proyectos
+                if tipo.proyectos_investigacion:
+
+                    for proyecto in tipo.proyectos_investigacion:
+                        resultados.append({
+                            "tipo": "Proyecto (por tipo)",
+                            "id": proyecto.id,
+                            "titulo": proyecto.nombre_proyecto,
+                            "subtitulo": f"Tipo: {tipo.nombre}",
+                            "fecha": proyecto.fecha_inicio,
+                            "url": f"/proyectos/{proyecto.id}"
+                        })
+
+                else:
                     resultados.append({
-                        "tipo": "Proyecto (por tipo)",
-                        "id": proyecto.id,
-                        "titulo": proyecto.nombre_proyecto,
-                        "subtitulo": f"Tipo: {tipo.nombre}",
-                        "fecha": proyecto.fecha_inicio,
-                        "url": f"/proyectos/{proyecto.id}"
+                        "tipo": "Tipo de Proyecto",
+                        "id": tipo.id,
+                        "titulo": tipo.nombre,
+                        "subtitulo": "Sin proyectos asociados",
+                        "fecha": None,
+                        "url": f"/tipos-proyecto/{tipo.id}"
                     })
+                    
+        # ==================================================
+        # EQUIPAMIENTO
+        # ==================================================
+
+        equipamiento_results = db.session.query(Equipamiento)\
+            .options(joinedload(Equipamiento.grupo_utn))\
+            .all()
+
+        for e in equipamiento_results:
+
+            denominacion_norm = SearchService.normalize_text(e.denominacion)
+
+            if query_normalized in denominacion_norm:
+
+                resultados.append({
+                    "tipo": "Equipamiento",
+                    "id": e.id,
+                    "titulo": e.denominacion,
+                    "subtitulo": e.descripcion_breve,
+                    "fecha": e.fecha_incorporacion,
+                    "url": f"/equipamiento/{e.id}",
+                    "extra": {
+                        "grupo": e.grupo_utn.nombre_sigla_grupo if e.grupo_utn else None,
+                        "monto_invertido": e.monto_invertido,
+                        "fecha_incorporacion": str(e.fecha_incorporacion)
+                    }
+                })
 
 
 
