@@ -1,7 +1,7 @@
 from datetime import datetime
 from extension import db
 
-from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto
+from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, InvestigadorProyecto, BecarioProyecto
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.fuente_financiamiento import FuenteFinanciamiento
 from core.models.programa_actividades import PlanificacionGrupo
@@ -52,7 +52,10 @@ class ProyectoInvestigacionService:
     # =========================
     @staticmethod
     def create(data: dict):
-        # ---- Fecha inicio ----
+        codigo = data.get("codigo_proyecto")
+        if not codigo or not isinstance(codigo, int):
+            raise ValueError("El campo 'codigo_proyecto' es obligatorio y debe ser un número entero")
+        
         try:
             fecha_inicio = datetime.strptime(
                 data["fecha_inicio"], "%Y-%m-%d"
@@ -195,103 +198,229 @@ class ProyectoInvestigacionService:
     # VINCULAR / DESVINCULAR BECARIOS
     # =========================
     @staticmethod
-    def vincular_becarios_a_proyecto(proyecto_id, becarios_ids):
-        if proyecto_id is None:
-            raise ValueError("El id del proyecto es obligatorio.")
+    def vincular_becarios_a_proyecto(proyecto_id, participaciones):
 
-        if not isinstance(becarios_ids, list) or not becarios_ids:
-            raise ValueError("Debe enviarse una lista de ids de becarios.")
+        if not isinstance(participaciones, list) or not participaciones:
+            raise ValueError("Debe enviarse una lista de participaciones.")
 
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
         if not proyecto:
             raise ValueError("Proyecto no encontrado.")
 
-        becarios = Becario.query.filter(Becario.id.in_(becarios_ids)).all()
-        if not becarios:
-            raise ValueError("No se encontraron becarios válidos.")
+        for item in participaciones:
 
-        for becario in becarios:
-            if becario not in proyecto.becarios:
-                proyecto.becarios.append(becario)
+            becario_id = item.get("id_becario")
+            if not becario_id:
+                raise ValueError("id_becario es obligatorio.")
+
+            becario = Becario.query.get(becario_id)
+            if not becario:
+                raise ValueError(f"Becario {becario_id} no encontrado.")
+
+            # Validar fechas
+            try:
+                fecha_inicio = datetime.strptime(
+                    item["fecha_inicio"], "%Y-%m-%d"
+                ).date()
+            except Exception:
+                raise ValueError("fecha_inicio debe tener formato YYYY-MM-DD")
+
+            fecha_fin = None
+            if item.get("fecha_fin"):
+                fecha_fin = datetime.strptime(
+                    item["fecha_fin"], "%Y-%m-%d"
+                ).date()
+
+                if fecha_fin < fecha_inicio:
+                    raise ValueError("fecha_fin no puede ser anterior a fecha_inicio")
+
+            # Verificar que no exista ya
+            existente = BecarioProyecto.query.filter_by(
+                id_proyecto=proyecto_id,
+                id_becario=becario_id
+            ).first()
+
+            if existente:
+                continue  # Evita duplicado
+
+            nueva_participacion = BecarioProyecto(
+                id_becario=becario_id,
+                id_proyecto=proyecto_id,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin
+            )
+
+            db.session.add(nueva_participacion)
 
         db.session.commit()
         return proyecto.serialize()
+
+
 
     @staticmethod
-    def desvincular_becarios_de_proyecto(proyecto_id, becarios_ids):
-        if proyecto_id is None:
-            raise ValueError("El id del proyecto es obligatorio.")
+    def desvincular_becarios_de_proyecto(proyecto_id, participaciones):
+        """
+        participaciones:
+        [
+            {
+                "id_becario": 3,
+                "fecha_fin": "2024-10-15"
+            }
+        ]
+        """
 
-        if not isinstance(becarios_ids, list) or not becarios_ids:
-            raise ValueError("Debe enviarse una lista de ids de becarios.")
+        if not isinstance(participaciones, list) or not participaciones:
+            raise ValueError("Debe enviarse una lista no vacía de participaciones.")
 
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
         if not proyecto:
             raise ValueError("Proyecto no encontrado.")
 
-        becarios = Becario.query.filter(Becario.id.in_(becarios_ids)).all()
-        if not becarios:
-            raise ValueError("No se encontraron becarios válidos.")
+        for item in participaciones:
 
-        for becario in becarios:
-            if becario in proyecto.becarios:
-                proyecto.becarios.remove(becario)
+            becario_id = item.get("id_becario")
+            fecha_fin_str = item.get("fecha_fin")
+
+            if not becario_id or not fecha_fin_str:
+                raise ValueError("id_becario y fecha_fin son obligatorios.")
+
+            try:
+                fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("fecha_fin debe tener formato YYYY-MM-DD.")
+
+            participacion = BecarioProyecto.query.filter_by(
+                id_proyecto=proyecto_id,
+                id_becario=becario_id
+            ).first()
+
+            if not participacion:
+                raise ValueError(
+                    f"No existe participación activa para becario {becario_id}"
+                )
+
+            if fecha_fin < participacion.fecha_inicio:
+                raise ValueError("La fecha_fin no puede ser anterior a fecha_inicio.")
+
+            participacion.fecha_fin = fecha_fin
 
         db.session.commit()
+
         return proyecto.serialize()
+
 
     # =========================
     # VINCULAR / DESVINCULAR INVESTIGADORES
     # =========================
     @staticmethod
-    def vincular_investigadores_a_proyecto(proyecto_id, investigadores_ids):
-        if proyecto_id is None:
-            raise ValueError("El id del proyecto es obligatorio.")
+    def vincular_investigadores_a_proyecto(proyecto_id, participaciones):
 
-        if not isinstance(investigadores_ids, list) or not investigadores_ids:
-            raise ValueError("Debe enviarse una lista de ids de investigadores.")
+        if not isinstance(participaciones, list) or not participaciones:
+            raise ValueError("Debe enviarse una lista de participaciones.")
 
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
         if not proyecto:
             raise ValueError("Proyecto no encontrado.")
 
-        investigadores = Investigador.query.filter(
-            Investigador.id.in_(investigadores_ids)
-        ).all()
+        for item in participaciones:
 
-        if not investigadores:
-            raise ValueError("No se encontraron investigadores válidos.")
+            investigador_id = item.get("id_investigador")
+            if not investigador_id:
+                raise ValueError("id_investigador es obligatorio.")
 
-        for investigador in investigadores:
-            if investigador not in proyecto.investigadores:
-                proyecto.investigadores.append(investigador)
+            investigador = Investigador.query.get(investigador_id)
+            if not investigador:
+                raise ValueError(f"Investigador {investigador_id} no encontrado.")
+
+            try:
+                fecha_inicio = datetime.strptime(
+                    item["fecha_inicio"], "%Y-%m-%d"
+                ).date()
+            except Exception:
+                raise ValueError("fecha_inicio debe tener formato YYYY-MM-DD")
+
+            fecha_fin = None
+            if item.get("fecha_fin"):
+                fecha_fin = datetime.strptime(
+                    item["fecha_fin"], "%Y-%m-%d"
+                ).date()
+
+                if fecha_fin < fecha_inicio:
+                    raise ValueError("fecha_fin no puede ser anterior a fecha_inicio")
+
+            existente = InvestigadorProyecto.query.filter_by(
+                id_proyecto=proyecto_id,
+                id_investigador=investigador_id
+            ).first()
+
+            if existente:
+                continue
+
+            nueva_participacion = InvestigadorProyecto(
+                id_investigador=investigador_id,
+                id_proyecto=proyecto_id,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin
+            )
+
+            db.session.add(nueva_participacion)
 
         db.session.commit()
         return proyecto.serialize()
+
+
 
     @staticmethod
-    def desvincular_investigadores_de_proyecto(proyecto_id, investigadores_ids):
-        if proyecto_id is None:
-            raise ValueError("El id del proyecto es obligatorio.")
+    def desvincular_investigadores_de_proyecto(proyecto_id, participaciones):
+        """
+        participaciones:
+        [
+            {
+                "id_investigador": 1,
+                "fecha_fin": "2024-09-30"
+            }
+        ]
+        """
 
-        if not isinstance(investigadores_ids, list) or not investigadores_ids:
-            raise ValueError("Debe enviarse una lista de ids de investigadores.")
+        if not isinstance(participaciones, list) or not participaciones:
+            raise ValueError("Debe enviarse una lista no vacía de participaciones.")
 
         proyecto = ProyectoInvestigacion.query.get(proyecto_id)
         if not proyecto:
             raise ValueError("Proyecto no encontrado.")
 
-        investigadores = Investigador.query.filter(
-            Investigador.id.in_(investigadores_ids)
-        ).all()
+        for item in participaciones:
 
-        if not investigadores:
-            raise ValueError("No se encontraron investigadores válidos.")
+            investigador_id = item.get("id_investigador")
+            fecha_fin_str = item.get("fecha_fin")
 
-        for investigador in investigadores:
-            if investigador in proyecto.investigadores:
-                proyecto.investigadores.remove(investigador)
+            if not investigador_id or not fecha_fin_str:
+                raise ValueError("id_investigador y fecha_fin son obligatorios.")
+
+            try:
+                fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("fecha_fin debe tener formato YYYY-MM-DD.")
+
+            participacion = InvestigadorProyecto.query.filter_by(
+                id_proyecto=proyecto_id,
+                id_investigador=investigador_id
+            ).first()
+
+            if not participacion:
+                raise ValueError(
+                    f"No existe participación activa para investigador con id: {investigador_id}"
+                )
+
+            if fecha_fin < participacion.fecha_inicio:
+                raise ValueError("La fecha_fin no puede ser anterior a fecha_inicio.")
+
+            participacion.fecha_fin = fecha_fin
 
         db.session.commit()
+
         return proyecto.serialize()
+
+
+
 

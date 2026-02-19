@@ -31,6 +31,7 @@ from core.routes.participacion_relevante_rutas import participacion_relevante_bp
 from core.routes.grado_academico_rutas import grado_academico_bp
 from core.routes.rol_actividad_rutas import rol_actividad_bp
 from core.routes.adoptante_rutas import adoptante_bp
+from core.routes.search_rutas import search_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -55,6 +56,7 @@ blueprints = [
     programa_incentivos_bp,
     registros_propiedad_bp,
     rol_actividad_bp,
+    search_bp,
     tipo_contrato_bp,
     tipo_dedicacion_bp,
     tipo_erogacion_bp,

@@ -11,7 +11,7 @@ from .participacion_relevante import ParticipacionRelevante
 from .personal import Investigador, Becario, TipoFormacion, TipoDedicacion, Personal
 from .programa_actividades import PlanificacionGrupo
 from .programa_incentivos import ProgramaIncentivos
-from .proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, investigador_proyecto, becario_proyecto
+from .proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, BecarioProyecto, InvestigadorProyecto
 from .registro_patente import RegistrosPropiedad, TipoRegistroPropiedad
 from .tipo_personal import TipoPersonal
 from .trabajo_reunion import TrabajoReunionCientifica

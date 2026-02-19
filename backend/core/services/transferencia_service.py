@@ -1,3 +1,4 @@
+from datetime import datetime
 from core.models.transferencia_socio import Adoptante, TransferenciaSocioProductiva, TipoContrato
 from core.models.grupo import GrupoInvestigacionUtn
 from extension import db
@@ -85,12 +86,17 @@ class TransferenciaSocioProductivaService:
             data.get("monto")
         )
 
-        fecha_inicio_str = data.get("fecha_inicio")
-        if not fecha_inicio_str:
-            raise Exception("La fecha de inicio es obligatoria")
-        
-        fecha_fin = data.get("fecha_fin") if data.get("fecha_fin") else None
-        
+        fecha_inicio = datetime.strptime(
+            data["fecha_inicio"],
+            "%Y-%m-%d"
+        ).date()
+
+        fecha_fin = None
+        if data.get("fecha_fin"):
+            fecha_fin = datetime.strptime(
+                data["fecha_fin"],
+                "%Y-%m-%d"
+            ).date()
         
         # ---- Validar relaciones ----
         tipo_contrato_id = data.get("tipo_contrato_id")
@@ -105,7 +111,7 @@ class TransferenciaSocioProductivaService:
             demandante=demandante,
             descripcion_actividad=descripcion_actividad,
             monto=monto,
-            fecha_inicio=fecha_inicio_str,
+            fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             tipo_contrato_id=tipo_contrato_id,
             grupo_utn_id=grupo_utn_id
@@ -114,9 +120,10 @@ class TransferenciaSocioProductivaService:
         db.session.add(transferencia)
         try:
             db.session.commit()
-        except Exception:
+        except Exception as e:
             db.session.rollback()
-            raise Exception("Error al guardar la transferencia socio-productiva")
+            print("Error:", str(e))
+            raise Exception(f"Error real: {str(e)}")
 
         return transferencia.serialize()
 

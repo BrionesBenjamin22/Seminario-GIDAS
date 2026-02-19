@@ -52,9 +52,13 @@ class TransferenciaSocioProductiva(db.Model):
         data["tipo_contrato"] = (
             self.tipo_contrato_transferencia.nombre if self.tipo_contrato_transferencia else None
         )
+        data["adoptantes"] = [adoptante.serialize() for adoptante in self.adoptantes]
         data["grupo"] = (
             self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         )
+        data["fecha_inicio"] = self.fecha_inicio.isoformat()
+        data["fecha_fin"] = self.fecha_fin.isoformat() if self.fecha_fin else None
+
         return data
 
 

@@ -79,30 +79,40 @@ class ProyectoInvestigacionController:
     @staticmethod
     def vincular_becarios(proyecto_id):
         try:
-            data = request.get_json()
-            becarios_ids = data.get("becarios_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones:
+                return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_becarios_a_proyecto(
-                    proyecto_id, becarios_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def desvincular_becarios(proyecto_id):
         try:
-            data = request.get_json()
-            becarios_ids = data.get("becarios_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones:
+                return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.desvincular_becarios_de_proyecto(
-                    proyecto_id, becarios_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     # =========================
     # VINCULAR / DESVINCULAR INVESTIGADORES
@@ -110,27 +120,37 @@ class ProyectoInvestigacionController:
     @staticmethod
     def vincular_investigadores(proyecto_id):
         try:
-            data = request.get_json()
-            investigadores_ids = data.get("investigadores_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones:
+                return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_investigadores_a_proyecto(
-                    proyecto_id, investigadores_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def desvincular_investigadores(proyecto_id):
         try:
-            data = request.get_json()
-            investigadores_ids = data.get("investigadores_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones:
+                return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.desvincular_investigadores_de_proyecto(
-                    proyecto_id, investigadores_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+

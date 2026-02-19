@@ -1,5 +1,4 @@
 from extension import db
-from core.models.proyecto_investigacion import becario_proyecto, investigador_proyecto
 from core.models.trabajo_reunion import investigador_x_trabajo_reunion
 from core.models.trabajo_revista import investigador_x_trabajo_revista
 
@@ -70,10 +69,10 @@ class Becario(db.Model):
         back_populates='becarios'
     )
 
-    proyectos = db.relationship(
-        'ProyectoInvestigacion',
-        secondary=becario_proyecto,
-        back_populates='becarios'
+    participaciones_proyecto = db.relationship(
+        "BecarioProyecto",
+        back_populates="becario",
+        cascade="all, delete-orphan"
     )
 
     def serialize(self):
@@ -93,25 +92,24 @@ class Becario(db.Model):
 
             "proyectos": [
                 {
-                    "id": p.id,
-                    "codigo": p.codigo_proyecto,
-                    "nombre": p.nombre_proyecto
+                    "id": p.proyecto.id,
+                    "codigo": p.proyecto.codigo_proyecto,
+                    "nombre": p.proyecto.nombre_proyecto,
+                    "fecha_inicio": str(p.fecha_inicio),
+                    "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
                 }
-                for p in self.proyectos
+                for p in self.participaciones_proyecto
             ]
+    
         }
 
 
-# =====================================================
-# TIPO FORMACIÓN (🔥 CORREGIDO)
-# =====================================================
 class TipoFormacion(db.Model):
     __tablename__ = 'tipo_formacion_becario'
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
 
-    # 🔥 RELACIÓN QUE FALTABA
     becarios = db.relationship(
         'Becario',
         back_populates='tipo_formacion',
@@ -194,11 +192,12 @@ class Investigador(db.Model):
     )
 
 
-    proyectos = db.relationship(
-        'ProyectoInvestigacion',
-        secondary=investigador_proyecto,
-        back_populates='investigadores'
+    participaciones_proyecto = db.relationship(
+        "InvestigadorProyecto",
+        back_populates="investigador",
+        cascade="all, delete-orphan"
     )
+    
 
     def serialize(self):
         return {
@@ -207,21 +206,27 @@ class Investigador(db.Model):
             "horas_semanales": self.horas_semanales,
             "activo": self.activo,
 
-            # 🔥 IDS
-        "categoria_utn_id": self.categoria_utn_id,
-        "programa_incentivos_id": self.programa_incentivos_id,
-        "tipo_dedicacion_id": self.tipo_dedicacion_id,
-        "grupo_utn_id": self.grupo_utn_id,
+        
+            "categoria_utn_id": self.categoria_utn_id,
+            "programa_incentivos_id": self.programa_incentivos_id,
+            "tipo_dedicacion_id": self.tipo_dedicacion_id,
+            "grupo_utn_id": self.grupo_utn_id,
 
-        # 🔥 NOMBRES
-        "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
-        "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
-        "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
-        "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
-
+        
+            "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
+            "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
+            "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
+            "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
+        
             "proyectos": [
-                {"id": p.id, "codigo": p.codigo_proyecto, "nombre": p.nombre_proyecto}
-                for p in self.proyectos
+                {
+                    "id": p.proyecto.id,
+                    "codigo": p.proyecto.codigo_proyecto,
+                    "nombre": p.proyecto.nombre_proyecto,
+                    "fecha_inicio": str(p.fecha_inicio),
+                    "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                }
+                for p in self.participaciones_proyecto
             ],
 
             

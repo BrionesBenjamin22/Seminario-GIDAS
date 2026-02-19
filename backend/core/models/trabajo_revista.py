@@ -18,7 +18,8 @@ class TrabajosRevistasReferato(db.Model):
     editorial = db.Column(db.Text, nullable=False) 
     issn = db.Column(db.Text, nullable=False) 
     pais = db.Column(db.Text, nullable=False) 
-
+    fecha = db.Column(db.Date, nullable=False)
+    
     # --- Clave Foránea y Relación ---
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='trabajos_revistas') 
@@ -30,6 +31,7 @@ class TrabajosRevistasReferato(db.Model):
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
+        data["fecha"] = self.fecha.isoformat() if self.fecha else None
         data["investigadores"] = [  {
             "id": inv.id,
             "nombre_apellido": inv.nombre_apellido 

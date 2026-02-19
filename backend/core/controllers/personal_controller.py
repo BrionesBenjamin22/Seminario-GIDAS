@@ -4,10 +4,10 @@ from core.services.personal_service import (
     crear_personal,
     actualizar_personal,
     eliminar_personal_por_rol,
+    listar_personal
 )
 
 from core.services.personal_completo_service import (
-    listar_personal_completo,
     obtener_personal_por_tipo
 )
 
@@ -37,7 +37,7 @@ class PersonalController:
     def listar(req: Request) -> Response:
         try:
             activos = req.args.get("activos")  # true | false | all | None
-            personal = listar_personal_completo(activos)
+            personal = listar_personal(activos)
             return jsonify([p.serialize() for p in personal]), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400

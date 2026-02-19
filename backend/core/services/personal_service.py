@@ -5,6 +5,10 @@ from core.models.grupo import GrupoInvestigacionUtn
 
 
 
+def listar_personal():
+    personal = Personal.query.filter_by(activo=True).all()
+    return [p.serialize() for p in personal]
+
 
 def crear_personal(data):
     if not data:

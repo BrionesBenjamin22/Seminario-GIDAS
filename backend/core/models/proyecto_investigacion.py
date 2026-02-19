@@ -1,16 +1,47 @@
 from extension import db
 
-investigador_proyecto = db.Table(
-    'investigadorxproyecto',
-    db.Column('id_investigador', db.Integer, db.ForeignKey('investigador.id'), primary_key=True),
-    db.Column('id_proyecto', db.Integer, db.ForeignKey('proyecto_investigacion.id'), primary_key=True)
-)
+class InvestigadorProyecto(db.Model):
+    __tablename__ = "investigadorxproyecto"
 
-becario_proyecto = db.Table(
-    'becarioxproyecto',
-    db.Column('id_becario', db.Integer, db.ForeignKey('becario.id'), primary_key=True),
-    db.Column('id_proyecto', db.Integer, db.ForeignKey('proyecto_investigacion.id'), primary_key=True)
-)
+    id_investigador = db.Column(
+        db.Integer,
+        db.ForeignKey("investigador.id"),
+        primary_key=True
+    )
+
+    id_proyecto = db.Column(
+        db.Integer,
+        db.ForeignKey("proyecto_investigacion.id"),
+        primary_key=True
+    )
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    investigador = db.relationship("Investigador", back_populates="participaciones_proyecto")
+    proyecto = db.relationship("ProyectoInvestigacion", back_populates="participaciones_investigador")
+
+class BecarioProyecto(db.Model):
+    __tablename__ = "becarioxproyecto"
+
+    id_becario = db.Column(
+        db.Integer,
+        db.ForeignKey("becario.id"),
+        primary_key=True
+    )
+
+    id_proyecto = db.Column(
+        db.Integer,
+        db.ForeignKey("proyecto_investigacion.id"),
+        primary_key=True
+    )
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    becario = db.relationship("Becario", back_populates="participaciones_proyecto")
+    proyecto = db.relationship("ProyectoInvestigacion", back_populates="participaciones_becario")
+
 
 
 class TipoProyecto(db.Model):
@@ -49,10 +80,17 @@ class ProyectoInvestigacion(db.Model):
     # --- Relaciones (Uno-a-Muchos) ---
     distinciones = db.relationship('DistincionRecibida', back_populates='proyecto_investigacion', cascade="all, delete-orphan")
 
-    # --- Relaciones (Muchos-a-Muchos) ---
-    investigadores = db.relationship('Investigador', secondary=investigador_proyecto, back_populates='proyectos')
-    becarios = db.relationship('Becario', secondary=becario_proyecto, back_populates='proyectos')
+    participaciones_investigador = db.relationship(
+        "InvestigadorProyecto",
+        back_populates="proyecto",
+        cascade="all, delete-orphan"
+    )
 
+    participaciones_becario = db.relationship(
+        "BecarioProyecto",
+        back_populates="proyecto",
+        cascade="all, delete-orphan"
+    )
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
@@ -72,12 +110,23 @@ class ProyectoInvestigacion(db.Model):
         } if self.planificacion else None
 
         data["investigadores"] = [
-            {"id": i.id, "nombre_apellido": i.nombre_apellido}
-            for i in self.investigadores
+        {
+            "id": p.investigador.id,
+            "nombre_apellido": p.investigador.nombre_apellido,
+            "fecha_inicio": str(p.fecha_inicio),
+            "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+        }
+        for p in self.participaciones_investigador
         ]
+
         data["becarios"] = [
-            {"id": b.id, "nombre_apellido": b.nombre_apellido}
-            for b in self.becarios
+            {
+                "id": p.becario.id,
+                "nombre_apellido": p.becario.nombre_apellido,
+                "fecha_inicio": str(p.fecha_inicio),
+                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+            }
+            for p in self.participaciones_becario
         ]
 
         data["tipo_proyecto"] = {
