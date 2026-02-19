@@ -32,6 +32,12 @@ class TrabajoReunionCientifica(db.Model):
     
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data.pop("tipo_reunion_id", None)
+        data.pop("grupo_utn_id", None)
+        data["tipo_reunion"] = {
+            "id": self.tipo_reunion_cientifica.id,
+            "nombre": self.tipo_reunion_cientifica.nombre
+        }
         data["investigadores"] = [
             {
                 "id": inv.id,

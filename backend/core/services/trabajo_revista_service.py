@@ -3,8 +3,7 @@ from core.models.grupo import GrupoInvestigacionUtn
 from core.models.proyecto_investigacion import ProyectoInvestigacion
 from core.models.trabajo_revista import TrabajosRevistasReferato
 from extension import db
-
-
+from datetime import datetime
 
 class TrabajosRevistasReferatoService:
 
@@ -54,18 +53,11 @@ class TrabajosRevistasReferatoService:
             "editorial",
             "issn",
             "pais",
-            "fecha",
-            "proyecto_id"
-        ]
-
+        ]        
         for field in required_fields:
             if not data.get(field):
                 raise Exception(f"El campo '{field}' es obligatorio")
 
-        # ---- Validar proyecto ----
-        proyecto = ProyectoInvestigacion.query.get(data["proyecto_id"])
-        if not proyecto:
-            raise Exception("Proyecto de investigación inválido")
 
         # ---- Validar grupo UTN (opcional) ----
         grupo_utn_id = data.get("grupo_utn_id")
@@ -80,9 +72,8 @@ class TrabajosRevistasReferatoService:
             editorial=data["editorial"],
             issn=data["issn"],
             pais=data["pais"],
-            fecha=data["fecha"],
-            proyecto_id=data["proyecto_id"],
-            grupo_utn_id=grupo_utn_id
+            grupo_utn_id=grupo_utn_id,
+            tipo_reunion_id=data["tipo_reunion_id"] 
         )
 
         db.session.add(trabajo)
@@ -113,12 +104,6 @@ class TrabajosRevistasReferatoService:
             
         if "fecha" in data:
             trabajo.fecha = data["fecha"]
-
-        if "proyecto_id" in data:
-            proyecto = ProyectoInvestigacion.query.get(data["proyecto_id"])
-            if not proyecto:
-                raise Exception("Proyecto de investigación inválido")
-            trabajo.proyecto_id = data["proyecto_id"]
 
         if "grupo_utn_id" in data:
             if data["grupo_utn_id"] is None:

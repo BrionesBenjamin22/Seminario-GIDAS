@@ -1,4 +1,4 @@
-from core.models.trabajo_reunion import TrabajoReunionCientifica
+from core.models.trabajo_reunion import TrabajoReunionCientifica, TipoReunion
 from core.models.personal import Investigador
 from core.models.grupo import GrupoInvestigacionUtn
 from extension import db
@@ -111,20 +111,16 @@ class TrabajoReunionCientificaService:
             data.get("nombre_reunion"), "nombre_reunion", min_len=3
         )
 
-        ciudad = TrabajoReunionCientificaService._validar_texto(
-            data.get("ciudad"), "ciudad", min_len=2
+        procedencia = TrabajoReunionCientificaService._validar_texto(
+            data.get("procedencia"), "procedencia", min_len=2
         )
-
-        tipo_reunion_cientifica = TrabajoReunionCientificaService._validar_texto(
-            data.get("tipo_reunion_cientifica"),
-            "tipo_reunion_cientifica",
-            min_len=3
-        )
+        
 
         # ---- Validar relaciones ----
-        investigador_id = data.get("investigador_id")
-        if not investigador_id or not Investigador.query.get(investigador_id):
-            raise Exception("Investigador inválido")
+        tipo_reunion_id = data.get("tipo_reunion_id")
+        if not tipo_reunion_id or not TipoReunion.query.get(tipo_reunion_id):
+            raise Exception("Tipo de reunión científica inválido")
+       
 
         grupo_utn_id = data.get("grupo_utn_id")
         if not grupo_utn_id or not GrupoInvestigacionUtn.query.get(grupo_utn_id):
@@ -133,10 +129,9 @@ class TrabajoReunionCientificaService:
         trabajo = TrabajoReunionCientifica(
             titulo_trabajo=titulo_trabajo,
             nombre_reunion=nombre_reunion,
-            ciudad=ciudad,
+            procedencia=procedencia,
             fecha_inicio=fecha_inicio,
-            tipo_reunion_cientifica=tipo_reunion_cientifica,
-            investigador_id=investigador_id,
+            tipo_reunion_id=tipo_reunion_id,
             grupo_utn_id=grupo_utn_id
         )
 
@@ -181,22 +176,11 @@ class TrabajoReunionCientificaService:
                 data["nombre_reunion"], "nombre_reunion", min_len=3
             )
 
-        if "ciudad" in data:
-            trabajo.ciudad = TrabajoReunionCientificaService._validar_texto(
-                data["ciudad"], "ciudad", min_len=2
+        if "procedencia" in data:
+            trabajo.procedencia = TrabajoReunionCientificaService._validar_texto(
+                data["procedencia"], "procedencia", min_len=2
             )
 
-        if "tipo_reunion_cientifica" in data:
-            trabajo.tipo_reunion_cientifica = TrabajoReunionCientificaService._validar_texto(
-                data["tipo_reunion_cientifica"],
-                "tipo_reunion_cientifica",
-                min_len=3
-            )
-
-        if "investigador_id" in data:
-            if not Investigador.query.get(data["investigador_id"]):
-                raise Exception("Investigador inválido")
-            trabajo.investigador_id = data["investigador_id"]
 
         if "grupo_utn_id" in data:
             if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):

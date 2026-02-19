@@ -1,5 +1,6 @@
 from core.models.registro_patente import RegistrosPropiedad
 from extension import db
+from datetime import datetime
 
 class RegistrosPropiedadService:
 
@@ -15,10 +16,18 @@ class RegistrosPropiedadService:
         return registro.serialize()
 
     @staticmethod
-    def create(data: dict):
+    def create(data: dict):        
+        try:
+            fecha_registro = datetime.strptime(
+                data["fecha_registro"], "%Y-%m-%d"
+            ).date()
+        except (KeyError, ValueError):
+            raise ValueError("fecha_registro es obligatoria y debe tener formato YYYY-MM-DD")
+
         nuevo = RegistrosPropiedad(
             nombre_articulo=data["nombre_articulo"],
             organismo_registrante=data["organismo_registrante"],
+            fecha_registro=fecha_registro,
             tipo_registro_id=data["tipo_registro_id"],
             grupo_utn_id=data["grupo_utn_id"]
         )
