@@ -24,7 +24,6 @@ class ErogacionService:
                 query = query.filter(
                     Erogacion.tipo_erogacion_id == filters["tipo_erogacion_id"]
                 )
-
             # ---- ORDEN ----
             if filters.get("orden_ingresos") == "asc":
                 query = query.order_by(Erogacion.ingresos.asc())
@@ -94,9 +93,6 @@ class ErogacionService:
             if not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
                 raise Exception("Fuente de financiamiento inválida")
 
-        fecha = data.get("fecha")
-        if not fecha:
-            raise Exception("La fecha es obligatoria")
         
         # ---- grupo UTN ----
         if data.get("grupo_utn_id"):
@@ -111,7 +107,6 @@ class ErogacionService:
             numero_erogacion=numero,
             egresos=egresos,
             ingresos=ingresos,
-            fecha=fecha,
             tipo_erogacion_id=data.get("tipo_erogacion_id"),
             fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
             grupo_utn_id=data.get("grupo_utn_id")
@@ -168,6 +163,10 @@ class ErogacionService:
                     raise Exception("Tipo de erogación inválido")
                 erogacion.tipo_erogacion_id = data["tipo_erogacion_id"]
 
+        if "fecha" in data:
+            if not data["fecha"]:                
+                raise Exception("La fecha es obligatoria")
+            erogacion.fecha = data["fecha"]
         # ---- fuente financiamiento ----
         if "fuente_financiamiento_id" in data:
             if data["fuente_financiamiento_id"] is None:

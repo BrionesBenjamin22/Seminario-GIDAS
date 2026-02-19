@@ -3,6 +3,7 @@ from sqlalchemy.orm import joinedload
 from datetime import datetime
 from extension import db
 from core.models.personal import Personal, Becario, Investigador
+from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioProyecto, InvestigadorProyecto, TipoProyecto
 from core.models.actividad_docencia import ActividadDocencia
 import unicodedata
 
@@ -57,12 +58,14 @@ class SearchService:
         # BECARIOS
         # ==================================================
         becario_results = db.session.query(Becario)\
-            .options(
-                joinedload(Becario.tipo_formacion),
-                joinedload(Becario.fuente_financiamiento),
-                joinedload(Becario.proyectos)
-            )\
-            .all()
+        .options(
+            joinedload(Becario.tipo_formacion),
+            joinedload(Becario.fuente_financiamiento),
+            joinedload(Becario.participaciones_proyecto)
+                .joinedload(BecarioProyecto.proyecto)
+        )\
+        .all()
+
 
         for b in becario_results:
             nombre_normalizado = SearchService.normalize_text(b.nombre_apellido)
@@ -79,9 +82,15 @@ class SearchService:
                         "fuente_financiamiento": b.fuente_financiamiento.nombre
                             if b.fuente_financiamiento else None,
                         "proyectos": [
-                            {"id": p.id, "nombre": p.nombre_proyecto}
-                            for p in b.proyectos
+                            {
+                                "id": p.proyecto.id,
+                                "nombre": p.proyecto.nombre_proyecto,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in b.participaciones_proyecto
                         ]
+
                     }
                 })
 
@@ -89,16 +98,17 @@ class SearchService:
         # INVESTIGADORES
         # ==================================================
         investigador_results = db.session.query(Investigador)\
-            .options(
-                joinedload(Investigador.tipo_dedicacion),
-                joinedload(Investigador.categoria_utn),
-                joinedload(Investigador.programa_incentivos),
-                joinedload(Investigador.grupo_utn),
-                joinedload(Investigador.proyectos),
-                joinedload(Investigador.participaciones_relevantes),
-                joinedload(Investigador.trabajos_reunion_cientifica)
-            )\
-            .all()
+        .options(
+            joinedload(Investigador.tipo_dedicacion),
+            joinedload(Investigador.categoria_utn),
+            joinedload(Investigador.programa_incentivos),
+            joinedload(Investigador.grupo_utn),
+            joinedload(Investigador.participaciones_proyecto)
+                .joinedload(InvestigadorProyecto.proyecto),
+            joinedload(Investigador.participaciones_relevantes),
+            joinedload(Investigador.trabajos_reunion_cientifica)
+        )\
+        .all()
 
         for i in investigador_results:
             nombre_normalizado = SearchService.normalize_text(i.nombre_apellido)
@@ -116,9 +126,15 @@ class SearchService:
                         "programa_incentivos": i.programa_incentivos.nombre if i.programa_incentivos else None,
                         "grupo": i.grupo_utn.nombre_sigla_grupo if i.grupo_utn else None,
                         "proyectos": [
-                            {"id": p.id, "nombre": p.nombre_proyecto}
-                            for p in i.proyectos
+                            {
+                                "id": p.proyecto.id,
+                                "nombre": p.proyecto.nombre_proyecto,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in i.participaciones_proyecto
                         ],
+                        
                         "participaciones_relevantes": [
                             {"id": pr.id, "evento": pr.nombre_evento}
                             for pr in i.participaciones_relevantes
@@ -155,7 +171,7 @@ class SearchService:
                     "url": f"/actividades-docencia/{a.id}",
                     "extra": {
                         "fecha_inicio": str(a.fecha_inicio),
-                        "fecha_fin": str(a.fecha_fin),
+                        "fecha_fin": str(a.fecha_fin) if a.fecha_fin else None,
                         "investigador": a.investigador.nombre_apellido if a.investigador else None,
                         "grado_academico": {
                             "id": a.grado_academico.id,
@@ -167,6 +183,112 @@ class SearchService:
                         } if a.rol_actividad else None
                     }
                 })
+        # ==================================================
+        # PROYECTOS DE INVESTIGACIÓN (por nombre)
+        # ==================================================
+
+        proyecto_results = db.session.query(ProyectoInvestigacion)\
+            .options(
+                joinedload(ProyectoInvestigacion.tipo_proyecto),
+                joinedload(ProyectoInvestigacion.grupo_utn),
+                joinedload(ProyectoInvestigacion.fuente_financiamiento),
+                joinedload(ProyectoInvestigacion.participaciones_investigador)
+                    .joinedload(InvestigadorProyecto.investigador),
+                joinedload(ProyectoInvestigacion.participaciones_becario)
+                    .joinedload(BecarioProyecto.becario)
+            )\
+            .all()
+
+        for proyecto in proyecto_results:
+
+            nombre_norm = SearchService.normalize_text(proyecto.nombre_proyecto)
+            descripcion_norm = SearchService.normalize_text(proyecto.descripcion_proyecto)
+
+            if query_normalized in nombre_norm or query_normalized in descripcion_norm:
+
+
+                resultados.append({
+                    "tipo": "Proyecto de Investigación",
+                    "id": proyecto.id,
+                    "titulo": proyecto.nombre_proyecto,
+                    "subtitulo": proyecto.tipo_proyecto.nombre if proyecto.tipo_proyecto else None,
+                    "fecha": proyecto.fecha_inicio,
+                    "url": f"/proyectos/{proyecto.id}",
+                    "extra": {
+                        "codigo": proyecto.codigo_proyecto,
+                        "descripcion": proyecto.descripcion_proyecto,
+                        "grupo": proyecto.grupo_utn.nombre_sigla_grupo
+                            if proyecto.grupo_utn else None,
+                        "fuente_financiamiento": proyecto.fuente_financiamiento.nombre
+                            if proyecto.fuente_financiamiento else None,
+                        "investigadores": [
+                            {
+                                "id": p.investigador.id,
+                                "nombre": p.investigador.nombre_apellido,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in proyecto.participaciones_investigador
+                        ],
+                        "becarios": [
+                            {
+                                "id": p.becario.id,
+                                "nombre": p.becario.nombre_apellido,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in proyecto.participaciones_becario
+                        ]
+                    }
+                })
+                
+        # ==================================================
+        # TIPO DE PROYECTO (por nombre del tipo)
+        # ==================================================
+
+        tipos = db.session.query(TipoProyecto)\
+            .options(joinedload(TipoProyecto.proyectos_investigacion))\
+            .all()
+
+        for tipo in tipos:
+
+            tipo_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_norm:
+
+                for proyecto in tipo.proyectos_investigacion:
+                    resultados.append({
+                        "tipo": "Proyecto (por tipo)",
+                        "id": proyecto.id,
+                        "titulo": proyecto.nombre_proyecto,
+                        "subtitulo": tipo.nombre,
+                        "fecha": proyecto.fecha_inicio,
+                        "url": f"/proyectos/{proyecto.id}"
+                    })
+                    
+        # ==================================================
+        # TIPO PROYECTO
+        # ==================================================
+        tipo_proyecto_results = db.session.query(TipoProyecto).all()
+
+        for tipo in tipo_proyecto_results:
+            tipo_nombre_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_nombre_norm:
+
+                # Traer proyectos de ese tipo
+                for proyecto in tipo.proyectos_investigacion:
+                    resultados.append({
+                        "tipo": "Proyecto (por tipo)",
+                        "id": proyecto.id,
+                        "titulo": proyecto.nombre_proyecto,
+                        "subtitulo": f"Tipo: {tipo.nombre}",
+                        "fecha": proyecto.fecha_inicio,
+                        "url": f"/proyectos/{proyecto.id}"
+                    })
+
+
+
 
         # ==================================================
         # ORDENAMIENTO GLOBAL

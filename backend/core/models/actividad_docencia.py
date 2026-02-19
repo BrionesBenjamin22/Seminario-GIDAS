@@ -19,6 +19,9 @@ class ActividadDocencia(db.Model):
     
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data.pop("investigador_id")
+        data.pop("grado_academico_id")
+        data.pop("rol_actividad_id")
         data["investigador"] = self.investigador.nombre_apellido if self.investigador else None
         data["grado_academico"] = {
             "id": self.grado_academico.id,

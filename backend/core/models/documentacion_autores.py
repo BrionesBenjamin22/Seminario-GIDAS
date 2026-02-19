@@ -1,3 +1,4 @@
+import datetime
 from extension import db
 
 autor_libro = db.Table('autorxlibro', 
@@ -12,7 +13,7 @@ class DocumentacionBibliografica(db.Model): #antes Documentacion. Ahora Document
     editorial = db.Column(db.Text, nullable=False) 
     anio = db.Column(db.Integer, nullable=False) 
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
-    fecha = db.Column(db.Date, nullable=False)
+    fecha = db.Column(db.Date, default=datetime.datetime.utcnow, nullable=False)
     # --- Clave Foránea y Relación ---
     
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='documentacion')

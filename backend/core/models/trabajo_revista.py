@@ -1,3 +1,4 @@
+import datetime
 import re
 from sqlalchemy.orm import validates
 from extension import db
@@ -18,7 +19,7 @@ class TrabajosRevistasReferato(db.Model):
     editorial = db.Column(db.Text, nullable=False) 
     issn = db.Column(db.Text, nullable=False) 
     pais = db.Column(db.Text, nullable=False) 
-    fecha = db.Column(db.Date, nullable=False)
+    fecha = db.Column(db.Date, default = datetime.datetime.utcnow, nullable=False)
     
     # --- Clave Foránea y Relación ---
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 

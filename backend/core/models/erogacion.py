@@ -1,3 +1,4 @@
+import datetime
 from extension import db
 
 class TipoErogacion(db.Model):
@@ -19,7 +20,7 @@ class Erogacion(db.Model):
     numero_erogacion = db.Column(db.Integer, nullable=True)  # nuevo campo para el número de erogación
     egresos = db.Column(db.Float, nullable=False)   # mejor Float para montos
     ingresos = db.Column(db.Float, nullable=False)
-    fecha = db.Column(db.Date, nullable=False)
+    fecha = db.Column(db.Date, default=datetime.datetime.utcnow, nullable=False)
 
     tipo_erogacion_id = db.Column(db.Integer, db.ForeignKey('tipo_erogacion.id'))
     tipo_erogacion = db.relationship('TipoErogacion', back_populates='erogaciones')
