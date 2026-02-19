@@ -12,6 +12,7 @@ class DocumentacionBibliografica(db.Model): #antes Documentacion. Ahora Document
     editorial = db.Column(db.Text, nullable=False) 
     anio = db.Column(db.Integer, nullable=False) 
     grupo_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
+    fecha = db.Column(db.Date, nullable=False)
     # --- Clave Foránea y Relación ---
     
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='documentacion')
@@ -20,6 +21,7 @@ class DocumentacionBibliografica(db.Model): #antes Documentacion. Ahora Document
 
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data["fecha"] = self.fecha.isoformat() if self.fecha else None
         data["grupo"] = self.grupo_utn.nombre_unidad_academica if self.grupo_utn else None
         data["autores"] = [
             {"id": a.id, "nombre_apellido": a.nombre_apellido}
