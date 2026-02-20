@@ -1,8 +1,8 @@
-"""Columnas tipo_reunion_id agregada a Trabajos Revistas
+"""empty message
 
-Revision ID: b3311ea10160
+Revision ID: 505acd7c6cb2
 Revises: 
-Create Date: 2026-02-17 16:26:17.557653
+Create Date: 2026-02-19 16:52:59.073124
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b3311ea10160'
+revision = '505acd7c6cb2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -149,7 +149,8 @@ def upgrade():
     sa.Column('titulo', sa.Text(), nullable=False),
     sa.Column('editorial', sa.Text(), nullable=False),
     sa.Column('anio', sa.Integer(), nullable=False),
-    sa.Column('grupo_id', sa.Integer(), nullable=True),
+    sa.Column('grupo_id', sa.Integer(), nullable=False),
+    sa.Column('fecha', sa.Date(), nullable=False),
     sa.ForeignKeyConstraint(['grupo_id'], ['grupo_utn.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -168,6 +169,7 @@ def upgrade():
     sa.Column('numero_erogacion', sa.Integer(), nullable=True),
     sa.Column('egresos', sa.Float(), nullable=False),
     sa.Column('ingresos', sa.Float(), nullable=False),
+    sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('tipo_erogacion_id', sa.Integer(), nullable=True),
     sa.Column('fuente_financiamiento_id', sa.Integer(), nullable=True),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
@@ -241,6 +243,7 @@ def upgrade():
     sa.Column('editorial', sa.Text(), nullable=False),
     sa.Column('issn', sa.Text(), nullable=False),
     sa.Column('pais', sa.Text(), nullable=False),
+    sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
     sa.Column('tipo_reunion_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
@@ -344,6 +347,8 @@ def upgrade():
     op.create_table('becarioxproyecto',
     sa.Column('id_becario', sa.Integer(), nullable=False),
     sa.Column('id_proyecto', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
     sa.ForeignKeyConstraint(['id_becario'], ['becario.id'], ),
     sa.ForeignKeyConstraint(['id_proyecto'], ['proyecto_investigacion.id'], ),
     sa.PrimaryKeyConstraint('id_becario', 'id_proyecto')
@@ -359,6 +364,8 @@ def upgrade():
     op.create_table('investigadorxproyecto',
     sa.Column('id_investigador', sa.Integer(), nullable=False),
     sa.Column('id_proyecto', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
     sa.ForeignKeyConstraint(['id_investigador'], ['investigador.id'], ),
     sa.ForeignKeyConstraint(['id_proyecto'], ['proyecto_investigacion.id'], ),
     sa.PrimaryKeyConstraint('id_investigador', 'id_proyecto')
