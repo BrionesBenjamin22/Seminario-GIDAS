@@ -15,7 +15,7 @@ class RegistrosPropiedad(db.Model):
     
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        data.pop("tipo_registro_id", None)
+        #data.pop("tipo_registro_id", None)
         data.pop("grupo_utn_id", None)
         data["tipo_registro"] = self.tipo_registro.nombre if self.tipo_registro else None
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None

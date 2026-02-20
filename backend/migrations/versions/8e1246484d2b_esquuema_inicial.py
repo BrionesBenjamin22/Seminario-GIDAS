@@ -1,8 +1,8 @@
-"""esquema inicial
+"""Esquuema inicial
 
-Revision ID: f85487499b54
+Revision ID: 8e1246484d2b
 Revises: 
-Create Date: 2026-02-20 16:30:48.760546
+Create Date: 2026-02-20 16:51:59.594179
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f85487499b54'
+revision = '8e1246484d2b'
 down_revision = None
 branch_labels = None
 depends_on = None
