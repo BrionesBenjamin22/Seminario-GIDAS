@@ -3,6 +3,7 @@ from .actividad_docencia import ActividadDocencia, RolActividad, GradoAcademico
 from .categoria_utn import CategoriaUtn
 from .distinciones import DistincionRecibida
 from .documentacion_autores import DocumentacionBibliografica, Autor, autor_libro
+from .directivos import Directivo, DirectivoGrupo, Cargo
 from .equipamiento import Equipamiento
 from .erogacion import Erogacion, TipoErogacion
 from .fuente_financiamiento import FuenteFinanciamiento

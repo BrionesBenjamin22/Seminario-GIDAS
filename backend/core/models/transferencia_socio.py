@@ -27,6 +27,8 @@ class TransferenciaSocioProductiva(db.Model):
     __tablename__ = 'transferencia_socio_productiva'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    numero_transferencia = db.Column(db.Integer, nullable=False, unique=True)
+    denominacion = db.Column(db.Text, nullable=False)
     demandante = db.Column(db.Text, nullable=False)
     descripcion_actividad = db.Column(db.Text, nullable=False)
     monto = db.Column(db.Float, nullable=True)
@@ -39,10 +41,10 @@ class TransferenciaSocioProductiva(db.Model):
         back_populates='transferencias'
     )
 
-    tipo_contrato_id = db.Column(db.Integer, db.ForeignKey('tipo_contrato_transferencia.id'))
+    tipo_contrato_id = db.Column(db.Integer, db.ForeignKey('tipo_contrato_transferencia.id'), nullable=False)
     tipo_contrato_transferencia = db.relationship('TipoContrato', back_populates='transferencias')
 
-    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
+    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=False)
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='transferencias_socio_productivas')
 
     def serialize(self):
@@ -52,7 +54,12 @@ class TransferenciaSocioProductiva(db.Model):
         data["tipo_contrato"] = (
             self.tipo_contrato_transferencia.nombre if self.tipo_contrato_transferencia else None
         )
-        data["adoptantes"] = [adoptante.serialize() for adoptante in self.adoptantes]
+        data["adoptantes"] = [{
+            "id": adoptante.id,
+            "nombre": adoptante.nombre
+        }
+        for adoptante in self.adoptantes
+        ]
         data["grupo"] = (
             self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         )

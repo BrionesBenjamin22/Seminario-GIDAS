@@ -15,6 +15,7 @@ from core.models.documentacion_autores import DocumentacionBibliografica, Autor
 from core.models.tipo_personal import TipoPersonal
 from core.models.trabajo_reunion import TrabajoReunionCientifica
 from core.models.trabajo_revista import TrabajosRevistasReferato
+from core.models.directivos import Directivo, DirectivoGrupo, Cargo
 import unicodedata
 
 
@@ -833,6 +834,61 @@ class SearchService:
 
 
 
+        # ==================================================
+        # DIRECTIVOS
+        # ==================================================
+
+        directivo_results = db.session.query(Directivo)\
+            .options(
+                joinedload(Directivo.participaciones_grupo)
+                    .joinedload(DirectivoGrupo.cargo),
+                joinedload(Directivo.participaciones_grupo)
+                    .joinedload(DirectivoGrupo.grupo_utn)
+            )\
+            .all()
+
+        for d in directivo_results:
+
+            nombre_norm = SearchService.normalize_text(d.nombre_apellido)
+
+            # Buscar coincidencia por nombre
+            coincide_nombre = query_normalized in nombre_norm
+
+            # Buscar coincidencia por cargo
+            coincide_cargo = any(
+                query_normalized in SearchService.normalize_text(p.cargo.nombre)
+                for p in d.participaciones_grupo
+                if p.cargo
+            )
+
+            if coincide_nombre or coincide_cargo:
+
+                participaciones = [
+                    {
+                        "grupo": p.grupo_utn.nombre_sigla_grupo if p.grupo_utn else None,
+                        "cargo": p.cargo.nombre if p.cargo else None,
+                        "fecha_inicio": str(p.fecha_inicio),
+                        "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None,
+                        "activo": p.fecha_fin is None
+                    }
+                    for p in d.participaciones_grupo
+                ]
+
+                # Detectar si tiene algún cargo activo
+                tiene_activo = any(p["activo"] for p in participaciones)
+
+                resultados.append({
+                    "tipo": "Directivo",
+                    "id": d.id,
+                    "titulo": d.nombre_apellido,
+                    "subtitulo": "Directivo de Grupo",
+                    "fecha": None,
+                    "url": f"/directivos/{d.id}",
+                    "activo": tiene_activo,   # 👈 bandera para ordenar
+                    "extra": {
+                        "participaciones": participaciones
+                    }
+                })
 
 
 
@@ -844,11 +900,22 @@ class SearchService:
         # ORDENAMIENTO GLOBAL
         # ==================================================
         if orden == "alf_asc":
-            resultados.sort(key=lambda x: x["titulo"].lower())
+            resultados.sort(
+                key=lambda x: (
+                    0 if x.get("activo") else 1,
+                    x["titulo"].lower()
+                )
+            )
 
         elif orden == "alf_desc":
-            resultados.sort(key=lambda x: x["titulo"].lower(), reverse=True)
-
+            resultados.sort(
+                key=lambda x: (
+                    0 if x.get("activo") else 1,
+                    x["titulo"].lower()
+                ),
+                reverse=True
+            )
+            
         elif orden == "fecha_desc":
             resultados.sort(
                 key=lambda x: x["fecha"] or datetime.min.date(),

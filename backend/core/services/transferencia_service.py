@@ -73,6 +73,16 @@ class TransferenciaSocioProductivaService:
 
     @staticmethod
     def create(data: dict):
+        
+        numero_transferencia = data.get("numero_transferencia")
+        if numero_transferencia is None:
+            raise Exception("El número de transferencia es obligatorio")
+        if not isinstance(numero_transferencia, int) or numero_transferencia <= 0:
+            raise Exception("El número de transferencia debe ser un entero positivo")
+        
+        denominacion = TransferenciaSocioProductivaService._validar_texto(
+            data.get("denominacion"), "denominacion"
+        )
     
         demandante = TransferenciaSocioProductivaService._validar_texto(
             data.get("demandante"), "demandante"
@@ -108,6 +118,8 @@ class TransferenciaSocioProductivaService:
             raise Exception("Grupo UTN inválido")
 
         transferencia = TransferenciaSocioProductiva(
+            numero_transferencia=numero_transferencia,
+            denominacion=denominacion,
             demandante=demandante,
             descripcion_actividad=descripcion_actividad,
             monto=monto,
@@ -133,6 +145,16 @@ class TransferenciaSocioProductivaService:
         if not transferencia:
             raise Exception("Transferencia socio-productiva no encontrada")
 
+        if "numero_transferencia" in data:
+            numero_transferencia = data["numero_transferencia"]
+            if not isinstance(numero_transferencia, int) or numero_transferencia <= 0:
+                raise Exception("El número de transferencia debe ser un entero positivo")
+            transferencia.numero_transferencia = numero_transferencia
+            
+        if "denominacion" in data:
+            transferencia.denominacion = TransferenciaSocioProductivaService._validar_texto(
+                data["denominacion"], "denominacion"
+            )
 
         if "demandante" in data:
             transferencia.demandante = TransferenciaSocioProductivaService._validar_texto(

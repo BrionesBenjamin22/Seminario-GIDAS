@@ -55,3 +55,15 @@ class AdoptanteService:
 
         db.session.commit()
         return adoptante.serialize()
+
+
+    @staticmethod
+    def eliminar(adoptante_id: int):
+        adoptante = db.session.get(Adoptante, adoptante_id)
+        if not adoptante:
+            raise ValueError("Adoptante no encontrado.")
+
+        db.session.delete(adoptante)
+        db.session.commit()
+
+        return {"message": "Adoptante eliminado exitosamente."}

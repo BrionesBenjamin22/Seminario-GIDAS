@@ -32,6 +32,7 @@ from core.routes.grado_academico_rutas import grado_academico_bp
 from core.routes.rol_actividad_rutas import rol_actividad_bp
 from core.routes.adoptante_rutas import adoptante_bp
 from core.routes.search_rutas import search_bp
+from core.routes.directivo_rutas import directivo_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -41,6 +42,7 @@ blueprints = [
     becario_bp,
     categoria_utn_bp,
     distincion_recibida_bp,
+    directivo_bp,
     documentacion_bibliografica_bp,
     equipamiento_bp,
     erogacion_bp,
