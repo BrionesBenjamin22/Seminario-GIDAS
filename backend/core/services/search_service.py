@@ -7,6 +7,7 @@ from core.models.participacion_relevante import ParticipacionRelevante
 from core.models.personal import Personal, Becario, Investigador
 from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioProyecto, InvestigadorProyecto, TipoProyecto
 from core.models.actividad_docencia import ActividadDocencia
+from core.models.articulo_divulgacion import ArticuloDivulgacion
 from core.models.equipamiento import Equipamiento
 from core.models.transferencia_socio import TipoContrato, TransferenciaSocioProductiva
 from core.models.erogacion import Erogacion, TipoErogacion
@@ -892,7 +893,40 @@ class SearchService:
 
 
 
+        # ==================================================
+        # ARTICULOS DE DIVULGACION
+        # ==================================================
 
+        articulos = db.session.query(ArticuloDivulgacion)\
+            .options(
+                joinedload(ArticuloDivulgacion.grupo_utn)
+            )\
+            .all()
+
+        for a in articulos:
+
+            titulo_norm = SearchService.normalize_text(a.titulo)
+            descripcion_norm = SearchService.normalize_text(a.descripcion)
+
+            if (
+                query_normalized in titulo_norm
+                or query_normalized in descripcion_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Artículo de Divulgación",
+                    "id": a.id,
+                    "titulo": a.titulo,
+                    "grupo": (
+                        a.grupo_utn.nombre_sigla_grupo
+                        if a.grupo_utn else None
+                    ),
+                    "fecha": a.fecha_publicacion,
+                    "url": f"/articulos-divulgacion/{a.id}",
+                    "extra": {
+                        "descripcion": a.descripcion
+                    }
+                })
 
 
 

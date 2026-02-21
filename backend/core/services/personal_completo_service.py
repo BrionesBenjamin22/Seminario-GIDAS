@@ -97,11 +97,11 @@ def listar_personal_completo():
 
                 "proyectos": [
                     {
-                        "id": p.id,
-                        "codigo": p.codigo_proyecto,
-                        "nombre": p.nombre_proyecto
+                        "id": p.proyecto.id,
+                        "codigo": p.proyecto.codigo_proyecto,
+                        "nombre": p.proyecto.nombre_proyecto
                     }
-                    for p in i.proyectos
+                    for p in i.participaciones_proyecto
                 ],
 
                 "actividades_docencia": [
