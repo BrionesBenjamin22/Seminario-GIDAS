@@ -10,16 +10,20 @@ class AuthController:
         data = req.get_json()
 
         try:
-            print(req.json)
             user = AuthService.register(
                 nombre_usuario=data["nombre_usuario"],
                 mail=data["mail"],
-                password=data["password"]
+                password=data["password"],
+                nombre_apellido=data["nombre_apellido"],
+                dni=data["dni"],
+                rol_id=data["rol_id"]
             )
+
             return jsonify(user.serialize()), 201
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def login(req: Request) -> Response:
@@ -40,7 +44,7 @@ class AuthController:
                 "refresh_token",
                 result["refresh_token"],
                 httponly=True,
-                secure=False,       
+                secure=False,
                 samesite="Lax",
                 max_age=7 * 24 * 60 * 60
             )
@@ -50,8 +54,10 @@ class AuthController:
         except Exception as e:
             return jsonify({"error": str(e)}), 401
 
+
     @staticmethod
     def perfil(req: Request):
+
         auth_header = req.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Token requerido"}), 401
@@ -63,17 +69,18 @@ class AuthController:
             user_id = int(payload["sub"])
 
             user = Usuario.query.get(user_id)
-            if not user:
+            if not user or not user.activo:
                 return jsonify({"error": "Usuario no encontrado"}), 404
 
             return jsonify(user.serialize()), 200
 
         except Exception as e:
             return jsonify({"error": str(e)}), 401
-        
-        
+
+
     @staticmethod
     def refresh(req: Request) -> Response:
+
         refresh_token = req.cookies.get("refresh_token")
 
         if not refresh_token:
@@ -82,13 +89,15 @@ class AuthController:
         try:
             new_access_token = AuthService.refresh_access_token(refresh_token)
             return jsonify({"access_token": new_access_token}), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 401
 
+
     @staticmethod
     def change_password(req: Request) -> Response:
-        auth_header = req.headers.get("Authorization")
 
+        auth_header = req.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Token requerido"}), 401
 
@@ -112,6 +121,30 @@ class AuthController:
             )
 
             return jsonify({"message": "Contraseña cambiada correctamente"}), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+
+    @staticmethod
+    def delete_user(req: Request, user_id: int):
+
+        auth_header = req.headers.get("Authorization")
+        if not auth_header:
+            return jsonify({"error": "Token requerido"}), 401
+
+        token = auth_header.split(" ")[1]
+
+        try:
+            payload = AuthService.verify_token(token)
+            current_user_id = int(payload["sub"])
+
+            AuthService.delete_user(
+                user_id=user_id,
+                current_user_id=current_user_id
+            )
+
+            return jsonify({"message": "Usuario eliminado correctamente"}), 200
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400

@@ -60,10 +60,6 @@ class PersonalController:
     def actualizar(req: Request, rol: str, id: int) -> Response:
         data = req.get_json()
 
-        print("---- DEBUG ACTUALIZAR ----")
-        print("ROL:", rol)
-        print("ID:", id)
-        print("DATA:", data)
 
         try:
             personal = actualizar_personal(id, data, rol)

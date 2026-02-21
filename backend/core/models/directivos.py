@@ -42,7 +42,6 @@ class DirectivoGrupo(db.Model):
         'Cargo',
         back_populates='participaciones'
     )
-    
 class Cargo(db.Model):
     __tablename__ = 'cargo'
 

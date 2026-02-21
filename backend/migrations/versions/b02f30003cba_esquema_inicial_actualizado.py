@@ -1,8 +1,8 @@
-"""Esquuema inicial
+"""Esquema inicial actualizado
 
-Revision ID: 8e1246484d2b
+Revision ID: b02f30003cba
 Revises: 
-Create Date: 2026-02-20 16:51:59.594179
+Create Date: 2026-02-21 15:26:50.339657
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '8e1246484d2b'
+revision = 'b02f30003cba'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -62,10 +62,23 @@ def upgrade():
     sa.Column('nombre_sigla_grupo', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('persona',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('nombre_apellido', sa.String(length=100), nullable=False),
+    sa.Column('dni', sa.Integer(), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('dni')
+    )
     op.create_table('programa_incentivos_investigador',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('rol',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('nombre', sa.String(length=50), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('nombre')
     )
     op.create_table('rol_actividad_docencia',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -120,15 +133,6 @@ def upgrade():
     sa.Column('nombre', sa.String(length=100), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('nombre')
-    )
-    op.create_table('usuario',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('contrasena', sa.String(length=128), nullable=False),
-    sa.Column('mail', sa.String(length=120), nullable=False),
-    sa.Column('nombre_usuario', sa.String(length=80), nullable=False),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('mail'),
-    sa.UniqueConstraint('nombre_usuario')
     )
     op.create_table('articulo_divulgacion',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -286,6 +290,30 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('numero_transferencia')
     )
+    op.create_table('usuario',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('contrasena', sa.String(length=128), nullable=False),
+    sa.Column('mail', sa.String(length=120), nullable=False),
+    sa.Column('nombre_usuario', sa.String(length=80), nullable=False),
+    sa.Column('id_rol', sa.Integer(), nullable=False),
+    sa.Column('id_persona', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('activo', sa.Boolean(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('updated_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['id_persona'], ['persona.id'], ),
+    sa.ForeignKeyConstraint(['id_rol'], ['rol.id'], ),
+    sa.ForeignKeyConstraint(['updated_by'], ['usuario.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('id_persona'),
+    sa.UniqueConstraint('mail'),
+    sa.UniqueConstraint('nombre_usuario')
+    )
     op.create_table('visita_grupo',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('razon', sa.Text(), nullable=False),
@@ -409,6 +437,7 @@ def downgrade():
     op.drop_table('adoptante_x_transferencia')
     op.drop_table('actividad_y_catedra_posgrado')
     op.drop_table('visita_grupo')
+    op.drop_table('usuario')
     op.drop_table('transferencia_socio_productiva')
     op.drop_table('trabajos_revista')
     op.drop_table('trabajo_reunion_cientifica')
@@ -422,7 +451,6 @@ def downgrade():
     op.drop_table('directivo_grupo')
     op.drop_table('becario')
     op.drop_table('articulo_divulgacion')
-    op.drop_table('usuario')
     op.drop_table('tipo_visita')
     op.drop_table('tipo_reunion_cientifica')
     op.drop_table('tipo_registro_propiedad')
@@ -433,7 +461,9 @@ def downgrade():
     op.drop_table('tipo_dedicacion')
     op.drop_table('tipo_contrato_transferencia')
     op.drop_table('rol_actividad_docencia')
+    op.drop_table('rol')
     op.drop_table('programa_incentivos_investigador')
+    op.drop_table('persona')
     op.drop_table('grupo_utn')
     op.drop_table('grado_academico')
     op.drop_table('fuente_financiamiento')

@@ -18,7 +18,9 @@ from .tipo_personal import TipoPersonal
 from .trabajo_reunion import TrabajoReunionCientifica
 from .trabajo_revista import TrabajosRevistasReferato
 from .transferencia_socio import TransferenciaSocioProductiva, TipoContrato
-from .usuario import Usuario
+from .audit_mixin import AuditMixin
+from .persona import Persona
+from .usuario import Usuario, RolUsuario
 from .visita_grupo import VisitaAcademica
 
 
