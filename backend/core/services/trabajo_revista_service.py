@@ -65,12 +65,19 @@ class TrabajosRevistasReferatoService:
             grupo = GrupoInvestigacionUtn.query.get(grupo_utn_id)
             if not grupo:
                 raise Exception("Grupo UTN inválido")
+            
+        fecha = None
+        if data.get("fecha"):
+            fecha = datetime.strptime(
+                data["fecha"], "%Y-%m-%d"
+            ).date()
 
         trabajo = TrabajosRevistasReferato(
             titulo_trabajo=data["titulo_trabajo"],
             nombre_revista=data["nombre_revista"],
             editorial=data["editorial"],
             issn=data["issn"],
+            fecha=fecha,
             pais=data["pais"],
             grupo_utn_id=grupo_utn_id,
             tipo_reunion_id=data["tipo_reunion_id"] 
@@ -103,7 +110,9 @@ class TrabajosRevistasReferatoService:
             trabajo.pais = data["pais"]
             
         if "fecha" in data:
-            trabajo.fecha = data["fecha"]
+            trabajo.fecha = datetime.strptime(
+                data["fecha"], "%Y-%m-%d"
+            ).date()
 
         if "grupo_utn_id" in data:
             if data["grupo_utn_id"] is None:
