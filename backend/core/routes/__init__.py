@@ -1,4 +1,5 @@
 from core.routes.auth_rutas import auth_bp
+from core.routes.articulo_divulgacion_rutas import articulo_divulgacion_bp
 from core.routes.tipo_personal_rutas import tipo_personal_bp
 from core.routes.categoria_utn_routes import categoria_utn_bp
 from core.routes.grupo_rutas import grupo_utn_bp
@@ -33,15 +34,18 @@ from core.routes.rol_actividad_rutas import rol_actividad_bp
 from core.routes.adoptante_rutas import adoptante_bp
 from core.routes.search_rutas import search_bp
 from core.routes.tipo_reunion_rutas import tipo_reunion_bp
+from core.routes.directivo_rutas import directivo_bp
 
 blueprints = [
     actividad_docencia_bp,
+    articulo_divulgacion_bp,
     adoptante_bp,
     auth_bp,
     autor_bp,
     becario_bp,
     categoria_utn_bp,
     distincion_recibida_bp,
+    directivo_bp,
     documentacion_bibliografica_bp,
     equipamiento_bp,
     erogacion_bp,

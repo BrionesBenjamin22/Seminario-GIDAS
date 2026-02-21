@@ -1,8 +1,8 @@
-"""empty message
+"""Esquuema inicial
 
-Revision ID: 505acd7c6cb2
+Revision ID: 8e1246484d2b
 Revises: 
-Create Date: 2026-02-19 16:52:59.073124
+Create Date: 2026-02-20 16:51:59.594179
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '505acd7c6cb2'
+revision = '8e1246484d2b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,9 +28,19 @@ def upgrade():
     sa.Column('nombre_apellido', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('cargo',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('nombre', sa.Text(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('categoria_utn',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('directivo',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('nombre_apellido', sa.Text(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('fuente_financiamiento',
@@ -50,8 +60,6 @@ def upgrade():
     sa.Column('nombre_unidad_academica', sa.Text(), nullable=False),
     sa.Column('objetivo_desarrollo', sa.Text(), nullable=False),
     sa.Column('nombre_sigla_grupo', sa.Text(), nullable=False),
-    sa.Column('director', sa.Text(), nullable=True),
-    sa.Column('vicedirector', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('programa_incentivos_investigador',
@@ -142,6 +150,18 @@ def upgrade():
     sa.ForeignKeyConstraint(['fuente_financiamiento_id'], ['fuente_financiamiento.id'], ),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['tipo_formacion_id'], ['tipo_formacion_becario.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('directivo_grupo',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('id_directivo', sa.Integer(), nullable=False),
+    sa.Column('id_grupo_utn', sa.Integer(), nullable=False),
+    sa.Column('id_cargo', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
+    sa.ForeignKeyConstraint(['id_cargo'], ['cargo.id'], ),
+    sa.ForeignKeyConstraint(['id_directivo'], ['directivo.id'], ),
+    sa.ForeignKeyConstraint(['id_grupo_utn'], ['grupo_utn.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('documentacion_bibliografica',
@@ -252,16 +272,19 @@ def upgrade():
     )
     op.create_table('transferencia_socio_productiva',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('numero_transferencia', sa.Integer(), nullable=False),
+    sa.Column('denominacion', sa.Text(), nullable=False),
     sa.Column('demandante', sa.Text(), nullable=False),
     sa.Column('descripcion_actividad', sa.Text(), nullable=False),
     sa.Column('monto', sa.Float(), nullable=True),
     sa.Column('fecha_inicio', sa.Date(), nullable=False),
     sa.Column('fecha_fin', sa.Date(), nullable=True),
-    sa.Column('tipo_contrato_id', sa.Integer(), nullable=True),
-    sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
+    sa.Column('tipo_contrato_id', sa.Integer(), nullable=False),
+    sa.Column('grupo_utn_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['tipo_contrato_id'], ['tipo_contrato_transferencia.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('numero_transferencia')
     )
     op.create_table('visita_grupo',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -396,6 +419,7 @@ def downgrade():
     op.drop_table('erogacion')
     op.drop_table('equipamiento_grupo')
     op.drop_table('documentacion_bibliografica')
+    op.drop_table('directivo_grupo')
     op.drop_table('becario')
     op.drop_table('articulo_divulgacion')
     op.drop_table('usuario')
@@ -413,7 +437,9 @@ def downgrade():
     op.drop_table('grupo_utn')
     op.drop_table('grado_academico')
     op.drop_table('fuente_financiamiento')
+    op.drop_table('directivo')
     op.drop_table('categoria_utn')
+    op.drop_table('cargo')
     op.drop_table('autor')
     op.drop_table('adoptante')
     # ### end Alembic commands ###

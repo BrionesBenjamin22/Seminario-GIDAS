@@ -97,7 +97,7 @@ def listar_personal_completo():
 
                 "proyectos": [
                     {
-                        "id": p.id,
+                        "id": p.proyecto.id,
                         "codigo": p.proyecto.codigo_proyecto,
                         "nombre": p.proyecto.nombre_proyecto
                     }

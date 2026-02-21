@@ -5,11 +5,6 @@ from core.models.grupo import GrupoInvestigacionUtn
 
 
 
-def listar_personal():
-    personal = Personal.query.filter_by(activo=True).all()
-    return [p.serialize() for p in personal]
-
-
 def crear_personal(data):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
@@ -121,24 +116,21 @@ def actualizar_personal(id, data, rol):
 
 
 def eliminar_personal_por_rol(id, rol):
-    rol = rol.lower()
-
-    if rol == "personal":
-        entidad = Personal.query.get(id)
-    elif rol == "becario":
-        entidad = Becario.query.get(id)
-    elif rol == "investigador":
-        entidad = Investigador.query.get(id)
+    if rol == 'personal':
+        personal = Personal.query.get(id)
+    elif rol == 'becario':
+        personal = Becario.query.get(id)
+    elif rol == 'investigador':
+        personal = Investigador.query.get(id)
     else:
         raise ValueError("Rol inválido.")
+    if not personal:
+        raise ValueError("Personal no encontrado.")
 
-    if not entidad:
-        raise ValueError("Entidad no encontrada.")
+    if not personal.activo:
+        raise ValueError("El personal ya se encuentra dado de baja.")
 
-    if not entidad.activo:
-        raise ValueError("Ya se encuentra dado de baja.")
-
-    entidad.activo = False
+    personal.activo = False
 
     try:
         db.session.commit()
@@ -147,26 +139,25 @@ def eliminar_personal_por_rol(id, rol):
         raise
 
     return {
-        "message": "Dado de baja correctamente.",
-        "id": entidad.id
+        "message": "Personal dado de baja correctamente.",
+        "id": personal.id
     }
 
 
-def obtener_personal_por_tipo(rol):
-    rol = rol.lower()
 
-    if rol == "personal":
-        return Personal.query.filter(Personal.activo == True).all()
+def listar_personal(activos=None):
+    query = Personal.query
 
-    elif rol == "becario":
-        return Becario.query.filter(Becario.activo == True).all()
-
-    elif rol == "investigador":
-        return Investigador.query.filter(Investigador.activo == True).all()
-
+    if activos == "true":
+        query = query.filter_by(activo=True)
+    elif activos == "false":
+        query = query.filter_by(activo=False)
+    elif activos == "all":
+        pass
     else:
-        raise ValueError("Rol inválido.")
+        query = query.filter_by(activo=True)
 
+    return query.all()
 
 
 def obtener_personal_por_id(id):

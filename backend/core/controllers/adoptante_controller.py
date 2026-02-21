@@ -56,3 +56,15 @@ class AdoptanteController:
 
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
+
+    @staticmethod
+    def delete(adoptante_id):
+        try:
+            result = AdoptanteService.eliminar(adoptante_id)
+            return jsonify(result), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+
+        except Exception as e:
+            return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
