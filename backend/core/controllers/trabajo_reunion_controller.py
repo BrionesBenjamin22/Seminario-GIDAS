@@ -80,7 +80,7 @@ class TrabajoReunionCientificaController:
                     "error": "investigadores_ids debe ser una lista no vacía"
                 }), 400
 
-            result = TrabajoReunionCientificaService.add_investigadores(
+            result = TrabajoReunionCientificaService.vincular_investigadores(
                 trabajo_id,
                 investigadores_ids
             )
@@ -105,7 +105,7 @@ class TrabajoReunionCientificaController:
                     "error": "investigadores_ids debe ser una lista no vacía"
                 }), 400
 
-            result = TrabajoReunionCientificaService.remove_investigadores(
+            result = TrabajoReunionCientificaService.desvincular_investigadores(
                 trabajo_id,
                 investigadores_ids
             )

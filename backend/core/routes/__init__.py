@@ -32,6 +32,7 @@ from core.routes.grado_academico_rutas import grado_academico_bp
 from core.routes.rol_actividad_rutas import rol_actividad_bp
 from core.routes.adoptante_rutas import adoptante_bp
 from core.routes.search_rutas import search_bp
+from core.routes.tipo_reunion_rutas import tipo_reunion_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -67,6 +68,7 @@ blueprints = [
     trabajo_reunion_cientifica_bp,
     trabajos_revistas_referato_bp,
     transferencia_socio_productiva_bp,
-    visita_academica_bp
+    visita_academica_bp,
+    tipo_reunion_bp
 
 ]

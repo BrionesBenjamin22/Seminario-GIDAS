@@ -19,7 +19,7 @@ class TrabajosRevistasReferato(db.Model):
     editorial = db.Column(db.Text, nullable=False) 
     issn = db.Column(db.Text, nullable=False) 
     pais = db.Column(db.Text, nullable=False) 
-    fecha = db.Column(db.Date, default = datetime.datetime.utcnow, nullable=False)
+    fecha = db.Column(db.Date, nullable=False)
     
     # --- Clave Foránea y Relación ---
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
@@ -37,10 +37,14 @@ class TrabajosRevistasReferato(db.Model):
             "id": inv.id,
             "nombre_apellido": inv.nombre_apellido 
         } for inv in self.investigadores ]
+        data["tipo_reunion"] = (
+            {
+                "id": self.tipo_reunion.id,
+                "nombre": self.tipo_reunion.nombre
+            }
+            if self.tipo_reunion else None
+        )
         return data
     
-    @validates('issn')
-    def validar_issn(self, key, value):
-        assert re.match(r'^\d{4}-\d{3}[\dX]$', value), "Formato ISSN inválido"
-        return value
+    
 
