@@ -10,6 +10,7 @@ from .fuente_financiamiento import FuenteFinanciamiento
 from .grupo import GrupoInvestigacionUtn
 from .participacion_relevante import ParticipacionRelevante
 from .personal import Investigador, Becario, TipoFormacion, TipoDedicacion, Personal
+from .becas import Beca, Beca_Becario
 from .programa_actividades import PlanificacionGrupo
 from .programa_incentivos import ProgramaIncentivos
 from .proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, BecarioProyecto, InvestigadorProyecto

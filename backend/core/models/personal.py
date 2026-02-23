@@ -74,6 +74,12 @@ class Becario(db.Model):
         back_populates="becario",
         cascade="all, delete-orphan"
     )
+    
+    becas = db.relationship(
+        "Beca_Becario",
+        back_populates="becario",
+        cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         return {
@@ -89,7 +95,6 @@ class Becario(db.Model):
             "tipo_formacion": self.tipo_formacion.nombre if self.tipo_formacion else None,
             "fuente_financiamiento": self.fuente_financiamiento.nombre if self.fuente_financiamiento else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
-
             "proyectos": [
                 {
                     "id": p.proyecto.id,
@@ -99,6 +104,17 @@ class Becario(db.Model):
                     "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
                 }
                 for p in self.participaciones_proyecto
+            ],
+            "becas": [
+                {
+                    "id": b.beca.id,
+                    "nombre_beca": b.beca.nombre_beca,
+                    "descripcion": b.beca.descripcion,
+                    "fecha_inicio": str(b.fecha_inicio),
+                    "fecha_fin": str(b.fecha_fin) if b.fecha_fin else None,
+                    "monto_percibido": b.monto_percibido
+                }
+                for b in self.becas
             ]
     
         }
