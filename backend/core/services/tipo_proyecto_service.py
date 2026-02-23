@@ -32,7 +32,7 @@ class TipoProyectoService:
         if not data or not data.get("nombre"):
             raise Exception("El nombre del tipo de proyecto es obligatorio")
 
-        nombre = " ".join(data["nombre"].strip().lower().split())
+        nombre = " ".join(data["nombre"].strip().split())
 
         # ---- VALIDAR DUPLICADO ----
         existente = TipoProyecto.query.filter(
@@ -60,7 +60,7 @@ class TipoProyectoService:
             raise Exception("Tipo de proyecto no encontrado")
 
         if "nombre" in data and data["nombre"]:
-            nombre = " ".join(data["nombre"].strip().lower().split())
+            nombre = " ".join(data["nombre"].strip().split())
 
             # ---- VALIDAR DUPLICADO (excluyendo el actual) ----
             existente = TipoProyecto.query.filter(

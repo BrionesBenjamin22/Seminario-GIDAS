@@ -8,20 +8,20 @@ def crear_visita_academica(data):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
 
-    tipo_visita = data.get("tipo_visita")
     razon = data.get("razon")
-    procedencia = data.get("procedencia")
     fecha_str = data.get("fecha")
+    procedencia_visita_id = data.get("procedencia_visita_id")
+    tipo_visita_id = data.get("tipo_visita_id")
     grupo_utn_id = data.get("grupo_utn_id")
 
-    if not tipo_visita or not isinstance(tipo_visita, str):
+    if not tipo_visita_id:
         raise ValueError("El tipo de visita es obligatorio.")
 
+    if not procedencia_visita_id:
+        raise ValueError("La procedencia de la visita es obligatoria.")
+    
     if not razon or not isinstance(razon, str):
         raise ValueError("La razón es obligatoria.")
-
-    if not procedencia or not isinstance(procedencia, str):
-        raise ValueError("La procedencia es obligatoria.")
 
     if not fecha_str:
         raise ValueError("La fecha es obligatoria.")
@@ -40,9 +40,9 @@ def crear_visita_academica(data):
         raise ValueError("Grupo UTN inválido.")
 
     visita = VisitaAcademica(
-        tipo_visita=tipo_visita.strip(),
+        tipo_visita_id=tipo_visita_id,
         razon=razon.strip(),
-        procedencia=procedencia.strip(),
+        procedencia_visita_id=procedencia_visita_id,
         fecha=fecha,  
         grupo_utn_id=grupo_utn_id
     )
@@ -61,14 +61,14 @@ def actualizar_visita_academica(id, data):
     if not visita:
         raise ValueError("Visita académica no encontrada.")
 
-    if "tipo_visita" in data:
-        visita.tipo_visita = data["tipo_visita"].strip()
+    if "tipo_visita_id" in data:
+        visita.tipo_visita_id = data["tipo_visita_id"]
 
     if "razon" in data:
         visita.razon = data["razon"].strip()
 
-    if "procedencia" in data:
-        visita.procedencia = data["procedencia"].strip()
+    if "procedencia_visita_id" in data:
+        visita.procedencia_visita_id = data["procedencia_visita_id"]
 
     if "fecha" in data:
         visita.fecha = data["fecha"]

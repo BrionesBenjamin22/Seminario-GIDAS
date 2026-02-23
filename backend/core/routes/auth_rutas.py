@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from core.controllers.auth_controller import AuthController
+from core.services.middleware import requiere_rol
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -43,3 +44,13 @@ def refresh():
 def change_password():
     return AuthController.change_password(request)
 
+
+
+
+# -------------------------
+# Soft Delete Usuario
+# -------------------------
+@auth_bp.route("/usuario/<int:user_id>", methods=["DELETE"])
+@requiere_rol("ADMIN", "GESTOR")
+def delete_user(user_id):
+    return AuthController.delete_user(request, user_id)

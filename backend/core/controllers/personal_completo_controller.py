@@ -9,5 +9,7 @@ class PersonalCompletoController:
         try:
             data = listar_personal_completo()
             return jsonify(data), 200
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            print("ERROR EN PERSONAL COMPLETO:", e)
+            raise
+

@@ -28,3 +28,11 @@ trabajo_reunion_cientifica_bp.route(
 trabajo_reunion_cientifica_bp.route(
     "/<int:trabajo_id>", methods=["DELETE"]
 )(TrabajoReunionCientificaController.delete)
+
+trabajo_reunion_cientifica_bp.route(
+    "/<int:trabajo_id>/investigadores", methods=["POST"]
+)(TrabajoReunionCientificaController.add_investigadores)
+
+trabajo_reunion_cientifica_bp.route(
+    "/<int:trabajo_id>/investigadores", methods=["DELETE"]
+)(TrabajoReunionCientificaController.remove_investigadores)

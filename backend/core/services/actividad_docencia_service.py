@@ -1,4 +1,4 @@
-from core.models.actividad_docencia import ActividadDocencia
+from core.models.actividad_docencia import ActividadDocencia, GradoAcademico, RolActividad
 from core.models.personal import Investigador
 from extension import db
 from datetime import datetime, date
@@ -56,7 +56,6 @@ class ActividadDocenciaService:
             query = query.filter(
                 ActividadDocencia.investigador_id == investigador_id
             )
-
         orden = filters.get("orden") if filters else None
         if orden == "asc":
             query = query.order_by(ActividadDocencia.fecha_inicio.asc())
@@ -98,13 +97,14 @@ class ActividadDocenciaService:
             data.get("institucion"), "institucion", min_len=3
         )
 
-        grado_academico = ActividadDocenciaService._validar_texto(
-            data.get("grado_academico"), "grado_academico", min_len=3
-        )
+        grado_academico_id = data.get("grado_academico_id")
+        if not grado_academico_id or not GradoAcademico.query.get(grado_academico_id):
+            raise Exception("Grado Academico Inválido")
+        
 
-        rol_actividad = ActividadDocenciaService._validar_texto(
-            data.get("rol_actividad"), "rol_actividad", min_len=3
-        )
+        rol_actividad_id = data.get("rol_actividad_id")
+        if not rol_actividad_id or not RolActividad.query.get(rol_actividad_id):
+            raise Exception("Rol de Actividad Inválido")
 
         # ---- Validar relación ----
         investigador_id = data.get("investigador_id")
@@ -116,8 +116,8 @@ class ActividadDocenciaService:
             institucion=institucion,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            grado_academico=grado_academico,
-            rol_actividad=rol_actividad,
+            grado_academico_id=grado_academico_id,
+            rol_actividad_id=rol_actividad_id,
             investigador_id=investigador_id
         )
 
@@ -164,15 +164,15 @@ class ActividadDocenciaService:
                 data["institucion"], "institucion", min_len=3
             )
 
-        if "grado_academico" in data:
-            actividad.grado_academico = ActividadDocenciaService._validar_texto(
-                data["grado_academico"], "grado_academico", min_len=3
-            )
+        if "grado_academico_id" in data:
+            if not GradoAcademico.query.get(data["grado_academico_id"]):
+                raise Exception("Grado Academico Inválido")
+            actividad.grado_academico_id = data["grado_academico_id"]
 
-        if "rol_actividad" in data:
-            actividad.rol_actividad = ActividadDocenciaService._validar_texto(
-                data["rol_actividad"], "rol_actividad", min_len=3
-            )
+        if "rol_actividad_id" in data:
+            if not RolActividad.query.get(data["rol_actividad_id"]):
+                raise Exception("Rol de Actividad Inválido")
+            actividad.rol_actividad_id = data["rol_actividad_id"]
 
         if "investigador_id" in data:
             if not Investigador.query.get(data["investigador_id"]):

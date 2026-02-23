@@ -10,10 +10,9 @@ class GrupoInvestigacionUtn(db.Model):
     nombre_unidad_academica = db.Column(db.Text, nullable=False)
     objetivo_desarrollo = db.Column(db.Text, nullable=False)
     nombre_sigla_grupo = db.Column(db.Text, nullable=False)
-    director = db.Column(db.Text, nullable=True)
-    vicedirector = db.Column(db.Text, nullable=True)
 
     # --- Relaciones ---
+    participaciones_directivos = db.relationship('DirectivoGrupo', back_populates='grupo_utn', cascade="all, delete-orphan")
     investigadores = db.relationship('Investigador', back_populates='grupo_utn', cascade="all, delete-orphan")
     becarios = db.relationship('Becario', back_populates="grupo_utn", cascade="all, delete-orphan")
     personal = db.relationship('Personal', back_populates="grupo_utn", cascade="all, delete-orphan")
@@ -40,8 +39,15 @@ class GrupoInvestigacionUtn(db.Model):
             "nombre_unidad_academica": self.nombre_unidad_academica,
             "objetivo_desarrollo": self.objetivo_desarrollo,
             "nombre_sigla_grupo": self.nombre_sigla_grupo,
-            "director": self.director,
-            "vicedirector": self.vicedirector,
+            "directivos": [
+                {
+                    "id": p.directivo.id,
+                    "nombre_apellido": p.directivo.nombre_apellido,
+                    "cargo": p.cargo.nombre if p.cargo else None,
+                    "fecha_inicio": str(p.fecha_inicio)
+                    } for p in self.participaciones_directivos if p.fecha_fin is None  # solo directivos activos
+            ],
+
 
             # métricas resumidas, para evitar devolver listas completas
             "cant_investigadores": len(self.investigadores),

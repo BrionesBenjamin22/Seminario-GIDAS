@@ -29,9 +29,8 @@ proyecto_investigacion_bp.route("/<int:proyecto_id>", methods=["PUT"], strict_sl
 )
 
 proyecto_investigacion_bp.route("/<int:proyecto_id>", methods=["DELETE"], strict_slashes=False)(
-    ProyectoInvestigacionController.delete
+    ProyectoInvestigacionController.cerrar
 )
-
 # =========================
 # BECARIOS ↔ PROYECTO
 
@@ -39,7 +38,7 @@ proyecto_investigacion_bp.route("/<int:proyecto_id>/becarios", methods=["POST"],
     ProyectoInvestigacionController.vincular_becarios
 )
 
-proyecto_investigacion_bp.route("/<int:proyecto_id>/becarios", methods=["DELETE"], strict_slashes=False)(
+proyecto_investigacion_bp.route("/<int:proyecto_id>/becarios", methods=["PUT"], strict_slashes=False)(
     ProyectoInvestigacionController.desvincular_becarios
 )
 
@@ -51,6 +50,6 @@ proyecto_investigacion_bp.route("/<int:proyecto_id>/investigadores", methods=["P
     ProyectoInvestigacionController.vincular_investigadores
 )
 
-proyecto_investigacion_bp.route("/<int:proyecto_id>/investigadores", methods=["DELETE"], strict_slashes=False)(
+proyecto_investigacion_bp.route("/<int:proyecto_id>/investigadores", methods=["PUT"], strict_slashes=False)(
     ProyectoInvestigacionController.desvincular_investigadores
 )

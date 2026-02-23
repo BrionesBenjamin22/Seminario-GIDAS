@@ -5,6 +5,7 @@ class RegistrosPropiedad(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     nombre_articulo = db.Column(db.Text, nullable=False)
     organismo_registrante = db.Column(db.Text, nullable=False)
+    fecha_registro = db.Column(db.Date, nullable=False)
     
     # --- Clave Foránea y Relación ---
     tipo_registro_id = db.Column(db.Integer, db.ForeignKey('tipo_registro_propiedad.id'), nullable=False)
@@ -14,6 +15,9 @@ class RegistrosPropiedad(db.Model):
     
     def serialize(self):
         data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        #data.pop("tipo_registro_id", None)
+        data.pop("grupo_utn_id", None)
+        data["tipo_registro"] = self.tipo_registro.nombre if self.tipo_registro else None
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         return data
     

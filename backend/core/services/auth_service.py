@@ -1,6 +1,7 @@
 import jwt
 import datetime
-from core.models.usuario import Usuario
+from core.models.persona import Persona
+from core.models.usuario import Usuario, RolUsuario
 from extension import db
 from config import Config
 
@@ -12,6 +13,7 @@ class AuthService:
         access_payload = {
             "sub": str(user.id),
             "nombre_usuario": user.nombre_usuario,
+            "rol": user.rol.nombre,   # 🔥 IMPORTANTE
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15),
             "iss": "auth-service"
         }
@@ -44,7 +46,11 @@ class AuthService:
     # -------------------------
     @staticmethod
     def login(nombre_usuario: str, password: str) -> dict:
-        user = Usuario.query.filter_by(nombre_usuario=nombre_usuario).first()
+
+        user = Usuario.query.filter_by(
+            nombre_usuario=nombre_usuario,
+            activo=True   # 🔥 importante
+        ).first()
 
         if not user or not user.verificar_password(password):
             raise Exception("Credenciales inválidas")
@@ -57,7 +63,8 @@ class AuthService:
             "user": {
                 "id": user.id,
                 "nombre_usuario": user.nombre_usuario,
-                "mail": user.mail
+                "mail": user.mail,
+                "rol": user.rol.nombre
             }
         }
 
@@ -65,7 +72,15 @@ class AuthService:
     # Registro
     # -------------------------
     @staticmethod
-    def register(nombre_usuario: str, mail: str, password: str) -> Usuario:
+    def register(
+        nombre_usuario: str,
+        mail: str,
+        password: str,
+        nombre_apellido: str,
+        dni: int,
+        rol_id: int
+    ) -> Usuario:
+
         existe = Usuario.query.filter(
             (Usuario.nombre_usuario == nombre_usuario) |
             (Usuario.mail == mail)
@@ -74,21 +89,39 @@ class AuthService:
         if existe:
             raise Exception("Usuario o mail ya existe")
 
+        rol = RolUsuario.query.get(rol_id)
+        if not rol:
+            raise Exception("Rol inválido")
+
+        # Crear Persona
+        persona = Persona(
+            nombre_apellido=nombre_apellido,
+            dni=dni
+        )
+
+        db.session.add(persona)
+        db.session.flush()  # importante para obtener persona.id
+
+        # Crear Usuario
         nuevo_usuario = Usuario(
             nombre_usuario=nombre_usuario,
-            mail=mail
+            mail=mail,
+            id_persona=persona.id,
+            id_rol=rol.id
         )
 
         nuevo_usuario.set_password(password)
 
         db.session.add(nuevo_usuario)
+
         try:
             db.session.commit()
             return nuevo_usuario
         except Exception:
             db.session.rollback()
             raise Exception("Error al registrar usuario")
-
+        
+        
     # -------------------------
     # Refresh token
     # -------------------------
@@ -159,3 +192,17 @@ class AuthService:
         except Exception:
             db.session.rollback()
             raise Exception("Error al cambiar la contraseña")
+        
+    
+    
+    @staticmethod
+    def delete_user(user_id: int, current_user_id: int):
+
+        user = Usuario.query.get(user_id)
+
+        if not user:
+            raise Exception("Usuario no encontrado")
+
+        user.soft_delete(current_user_id)
+
+        db.session.commit()

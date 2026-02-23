@@ -1,9 +1,9 @@
+from core.models.personal import Investigador
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.proyecto_investigacion import ProyectoInvestigacion
 from core.models.trabajo_revista import TrabajosRevistasReferato
 from extension import db
-
-
+from datetime import datetime
 
 class TrabajosRevistasReferatoService:
 
@@ -68,17 +68,11 @@ class TrabajosRevistasReferatoService:
             "editorial",
             "issn",
             "pais",
-            "proyecto_id"
-        ]
-
+        ]        
         for field in required_fields:
             if not data.get(field):
                 raise Exception(f"El campo '{field}' es obligatorio")
 
-        # ---- Validar proyecto ----
-        proyecto = ProyectoInvestigacion.query.get(data["proyecto_id"])
-        if not proyecto:
-            raise Exception("Proyecto de investigación inválido")
 
         # ---- Validar grupo UTN (opcional) ----
         grupo_utn_id = data.get("grupo_utn_id")
@@ -86,15 +80,22 @@ class TrabajosRevistasReferatoService:
             grupo = GrupoInvestigacionUtn.query.get(grupo_utn_id)
             if not grupo:
                 raise Exception("Grupo UTN inválido")
+            
+        fecha = None
+        if data.get("fecha"):
+            fecha = datetime.strptime(
+                data["fecha"], "%Y-%m-%d"
+            ).date()
 
         trabajo = TrabajosRevistasReferato(
             titulo_trabajo=data["titulo_trabajo"],
             nombre_revista=data["nombre_revista"],
             editorial=data["editorial"],
             issn=data["issn"],
+            fecha=fecha,
             pais=data["pais"],
-            proyecto_id=data["proyecto_id"],
-            grupo_utn_id=grupo_utn_id
+            grupo_utn_id=grupo_utn_id,
+            tipo_reunion_id=data["tipo_reunion_id"] 
         )
 
         db.session.add(trabajo)
@@ -122,12 +123,11 @@ class TrabajosRevistasReferatoService:
 
         if "pais" in data:
             trabajo.pais = data["pais"]
-
-        if "proyecto_id" in data:
-            proyecto = ProyectoInvestigacion.query.get(data["proyecto_id"])
-            if not proyecto:
-                raise Exception("Proyecto de investigación inválido")
-            trabajo.proyecto_id = data["proyecto_id"]
+            
+        if "fecha" in data:
+            trabajo.fecha = datetime.strptime(
+                data["fecha"], "%Y-%m-%d"
+            ).date()
 
         if "grupo_utn_id" in data:
             if data["grupo_utn_id"] is None:
@@ -151,3 +151,52 @@ class TrabajosRevistasReferatoService:
         db.session.delete(trabajo)
         db.session.commit()
         return {"message": "Trabajo en revista eliminado correctamente"}
+    
+    @staticmethod
+    def vincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        if not investigadores_ids or not isinstance(investigadores_ids, list):
+            raise ValueError("Debe enviarse una lista de ids de investigadores")
+
+        trabajo = db.session.get(TrabajosRevistasReferato, trabajo_id)
+        if not trabajo:
+            raise ValueError("Trabajo en revista no encontrado")
+
+        # Traemos todos los investigadores que existan
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+
+        if len(investigadores) != len(investigadores_ids):
+            raise ValueError("Uno o más investigadores no existen")
+
+        # Vinculamos solo los que no estén ya vinculados
+        for inv in investigadores:
+            if inv not in trabajo.investigadores:
+                trabajo.investigadores.append(inv)
+
+        db.session.commit()
+
+        return trabajo.serialize()
+
+
+    @staticmethod
+    def desvincular_investigadores(trabajo_id: int, investigadores_ids: list[int]):
+        trabajo = db.session.get(TrabajosRevistasReferato, trabajo_id)
+        if not trabajo:
+            raise ValueError("Trabajo en revista no encontrado")
+
+        investigadores = (
+            db.session.query(Investigador)
+            .filter(Investigador.id.in_(investigadores_ids))
+            .all()
+        )
+
+        for inv in investigadores:
+            if inv in trabajo.investigadores:
+                trabajo.investigadores.remove(inv)
+
+        db.session.commit()
+
+        return trabajo.serialize()

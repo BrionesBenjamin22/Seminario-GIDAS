@@ -26,3 +26,4 @@ def actualizar(id):
 @investigador_bp.route("/<int:id>", methods=["DELETE"])
 def eliminar(id):
     return InvestigadorController.eliminar(request, id)
+

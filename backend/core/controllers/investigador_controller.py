@@ -62,3 +62,4 @@ class InvestigadorController:
             return jsonify({"error": str(ve)}), 400
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
+
