@@ -258,6 +258,7 @@ class SearchService:
         # ==================================================
         # TIPO PROYECTO
         # ==================================================
+
         tipo_proyecto_results = db.session.query(TipoProyecto)\
             .options(joinedload(TipoProyecto.proyectos_investigacion))\
             .all()
@@ -268,28 +269,28 @@ class SearchService:
 
             if query_normalized in tipo_nombre_norm:
 
+                proyectos = [
+                    {
+                        "id": proyecto.id,
+                        "nombre": proyecto.nombre_proyecto,
+                        "codigo": proyecto.codigo_proyecto,
+                        "url": f"/proyectos/{proyecto.id}"
+                    }
+                    for proyecto in tipo.proyectos_investigacion
+                ]
 
-                if tipo.proyectos_investigacion:
-
-                    for proyecto in tipo.proyectos_investigacion:
-                        resultados.append({
-                            "tipo": "Proyecto (por tipo)",
-                            "id": proyecto.id,
-                            "titulo": proyecto.nombre_proyecto,
-                            "subtitulo": f"Tipo: {tipo.nombre}",
-                            "fecha": proyecto.fecha_inicio,
-                            "url": f"/proyectos/{proyecto.id}"
-                        })
-
-                else:
-                    resultados.append({
-                        "tipo": "Tipo de Proyecto",
-                        "id": tipo.id,
-                        "titulo": tipo.nombre,
-                        "subtitulo": "Sin proyectos asociados",
-                        "fecha": None,
-                        "url": f"/tipos-proyecto/{tipo.id}"
-                    })
+                resultados.append({
+                    "tipo": "Tipo de Proyecto",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de proyectos",
+                    "fecha": None,
+                    "url": f"/tipos-proyecto/{tipo.id}",
+                    "extra": {
+                        "cantidad_proyectos": len(proyectos),
+                        "proyectos": proyectos
+                    }
+                })
                     
         # ==================================================
         # EQUIPAMIENTO
@@ -374,6 +375,16 @@ class SearchService:
 
             if query_normalized in nombre_norm:
 
+                documentos = [
+                    {
+                        "id": l.id,
+                        "titulo": l.titulo,
+                        "tipo": "Libro",  # Ajustar si tu modelo tiene campo tipo
+                        "url": f"/documentacion-bibliografica/{l.id}"
+                    }
+                    for l in autor.libros
+                ]
+
                 resultados.append({
                     "tipo": "Autor",
                     "id": autor.id,
@@ -382,17 +393,11 @@ class SearchService:
                     "fecha": None,
                     "url": f"/autores/{autor.id}",
                     "extra": {
-                        "libros": [
-                            {
-                                "id": l.id,
-                                "titulo": l.titulo,
-                                "editorial": l.editorial,
-                                "anio": l.anio
-                            }
-                            for l in autor.libros
-                        ]
+                        "cantidad_documentos": len(documentos),
+                        "documentos": documentos
                     }
                 })
+                
                 
         # ==================================================
         # TIPO EROGACIÓN
@@ -408,36 +413,45 @@ class SearchService:
 
             if query_normalized in tipo_norm:
 
+                erogaciones = sorted(
+                    tipo.erogaciones,
+                    key=lambda e: e.fecha if hasattr(e, "fecha") else None,
+                    reverse=True
+                )
 
-                if tipo.erogaciones:
+                erogaciones_data = [
+                    {
+                        "id": e.id,
+                        "descripcion": e.descripcion if hasattr(e, "descripcion") else None,
+                        "monto": e.monto,
+                        "fecha": e.fecha,
+                        "url": f"/erogaciones/{e.id}"
+                    }
+                    for e in erogaciones[:5]  # recientes
+                ]
 
-                    for erogacion in tipo.erogaciones:
-                        resultados.append({
-                            "tipo": "Erogación (por tipo)",
-                            "id": erogacion.id,
-                            "titulo": tipo.nombre,
-                            "subtitulo": f"Erogación ID: {erogacion.id}",
-                            "fecha": erogacion.fecha if hasattr(erogacion, "fecha") else None,
-                            "url": f"/erogaciones/{erogacion.id}"
-                        })
+                total_monto = sum(e.monto or 0 for e in tipo.erogaciones)
 
-
-                else:
-                    resultados.append({
-                        "tipo": "Tipo de Erogación",
-                        "id": tipo.id,
-                        "titulo": tipo.nombre,
-                        "subtitulo": "Sin erogaciones asociadas",
-                        "fecha": None,
-                        "url": f"/tipos-erogacion/{tipo.id}"
-                    })
+                resultados.append({
+                    "tipo": "Tipo de Erogación",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de gastos",
+                    "fecha": None,
+                    "url": f"/tipos-erogacion/{tipo.id}",
+                    "extra": {
+                        "cantidad_erogaciones": len(tipo.erogaciones),
+                        "total_monto": total_monto,
+                        "erogaciones_recientes": erogaciones_data
+                    }
+                })
                     
         # ==================================================
         # FUENTE DE FINANCIAMIENTO
         # ==================================================
 
         fuentes = db.session.query(FuenteFinanciamiento)\
-            .options(joinedload(FuenteFinanciamiento.erogaciones))\
+            .options(joinedload(FuenteFinanciamiento.proyectos_investigacion))\
             .all()
 
         for fuente in fuentes:
@@ -446,55 +460,29 @@ class SearchService:
 
             if query_normalized in nombre_norm:
 
-                becarios = fuente.becarios.all()  # porque lazy="dynamic"
-                proyectos = fuente.proyectos_investigacion.all()
+                proyectos = [
+                    {
+                        "id": p.id,
+                        "nombre": p.nombre_proyecto,
+                        "monto_financiamiento": p.monto_financiamiento,
+                        "url": f"/proyectos/{p.id}"
+                    }
+                    for p in fuente.proyectos_investigacion
+                ]
 
-                if becarios or proyectos or fuente.erogaciones:
-
-                    resultados.append({
-                        "tipo": "Fuente de Financiamiento",
-                        "id": fuente.id,
-                        "titulo": fuente.nombre,
-                        "subtitulo": "Fuente activa",
-                        "fecha": None,
-                        "url": f"/fuentes-financiamiento/{fuente.id}",
-                        "extra": {
-                            "total_becarios": len(becarios),
-                            "total_proyectos": len(proyectos),
-                            "total_erogaciones": len(fuente.erogaciones),
-                            "becarios": [
-                                {
-                                    "id": b.id,
-                                    "nombre": b.nombre_apellido
-                                }
-                                for b in becarios
-                            ],
-                            "proyectos": [
-                                {
-                                    "id": p.id,
-                                    "nombre": p.nombre_proyecto
-                                }
-                                for p in proyectos
-                            ],
-                            "erogaciones": [
-                                {
-                                    "id": e.id
-                                }
-                                for e in fuente.erogaciones
-                            ]
-                        }
-                    })
-
+                resultados.append({
+                    "tipo": "Fuente de Financiamiento",
+                    "id": fuente.id,
+                    "titulo": fuente.nombre,
+                    "subtitulo": "Fuente activa",
+                    "fecha": None,
+                    "url": f"/fuentes-financiamiento/{fuente.id}",
+                    "extra": {
+                        "cantidad_proyectos": len(proyectos),
+                        "proyectos": proyectos
+                    }
+                })
                 
-                else:
-                    resultados.append({
-                        "tipo": "Fuente de Financiamiento",
-                        "id": fuente.id,
-                        "titulo": fuente.nombre,
-                        "subtitulo": "Sin registros asociados",
-                        "fecha": None,
-                        "url": f"/fuentes-financiamiento/{fuente.id}"
-                    })
         # ==================================================
         # PARTICIPACIÓN RELEVANTE
         # ==================================================
@@ -569,35 +557,32 @@ class SearchService:
 
         for tipo in tipos_registro:
 
-
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
             if query_normalized in tipo_norm:
 
-                # Si tiene registros → devolver registros
-                if tipo.registros_propiedad:
+                registros = [
+                    {
+                        "id": r.id,
+                        "articulo": r.nombre_articulo,
+                        "organismo": r.organismo_registrante,
+                        "url": f"/registros-propiedad/{r.id}"
+                    }
+                    for r in tipo.registros_propiedad
+                ]
 
-                    for registro in tipo.registros_propiedad:
-                        resultados.append({
-                            "tipo": "Registro (por tipo)",
-                            "id": registro.id,
-                            "titulo": registro.nombre_articulo,
-                            "subtitulo": f"Tipo: {tipo.nombre}",
-                            "fecha": registro.fecha_registro,
-                            "url": f"/registros-propiedad/{registro.id}"
-                        })
-
-                # Si no tiene registros → devolver tipo solo
-                else:
-                    resultados.append({
-                        "tipo": "Tipo Registro Propiedad",
-                        "id": tipo.id,
-                        "titulo": tipo.nombre,
-                        "subtitulo": "Sin registros asociados",
-                        "fecha": None,
-                        "url": f"/tipos-registro-propiedad/{tipo.id}"
-                    })
-
+                resultados.append({
+                    "tipo": "Tipo Registro Propiedad",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de registros",
+                    "fecha": None,
+                    "url": f"/tipos-registro-propiedad/{tipo.id}",
+                    "extra": {
+                        "cantidad_registros": len(registros),
+                        "registros": registros
+                    }
+                })
         # ==================================================
         # TRANSFERENCIA SOCIO PRODUCTIVA
         # ==================================================
@@ -643,7 +628,7 @@ class SearchService:
                     }
                 })
                 
-                
+                        
         # ==================================================
         # TIPO CONTRATO TRANSFERENCIA
         # ==================================================
@@ -658,67 +643,66 @@ class SearchService:
 
             if query_normalized in tipo_norm:
 
-                # Si tiene transferencias → devolverlas
-                if tipo.transferencias:
+                transferencias = [
+                    {
+                        "id": t.id,
+                        "descripcion": t.descripcion_actividad,
+                        "demandante": t.demandante,
+                        "url": f"/transferencias/{t.id}"
+                    }
+                    for t in tipo.transferencias
+                ]
 
-                    for transferencia in tipo.transferencias:
-                        resultados.append({
-                            "tipo": "Transferencia (por tipo de contrato)",
-                            "id": transferencia.id,
-                            "titulo": transferencia.descripcion_actividad,
-                            "subtitulo": f"Contrato: {tipo.nombre}",
-                            "fecha": transferencia.fecha_inicio,
-                            "url": f"/transferencias/{transferencia.id}"
-                        })
-
-                # Si no tiene → devolver tipo solo
-                else:
-                    resultados.append({
-                        "tipo": "Tipo de Contrato",
-                        "id": tipo.id,
-                        "titulo": tipo.nombre,
-                        "subtitulo": "Sin transferencias asociadas",
-                        "fecha": None,
-                        "url": f"/tipos-contrato/{tipo.id}"
-                    })
+                resultados.append({
+                    "tipo": "Tipo de Contrato",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación contractual",
+                    "fecha": None,
+                    "url": f"/tipos-contrato/{tipo.id}",
+                    "extra": {
+                        "cantidad_transferencias": len(transferencias),
+                        "transferencias": transferencias
+                    }
+                })
 
         # ==================================================
         # TIPO PERSONAL
         # ==================================================
 
-        tipos_personal = db.session.query(TipoPersonal).all()
-    
+        tipos_personal = db.session.query(TipoPersonal)\
+            .options(joinedload(TipoPersonal.personal))\
+            .all()
+
         for tipo in tipos_personal:
 
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
             if query_normalized in tipo_norm:
 
-                personas = tipo.personal.all()  # porque lazy="dynamic"
+                personal_data = [
+                    {
+                        "id": p.id,
+                        "nombre_apellido": p.nombre_apellido,
+                        "horas_semanales": p.horas_semanales,
+                        "activo": p.fecha_baja is None,
+                        "url": f"/personal/{p.id}"
+                    }
+                    for p in tipo.personal
+                ]
 
-                # Si tiene personas asociadas
-                if personas:
-
-                    for persona in personas:
-                        resultados.append({
-                            "tipo": "Persona (por tipo)",
-                            "id": persona.id,
-                            "titulo": persona.nombre_apellido,
-                            "subtitulo": f"Tipo: {tipo.nombre}",
-                            "fecha": None,
-                            "url": f"/personal/{persona.id}"
-                        })
-
-                # Si no tiene personas asociadas
-                else:
-                    resultados.append({
-                        "tipo": "Tipo Personal",
-                        "id": tipo.id,
-                        "titulo": tipo.nombre,
-                        "subtitulo": "Sin personas asociadas",
-                        "fecha": None,
-                        "url": f"/tipos-personal/{tipo.id}"
-                    })
+                resultados.append({
+                    "tipo": "Tipo Personal",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de personal",
+                    "fecha": None,
+                    "url": f"/tipos-personal/{tipo.id}",
+                    "extra": {
+                        "cantidad_personal": len(personal_data),
+                        "personal": personal_data
+                    }
+                })
 
         # ==================================================
         # TRABAJO REUNIÓN CIENTÍFICA
@@ -852,45 +836,30 @@ class SearchService:
 
             nombre_norm = SearchService.normalize_text(d.nombre_apellido)
 
-            # Buscar coincidencia por nombre
-            coincide_nombre = query_normalized in nombre_norm
+            if query_normalized in nombre_norm:
 
-            # Buscar coincidencia por cargo
-            coincide_cargo = any(
-                query_normalized in SearchService.normalize_text(p.cargo.nombre)
-                for p in d.participaciones_grupo
-                if p.cargo
-            )
+                participacion_activa = next(
+                    (p for p in d.participaciones_grupo if p.fecha_fin is None),
+                    None
+                )
 
-            if coincide_nombre or coincide_cargo:
+                if participacion_activa:
 
-                participaciones = [
-                    {
-                        "grupo": p.grupo_utn.nombre_sigla_grupo if p.grupo_utn else None,
-                        "cargo": p.cargo.nombre if p.cargo else None,
-                        "fecha_inicio": str(p.fecha_inicio),
-                        "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None,
-                        "activo": p.fecha_fin is None
-                    }
-                    for p in d.participaciones_grupo
-                ]
-
-                # Detectar si tiene algún cargo activo
-                tiene_activo = any(p["activo"] for p in participaciones)
-
-                resultados.append({
-                    "tipo": "Directivo",
-                    "id": d.id,
-                    "titulo": d.nombre_apellido,
-                    "subtitulo": "Directivo de Grupo",
-                    "fecha": None,
-                    "url": f"/directivos/{d.id}",
-                    "activo": tiene_activo,   # 👈 bandera para ordenar
-                    "extra": {
-                        "participaciones": participaciones
-                    }
-                })
-
+                    resultados.append({
+                        "tipo": "Directivo",
+                        "id": d.id,
+                        "titulo": d.nombre_apellido,
+                        "subtitulo": participacion_activa.cargo.nombre if participacion_activa.cargo else None,
+                        "fecha": participacion_activa.fecha_inicio,
+                        "url": f"/directivos/{d.id}",
+                        "extra": {
+                            "cargo": participacion_activa.cargo.nombre if participacion_activa.cargo else None,
+                            "grupo_utn": participacion_activa.grupo_utn.nombre_sigla_grupo if participacion_activa.grupo_utn else None,
+                            "grupo_utn_id": participacion_activa.grupo_utn.id if participacion_activa.grupo_utn else None,
+                            "fecha_inicio": participacion_activa.fecha_inicio,
+                            "url_grupo": f"/uct/{participacion_activa.grupo_utn.id}" if participacion_activa.grupo_utn else None
+                        }
+                    })
 
 
         # ==================================================
