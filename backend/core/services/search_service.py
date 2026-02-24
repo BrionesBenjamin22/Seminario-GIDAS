@@ -450,9 +450,7 @@ class SearchService:
         # FUENTE DE FINANCIAMIENTO
         # ==================================================
 
-        fuentes = db.session.query(FuenteFinanciamiento)\
-            .options(joinedload(FuenteFinanciamiento.proyectos_investigacion))\
-            .all()
+        fuentes = db.session.query(FuenteFinanciamiento).all()
 
         for fuente in fuentes:
 
@@ -467,7 +465,7 @@ class SearchService:
                         "monto_financiamiento": p.monto_financiamiento,
                         "url": f"/proyectos/{p.id}"
                     }
-                    for p in fuente.proyectos_investigacion
+                    for p in fuente.proyectos_investigacion.all()
                 ]
 
                 resultados.append({
@@ -670,9 +668,7 @@ class SearchService:
         # TIPO PERSONAL
         # ==================================================
 
-        tipos_personal = db.session.query(TipoPersonal)\
-            .options(joinedload(TipoPersonal.personal))\
-            .all()
+        tipos_personal = db.session.query(TipoPersonal).all()
 
         for tipo in tipos_personal:
 
@@ -688,7 +684,7 @@ class SearchService:
                         "activo": p.fecha_baja is None,
                         "url": f"/personal/{p.id}"
                     }
-                    for p in tipo.personal
+                    for p in tipo.personal.all()
                 ]
 
                 resultados.append({
