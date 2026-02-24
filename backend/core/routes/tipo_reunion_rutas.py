@@ -7,6 +7,6 @@ tipo_reunion_bp = Blueprint(
     url_prefix="/tipos-reunion-cientifica"
 )
 
-tipo_reunion_bp.route(
-    "", methods=["GET"]
-)(TipoReunionController.get_all)
+@tipo_reunion_bp.route("/", methods=["GET"])
+def get_all():
+    return TipoReunionController.get_all()
