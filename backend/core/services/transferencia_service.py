@@ -178,10 +178,10 @@ class TransferenciaSocioProductivaService:
         if "fecha_inicio" in data:
             if not data["fecha_inicio"]:
                 raise Exception("La fecha de inicio es obligatoria")
-            transferencia.fecha_inicio = data["fecha_inicio"]
+            transferencia.fecha_inicio = datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date()
             
         if "fecha_fin" in data:
-            transferencia.fecha_fin = data["fecha_fin"] if data["fecha_fin"] else None
+            transferencia.fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date() if data["fecha_fin"] else None
         
         if "tipo_contrato_id" in data:
             if not TipoContrato.query.get(data["tipo_contrato_id"]):

@@ -3,12 +3,11 @@ from core.controllers.search_controller import SearchController
 
 search_bp = Blueprint(
     "search",
-    __name__,
-    url_prefix="/search"
+    __name__
 )
 
 
-@search_bp.route("/", methods=["GET"])
+@search_bp.route("/search/", methods=["GET"], strict_slashes=False)
 def buscar():
     """
     Endpoint principal de búsqueda global
