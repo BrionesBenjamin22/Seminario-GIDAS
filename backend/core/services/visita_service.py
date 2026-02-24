@@ -1,7 +1,8 @@
 from extension import db
 from core.models.visita_grupo import VisitaAcademica
 from core.models.grupo import GrupoInvestigacionUtn
-from datetime import  datetime
+from core.models.trabajo_reunion import TipoReunion
+from datetime import datetime
 
 
 def crear_visita_academica(data):
@@ -10,23 +11,27 @@ def crear_visita_academica(data):
 
     razon = data.get("razon")
     fecha_str = data.get("fecha")
-    procedencia_visita_id = data.get("procedencia_visita_id")
+    procedencia = data.get("procedencia")  # Ahora es un string
     tipo_visita_id = data.get("tipo_visita_id")
     grupo_utn_id = data.get("grupo_utn_id")
 
     if not tipo_visita_id:
         raise ValueError("El tipo de visita es obligatorio.")
 
-    if not procedencia_visita_id:
-        raise ValueError("La procedencia de la visita es obligatoria.")
-    
+    # Validar que el tipo de visita existe en TipoReunion
+    tipo_visita = TipoReunion.query.get(tipo_visita_id)
+    if not tipo_visita:
+        raise ValueError("Tipo de visita inválido.")
+
+    if not procedencia or not isinstance(procedencia, str):
+        raise ValueError("La procedencia es obligatoria y debe ser texto.")
+
     if not razon or not isinstance(razon, str):
         raise ValueError("La razón es obligatoria.")
 
     if not fecha_str:
         raise ValueError("La fecha es obligatoria.")
 
-    
     try:
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
     except ValueError:
@@ -42,8 +47,8 @@ def crear_visita_academica(data):
     visita = VisitaAcademica(
         tipo_visita_id=tipo_visita_id,
         razon=razon.strip(),
-        procedencia_visita_id=procedencia_visita_id,
-        fecha=fecha,  
+        procedencia=procedencia.strip(),  # Ahora es string
+        fecha=fecha,
         grupo_utn_id=grupo_utn_id
     )
 
@@ -62,13 +67,18 @@ def actualizar_visita_academica(id, data):
         raise ValueError("Visita académica no encontrada.")
 
     if "tipo_visita_id" in data:
+        tipo_visita = TipoReunion.query.get(data["tipo_visita_id"])
+        if not tipo_visita:
+            raise ValueError("Tipo de visita inválido.")
         visita.tipo_visita_id = data["tipo_visita_id"]
 
     if "razon" in data:
         visita.razon = data["razon"].strip()
 
-    if "procedencia_visita_id" in data:
-        visita.procedencia_visita_id = data["procedencia_visita_id"]
+    if "procedencia" in data:
+        if not data["procedencia"] or not isinstance(data["procedencia"], str):
+            raise ValueError("La procedencia debe ser texto válido.")
+        visita.procedencia = data["procedencia"].strip()
 
     if "fecha" in data:
         visita.fecha = data["fecha"]
