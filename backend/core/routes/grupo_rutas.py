@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from core.controllers.grupo_controller import GrupoUtnController
+from core.services.middleware import requiere_rol
 
 grupo_utn_bp = Blueprint(
     "grupo_utn",
@@ -11,6 +12,7 @@ grupo_utn_bp = Blueprint(
 # Crear grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["POST"], strict_slashes=False)
+@requiere_rol("ADMIN")
 def crear():
     return GrupoUtnController.crear()
 
@@ -26,6 +28,7 @@ def obtener():
 # Actualizar grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["PUT"], strict_slashes=False)
+@requiere_rol("ADMIN")
 def actualizar():
     return GrupoUtnController.actualizar()
 
@@ -33,5 +36,6 @@ def actualizar():
 # Eliminar grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["DELETE"], strict_slashes=False)
+@requiere_rol("ADMIN")
 def eliminar():
     return GrupoUtnController.eliminar()

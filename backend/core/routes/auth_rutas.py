@@ -9,6 +9,7 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 # Registro
 # -------------------------
 @auth_bp.route("/register", methods=["POST"])
+@requiere_rol("ADMIN")
 def register():
     return AuthController.register(request)
 
