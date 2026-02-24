@@ -10,7 +10,7 @@ trabajo_reunion_cientifica_bp = Blueprint(
 )
 
 trabajo_reunion_cientifica_bp.route(
-    "", methods=["GET"]
+    "/", methods=["GET"]
 )(TrabajoReunionCientificaController.get_all)
 
 trabajo_reunion_cientifica_bp.route(
@@ -18,7 +18,7 @@ trabajo_reunion_cientifica_bp.route(
 )(TrabajoReunionCientificaController.get_by_id)
 
 trabajo_reunion_cientifica_bp.route(
-    "", methods=["POST"]
+    "/", methods=["POST"]
 )(TrabajoReunionCientificaController.create)
 
 trabajo_reunion_cientifica_bp.route(
