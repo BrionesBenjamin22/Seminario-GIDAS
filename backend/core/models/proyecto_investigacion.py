@@ -64,6 +64,7 @@ class ProyectoInvestigacion(db.Model):
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=True)
     dificultades_proyecto = db.Column(db.Text, nullable=True)
+    monto_destinado = db.Column(db.Float, nullable=True)
 
     tipo_proyecto_id = db.Column(db.Integer, db.ForeignKey('tipo_proyecto_investigacion.id'), nullable=False)
     tipo_proyecto = db.relationship('TipoProyecto', back_populates='proyectos_investigacion')

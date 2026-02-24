@@ -49,7 +49,7 @@ class AuthService:
 
         user = Usuario.query.filter_by(
             nombre_usuario=nombre_usuario,
-            activo=True   # 🔥 importante
+            activo=True   # importante para evitar login de usuarios eliminados
         ).first()
 
         if not user or not user.verificar_password(password):

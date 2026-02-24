@@ -49,8 +49,13 @@ class ProyectoInvestigacionService:
         orden = filters.get("orden")
         if orden == "asc":
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.asc())
+        elif orden == "monto_asc":
+            query = query.order_by(ProyectoInvestigacion.monto_destinado.asc())
+        elif orden == "monto_desc":
+            query = query.order_by(ProyectoInvestigacion.monto_destinado.desc())
         else:
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.desc())
+        
 
         return [p.serialize() for p in query.all()]
 
@@ -119,6 +124,7 @@ class ProyectoInvestigacionService:
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             dificultades_proyecto=data.get("dificultades_proyecto"),
+            monto_destinado=data.get("monto_destinado"),
             tipo_proyecto_id=data["tipo_proyecto_id"],
             grupo_utn_id=data.get("grupo_utn_id"),
             fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
@@ -142,7 +148,8 @@ class ProyectoInvestigacionService:
             "codigo_proyecto",
             "nombre_proyecto",
             "descripcion_proyecto",
-            "dificultades_proyecto"
+            "dificultades_proyecto",
+            "monto_destinado"
         ]:
             if field in data:
                 setattr(proyecto, field, data[field])
