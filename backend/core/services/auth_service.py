@@ -42,6 +42,14 @@ class AuthService:
         }
 
     # -------------------------
+    # Verificar si existe primer usuario
+    # -------------------------
+    @staticmethod
+    def existe_primer_usuario() -> bool:
+        """Verifica si existe al menos un usuario en el sistema"""
+        return Usuario.query.first() is not None
+
+    # -------------------------
     # Login
     # -------------------------
     @staticmethod
@@ -64,21 +72,23 @@ class AuthService:
                 "id": user.id,
                 "nombre_usuario": user.nombre_usuario,
                 "mail": user.mail,
-                "rol": user.rol.nombre
+                "rol": user.rol.nombre,
+                "primer_login": user.primer_login
             }
         }
 
     # -------------------------
-    # Registro
+    # Registro (primer usuario o por admin)
     # -------------------------
     @staticmethod
     def register(
         nombre_usuario: str,
         mail: str,
         password: str,
-        nombre_apellido: str,
-        dni: int,
-        rol_id: int
+        rol_id: int = None,
+        nombre_apellido: str = None,
+        dni: int = None,
+        es_primer_usuario: bool = False
     ) -> Usuario:
 
         existe = Usuario.query.filter(
@@ -89,9 +99,24 @@ class AuthService:
         if existe:
             raise Exception("Usuario o mail ya existe")
 
-        rol = RolUsuario.query.get(rol_id)
-        if not rol:
-            raise Exception("Rol inválido")
+        # Si es el primer usuario, asignar rol ADMIN automáticamente
+        if es_primer_usuario:
+            rol = RolUsuario.query.filter_by(nombre="ADMIN").first()
+            if not rol:
+                raise Exception("Rol ADMIN no encontrado en el sistema")
+            # Crear persona genérica para el primer admin
+            if not nombre_apellido:
+                nombre_apellido = "Administrador GIDAS"
+            if not dni:
+                dni = 0
+        else:
+            if not rol_id:
+                raise Exception("rol_id es obligatorio para crear usuarios")
+            rol = RolUsuario.query.get(rol_id)
+            if not rol:
+                raise Exception("Rol inválido")
+            if not nombre_apellido or not dni:
+                raise Exception("nombre_apellido y dni son obligatorios")
 
         # Crear Persona
         persona = Persona(
@@ -107,7 +132,8 @@ class AuthService:
             nombre_usuario=nombre_usuario,
             mail=mail,
             id_persona=persona.id,
-            id_rol=rol.id
+            id_rol=rol.id,
+            primer_login=True  # Siempre true al crear
         )
 
         nuevo_usuario.set_password(password)
@@ -179,13 +205,21 @@ class AuthService:
     # -------------------------
         
     @staticmethod
-    def change_password(user_id: int, password_actual: str, password_nueva: str):
+    def change_password(user_id: int, password_actual: str, password_nueva: str, es_primer_cambio: bool = False):
         user = Usuario.query.get(user_id)
 
         if not user:
             raise Exception("Usuario no encontrado")
 
-        user.cambiar_password(password_actual, password_nueva)
+        # Si es el primer cambio, no validamos password_actual
+        if not es_primer_cambio:
+            if not user.verificar_password(password_actual):
+                raise Exception("La contraseña actual es incorrecta")
+        
+        user.set_password(password_nueva)
+        
+        # Actualizar primer_login a False
+        user.primer_login = False
 
         try:
             db.session.commit()
@@ -202,7 +236,90 @@ class AuthService:
 
         if not user:
             raise Exception("Usuario no encontrado")
+        
+        # Evitar que un admin se elimine a sí mismo
+        if user_id == current_user_id:
+            raise Exception("No puede eliminar su propia cuenta")
+        
+        # Verificar que quede al menos un admin
+        if user.rol.nombre == "ADMIN":
+            admin_count = Usuario.query.join(RolUsuario).filter(
+                RolUsuario.nombre == "ADMIN",
+                Usuario.activo == True
+            ).count()
+            if admin_count <= 1:
+                raise Exception("Debe quedar al menos un administrador en el sistema")
 
         user.soft_delete(current_user_id)
 
         db.session.commit()
+
+    # -------------------------
+    # CRUD Usuarios
+    # -------------------------
+    
+    @staticmethod
+    def get_all_users():
+        """Obtener todos los usuarios activos"""
+        return Usuario.query.filter_by(activo=True).all()
+    
+    @staticmethod
+    def get_user_by_id(user_id: int):
+        """Obtener un usuario por ID"""
+        user = Usuario.query.get(user_id)
+        if not user:
+            raise Exception("Usuario no encontrado")
+        return user
+    
+    @staticmethod
+    def update_user(user_id: int, data: dict, current_user_id: int):
+        """Actualizar datos de un usuario"""
+        user = Usuario.query.get(user_id)
+        
+        if not user:
+            raise Exception("Usuario no encontrado")
+        
+        # Evitar que un admin se desactive a sí mismo
+        if user_id == current_user_id and data.get("activo") == False:
+            raise Exception("No puede desactivar su propia cuenta")
+        
+        # Verificar que quede al menos un admin si se desactiva un admin
+        if user.rol.nombre == "ADMIN" and data.get("activo") == False:
+            admin_count = Usuario.query.join(RolUsuario).filter(
+                RolUsuario.nombre == "ADMIN",
+                Usuario.activo == True
+            ).count()
+            if admin_count <= 1:
+                raise Exception("Debe quedar al menos un administrador en el sistema")
+        
+        # Actualizar campos permitidos
+        if "rol" in data:
+            rol = RolUsuario.query.filter_by(nombre=data["rol"]).first()
+            if not rol:
+                raise Exception("Rol inválido")
+            user.id_rol = rol.id
+        
+        if "mail" in data:
+            # Verificar que el mail no exista
+            existing = Usuario.query.filter(
+                Usuario.mail == data["mail"],
+                Usuario.id != user_id
+            ).first()
+            if existing:
+                raise Exception("El mail ya está en uso")
+            user.mail = data["mail"]
+        
+        if "activo" in data:
+            user.activo = data["activo"]
+        
+        try:
+            db.session.commit()
+            return user
+        except Exception:
+            db.session.rollback()
+            raise Exception("Error al actualizar usuario")
+
+    @staticmethod
+    def get_rol_by_name(nombre: str):
+        """Obtener un rol por nombre"""
+        return RolUsuario.query.filter_by(nombre=nombre).first()

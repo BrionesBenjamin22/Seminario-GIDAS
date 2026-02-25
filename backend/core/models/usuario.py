@@ -24,6 +24,7 @@ class Usuario(db.Model, AuditMixin):
     contrasena = db.Column(db.String(128), nullable=False)
     mail = db.Column(db.String(120), unique=True, nullable=False)
     nombre_usuario = db.Column(db.String(80), unique=True, nullable=False)
+    primer_login = db.Column(db.Boolean, default=True, nullable=False)
 
     id_rol = db.Column(db.Integer, db.ForeignKey('rol.id'), nullable=False)
     id_persona = db.Column(
@@ -66,6 +67,9 @@ class Usuario(db.Model, AuditMixin):
             "mail": self.mail,
             "nombre_usuario": self.nombre_usuario,
             "rol": self.rol.nombre if self.rol else None,
+            "primer_login": self.primer_login,
+            "activo": self.activo,
+            "fecha_creacion": self.created_at.isoformat() if self.created_at else None,
             "persona": {
                 "id": self.persona.id,
                 "nombre_apellido": self.persona.nombre_apellido
