@@ -30,7 +30,7 @@ class Usuario(db.Model, AuditMixin):
     id_persona = db.Column(
         db.Integer,
         db.ForeignKey('persona.id'),
-        nullable=False,
+        nullable=True,
         unique=True   
     )
 
@@ -73,5 +73,6 @@ class Usuario(db.Model, AuditMixin):
             "persona": {
                 "id": self.persona.id,
                 "nombre_apellido": self.persona.nombre_apellido
-            } if self.persona else None
+            } if self.persona else None,
+            "nombre_apellido": self.persona.nombre_apellido if self.persona else None
         }

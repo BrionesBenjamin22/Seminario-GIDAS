@@ -104,34 +104,29 @@ class AuthService:
             rol = RolUsuario.query.filter_by(nombre="ADMIN").first()
             if not rol:
                 raise Exception("Rol ADMIN no encontrado en el sistema")
-            # Crear persona genérica para el primer admin
-            if not nombre_apellido:
-                nombre_apellido = "Administrador GIDAS"
-            if not dni:
-                dni = 0
         else:
             if not rol_id:
                 raise Exception("rol_id es obligatorio para crear usuarios")
             rol = RolUsuario.query.get(rol_id)
             if not rol:
                 raise Exception("Rol inválido")
-            if not nombre_apellido or not dni:
-                raise Exception("nombre_apellido y dni son obligatorios")
 
-        # Crear Persona
-        persona = Persona(
-            nombre_apellido=nombre_apellido,
-            dni=dni
-        )
-
-        db.session.add(persona)
-        db.session.flush()  # importante para obtener persona.id
+        # Crear Persona solo si se proporcionan datos (opcional ahora)
+        persona_id = None
+        if nombre_apellido and dni:
+            persona = Persona(
+                nombre_apellido=nombre_apellido,
+                dni=dni
+            )
+            db.session.add(persona)
+            db.session.flush()  # importante para obtener persona.id
+            persona_id = persona.id
 
         # Crear Usuario
         nuevo_usuario = Usuario(
             nombre_usuario=nombre_usuario,
             mail=mail,
-            id_persona=persona.id,
+            id_persona=persona_id,
             id_rol=rol.id,
             primer_login=True  # Siempre true al crear
         )
