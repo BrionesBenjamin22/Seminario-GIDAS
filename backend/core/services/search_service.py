@@ -91,8 +91,6 @@ class SearchService:
                     "fecha": None,
                     "url": f"/becarios/{b.id}",
                     "extra": {
-                        "fuente_financiamiento": b.fuente_financiamiento.nombre
-                            if b.fuente_financiamiento else None,
                         "proyectos": [
                             {
                                 "id": p.proyecto.id,
