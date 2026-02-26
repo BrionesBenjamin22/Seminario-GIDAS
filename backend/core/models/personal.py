@@ -22,16 +22,12 @@ class Personal(db.Model, AuditMixin):
     
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "nombre_apellido": self.nombre_apellido,
-            "horas_semanales": self.horas_semanales,
-            "activo": self.activo,
-            "tipo_personal_id": self.tipo_personal_id,
-            "grupo_utn_id": self.grupo_utn_id,
-            "tipo_personal_nombre": self.tipo_personal.nombre if self.tipo_personal else None,
+        data = self.to_dict()
+        data.update({
+            "tipo_personal": self.tipo_personal.nombre if self.tipo_personal else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
-        }
+        })
+        return data
 
 
 # =====================================================

@@ -33,6 +33,7 @@ class AuditMixin:
     def restore(self):
         self.deleted_at = None
         self.deleted_by = None
+        self.activo = True
         
     def to_dict(self):
         data = {}
