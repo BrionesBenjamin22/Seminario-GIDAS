@@ -6,14 +6,29 @@ class Beca(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_beca = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
+
+    fuente_financiamiento_id = db.Column(
+        db.Integer,
+        db.ForeignKey('fuente_financiamiento.id'),
+        nullable=True
+    )
     
+    fuente_financiamiento = db.relationship(
+        'FuenteFinanciamiento',
+        back_populates='becas'
+    )
+
     becarios = db.relationship("Beca_Becario", back_populates="beca", cascade="all, delete-orphan")
 
     def serialize(self):
         return {
             "id": self.id,
             "nombre_beca": self.nombre_beca,
-            "descripcion": self.descripcion
+            "descripcion": self.descripcion,
+            "fuente_financiamiento": {
+                "id": self.fuente_financiamiento.id,
+                "nombre": self.fuente_financiamiento.nombre
+            } if self.fuente_financiamiento else None
         }
 
     

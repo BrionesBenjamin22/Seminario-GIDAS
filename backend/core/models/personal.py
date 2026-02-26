@@ -51,7 +51,6 @@ class Becario(db.Model):
     )
 
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
-    fuente_financiamiento_id = db.Column(db.Integer, db.ForeignKey('fuente_financiamiento.id'))
 
     # --- Relaciones ---
     tipo_formacion = db.relationship(
@@ -64,10 +63,7 @@ class Becario(db.Model):
         back_populates='becarios'
     )
 
-    fuente_financiamiento = db.relationship(
-        'FuenteFinanciamiento',
-        back_populates='becarios'
-    )
+
 
     participaciones_proyecto = db.relationship(
         "BecarioProyecto",
@@ -89,11 +85,9 @@ class Becario(db.Model):
             "activo": self.activo,
 
             "tipo_formacion_id": self.tipo_formacion_id,
-            "fuente_financiamiento_id": self.fuente_financiamiento_id,
             "grupo_utn_id": self.grupo_utn_id,
 
             "tipo_formacion": self.tipo_formacion.nombre if self.tipo_formacion else None,
-            "fuente_financiamiento": self.fuente_financiamiento.nombre if self.fuente_financiamiento else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
             "proyectos": [
                 {
@@ -110,6 +104,10 @@ class Becario(db.Model):
                     "id": b.beca.id,
                     "nombre_beca": b.beca.nombre_beca,
                     "descripcion": b.beca.descripcion,
+                    "fuente_financiamiento": {
+                        "id": b.beca.fuente_financiamiento.id,
+                        "nombre": b.beca.fuente_financiamiento.nombre
+                    } if b.beca.fuente_financiamiento else None,
                     "fecha_inicio": str(b.fecha_inicio),
                     "fecha_fin": str(b.fecha_fin) if b.fecha_fin else None,
                     "monto_percibido": b.monto_percibido

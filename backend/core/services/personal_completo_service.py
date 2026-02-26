@@ -178,10 +178,6 @@ def obtener_personal_por_tipo(rol, id):
                     "id": b.tipo_formacion.id,
                     "nombre": b.tipo_formacion.nombre
                 } if b.tipo_formacion else None,
-                "fuente_financiamiento": {
-                    "id": b.fuente_financiamiento.id,
-                    "nombre": b.fuente_financiamiento.nombre
-                } if b.fuente_financiamiento else None,
                 "proyectos": [
                     {
                         "id": p.proyecto.id,
@@ -196,6 +192,10 @@ def obtener_personal_por_tipo(rol, id):
                     "id": bex.beca.id,
                     "nombre_beca": bex.beca.nombre_beca,
                     "descripcion": bex.beca.descripcion,
+                    "fuente_financiamiento": {
+                        "id": bex.beca.fuente_financiamiento.id,
+                        "nombre": bex.beca.fuente_financiamiento.nombre
+                    } if bex.beca.fuente_financiamiento else None,
                     "fecha_inicio": str(bex.fecha_inicio) if bex.fecha_inicio else None,
                     "fecha_fin": str(bex.fecha_fin) if bex.fecha_fin else None,
                     "monto_percibido": bex.monto_percibido
