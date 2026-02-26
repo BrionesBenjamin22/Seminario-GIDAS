@@ -50,6 +50,28 @@ def create_app():
 
         db.session._soft_delete_filter_registered = True
 
+    # ---- EVENTOS DE AUDITORÍA ----
+    from flask import g
+
+    @event.listens_for(db.session, "before_flush")
+    def before_flush(session, flush_context, instances):
+        user_id = None
+        try:
+            user_id = g.get("current_user_id")
+        except Exception:
+            pass
+
+        if not user_id:
+            return
+
+        for obj in session.new:
+            if isinstance(obj, AuditMixin):
+                if hasattr(obj, 'created_by') and obj.created_by is None:
+                    obj.created_by = user_id
+
+        # Para actualizaciones, el soft_delete manual ya setea deleted_by,
+        # pero podríamos automatizar otros aspectos aquí si fuera necesario.
+
     for bp in blueprints:
         app.register_blueprint(bp)
 

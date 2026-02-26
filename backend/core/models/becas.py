@@ -46,7 +46,10 @@ class Beca(db.Model, AuditMixin):
                 for b in self.becarios
                 if not hasattr(b, "deleted_at") or b.deleted_at is None
             ]
-        })
+        }
+
+        # Integrar campos de auditoría
+        data.update(self.to_dict())
 
         return data
     
