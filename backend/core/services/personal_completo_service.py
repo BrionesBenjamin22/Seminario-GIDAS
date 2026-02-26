@@ -5,9 +5,9 @@ def listar_personal_completo():
     resultado = []
 
     # --------------------
-    # PERSONAL (solo activos)
+    # PERSONAL (activos e inactivos)
     # --------------------
-    for p in Personal.query.all():
+    for p in Personal.query.execution_options(include_deleted=True).all():
         resultado.append({
             "id": p.id,
             "nombre_apellido": p.nombre_apellido,
@@ -29,15 +29,15 @@ def listar_personal_completo():
 
             # Auditoría
             "created_at": p.created_at.isoformat() if p.created_at else None,
-            "creator_name": p.creator_name,
+            "creator_name": p.creator.nombre_usuario if getattr(p, "creator", None) else None,
             "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
-            "deleter_name": p.deleter_name
+            "deleter_name": p.deleter.nombre_usuario if getattr(p, "deleter", None) else None
         })
 
     # --------------------
-    # BECARIOS (solo activos)
+    # BECARIOS (activos e inactivos)
     # --------------------
-    for b in Becario.query.all():
+    for b in Becario.query.execution_options(include_deleted=True).all():
         resultado.append({
             "id": b.id,
             "nombre_apellido": b.nombre_apellido,
@@ -68,15 +68,15 @@ def listar_personal_completo():
 
             # Auditoría
             "created_at": b.created_at.isoformat() if b.created_at else None,
-            "creator_name": b.creator_name,
+            "creator_name": b.creator.nombre_usuario if getattr(b, "creator", None) else None,
             "deleted_at": b.deleted_at.isoformat() if b.deleted_at else None,
-            "deleter_name": b.deleter_name
+            "deleter_name": b.deleter.nombre_usuario if getattr(b, "deleter", None) else None
         })
 
     # --------------------
-    # INVESTIGADORES (solo activos)
+    # INVESTIGADORES (activos e inactivos)
     # --------------------
-    for i in Investigador.query.all():
+    for i in Investigador.query.execution_options(include_deleted=True).all():
         resultado.append({
             "id": i.id,
             "nombre_apellido": i.nombre_apellido,
@@ -141,9 +141,9 @@ def listar_personal_completo():
 
             # Auditoría
             "created_at": i.created_at.isoformat() if i.created_at else None,
-            "creator_name": i.creator_name,
+            "creator_name": i.creator.nombre_usuario if getattr(i, "creator", None) else None,
             "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
-            "deleter_name": i.deleter_name
+            "deleter_name": i.deleter.nombre_usuario if getattr(i, "deleter", None) else None
         })
 
     return resultado
@@ -153,7 +153,7 @@ def obtener_personal_por_tipo(rol, id):
     rol = rol.lower()
 
     if rol == "personal":
-        p = Personal.query.filter_by(id=id).first()
+        p = Personal.query.execution_options(include_deleted=True).filter_by(id=id).first()
         if not p:
             return None
 
@@ -181,7 +181,7 @@ def obtener_personal_por_tipo(rol, id):
         }
 
     if rol == "becario":
-        b = Becario.query.filter_by(id=id).first()
+        b = Becario.query.execution_options(include_deleted=True).filter_by(id=id).first()
         if not b:
             return None
 
@@ -232,7 +232,7 @@ def obtener_personal_por_tipo(rol, id):
         }
 
     if rol == "investigador":
-        i = Investigador.query.filter_by(id=id).first()
+        i = Investigador.query.execution_options(include_deleted=True).filter_by(id=id).first()
         if not i:
             return None
 
