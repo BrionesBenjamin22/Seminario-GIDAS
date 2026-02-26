@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.proyecto_investigacion_service import ProyectoInvestigacionService
 
 
@@ -56,8 +56,10 @@ class ProyectoInvestigacionController:
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
+            user = g.current_user_id
+            
             return jsonify(
-                ProyectoInvestigacionService.create(data)
+                ProyectoInvestigacionService.create(data, user)
             ), 201
 
         except ValueError as ve:

@@ -52,7 +52,7 @@ class TransferenciaSocioProductivaController:
             if not data:
                 return jsonify({"error": "Body requerido"}), 400
 
-            user_id = g.user.id  # 🔥 JWT
+            user_id = g.current_user_id
 
             result = TransferenciaSocioProductivaService.create(
                 data,
@@ -61,10 +61,10 @@ class TransferenciaSocioProductivaController:
 
             return jsonify(result), 201
 
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
     # =================================================
@@ -85,10 +85,10 @@ class TransferenciaSocioProductivaController:
 
             return jsonify(result), 200
 
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
     # =================================================
@@ -97,7 +97,7 @@ class TransferenciaSocioProductivaController:
     @staticmethod
     def delete(transferencia_id):
         try:
-            user_id = g.user.id  # 🔥 auditoría
+            user_id = g.current_user_id  
 
             result = TransferenciaSocioProductivaService.delete(
                 transferencia_id,
@@ -158,10 +158,10 @@ class TransferenciaSocioProductivaController:
 
             return jsonify(result), 200
 
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 
     # =================================================
@@ -182,7 +182,7 @@ class TransferenciaSocioProductivaController:
                     "error": "adoptantes_ids debe ser una lista no vacía"
                 }), 400
 
-            user_id = g.user.id
+            user_id = g.current_user_id
 
             result = TransferenciaSocioProductivaService.remove_adoptantes(
                 transferencia_id,

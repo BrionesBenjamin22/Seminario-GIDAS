@@ -79,7 +79,7 @@ class ProyectoInvestigacionService:
     # CREATE
     # =========================
     @staticmethod
-    def create(data: dict):
+    def create(data: dict, user_id: int):
 
         if not isinstance(data.get("codigo_proyecto"), int):
             raise ValueError("codigo_proyecto debe ser entero")
