@@ -11,7 +11,7 @@ class Persona(db.Model, AuditMixin):
     usuario = db.relationship(
         "Usuario",
         back_populates="persona",
-        uselist=False
+        foreign_keys="Usuario.id_persona"
     )
     
     

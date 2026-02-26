@@ -36,6 +36,7 @@ from core.routes.search_rutas import search_bp
 from core.routes.tipo_reunion_rutas import tipo_reunion_bp
 from core.routes.directivo_rutas import directivo_bp
 from core.routes.becas_rutas import beca_bp
+from core.routes.cargos_rutas import cargo_bp
 
 blueprints = [
     actividad_docencia_bp,
@@ -46,6 +47,7 @@ blueprints = [
     becario_bp,
     beca_bp,
     categoria_utn_bp,
+    cargo_bp,
     distincion_recibida_bp,
     directivo_bp,
     documentacion_bibliografica_bp,

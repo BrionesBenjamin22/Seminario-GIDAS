@@ -167,6 +167,28 @@ class Investigador(db.Model, AuditMixin):
         cascade="all, delete-orphan"
     )
 
+    actividades_docencia = db.relationship(
+    'ActividadDocencia',
+    back_populates='investigador'
+    )    
+    
+    participaciones_relevantes = db.relationship(
+        "ParticipacionRelevante",
+        back_populates="investigador",
+        cascade="all, delete-orphan")
+
+    trabajos_reunion_cientifica = db.relationship(
+        'TrabajoReunionCientifica',
+        secondary=investigador_x_trabajo_reunion,
+        back_populates='investigadores'
+    )
+    
+    trabajos_revistas = db.relationship(
+        'TrabajosRevistasReferato',
+        secondary=investigador_x_trabajo_revista,
+        back_populates='investigadores'
+    )
+
     def serialize(self):
         data = self.to_dict()
 

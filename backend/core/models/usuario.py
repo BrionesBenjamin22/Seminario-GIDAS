@@ -36,7 +36,8 @@ class Usuario(db.Model, AuditMixin):
     rol = db.relationship("RolUsuario")
     persona = db.relationship(
         "Persona",
-        back_populates="usuario"
+        back_populates="usuario",
+        foreign_keys=[id_persona]
     )
     
 
