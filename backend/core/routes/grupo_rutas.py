@@ -47,7 +47,7 @@ def eliminar():
 def restaurar():
     return GrupoUtnController.restaurar()
 
-@grupo_utn_bp.route("/exportar-excel", method=["GET"])
+@grupo_utn_bp.route("/exportar-excel", methods=["GET"])
 @requiere_rol("ADMIN")
 def exportar():
     return GrupoUtnController.exportar_excel()

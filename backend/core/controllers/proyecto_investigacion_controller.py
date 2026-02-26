@@ -134,11 +134,14 @@ class ProyectoInvestigacionController:
 
             if not participaciones or not isinstance(participaciones, list):
                 return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
-
+            
+            user_id = g.current_user_id
+            
             return jsonify(
                 ProyectoInvestigacionService.desvincular_becarios_de_proyecto(
                     proyecto_id,
-                    participaciones
+                    participaciones,
+                    user_id
                 )
             ), 200
 
@@ -181,10 +184,12 @@ class ProyectoInvestigacionController:
             if not participaciones or not isinstance(participaciones, list):
                 return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
+            user_id = g.current_user_id
             return jsonify(
                 ProyectoInvestigacionService.desvincular_investigadores_de_proyecto(
                     proyecto_id,
-                    participaciones
+                    participaciones,
+                    user_id
                 )
             ), 200
 

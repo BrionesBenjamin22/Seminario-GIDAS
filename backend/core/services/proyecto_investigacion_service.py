@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from extension import db
 from sqlalchemy import func
 
@@ -244,8 +244,10 @@ class ProyectoInvestigacionService:
         db.session.commit()
         return proyecto.serialize()
 
+
+
     @staticmethod
-    def desvincular_investigadores_de_proyecto(proyecto_id, participaciones):
+    def desvincular_investigadores_de_proyecto(proyecto_id, participaciones, user_id):
 
         proyecto = ProyectoInvestigacion.query.filter_by(
             id=proyecto_id,
@@ -266,7 +268,11 @@ class ProyectoInvestigacionService:
             if not participacion:
                 raise ValueError("Participación activa no encontrada.")
 
-            participacion.soft_delete(user_id=1)
+            # 🔹 Lógica de negocio
+            participacion.fecha_fin = date.today()
+
+            # 🔹 Lógica de auditoría
+            participacion.soft_delete(user_id=user_id)
 
         db.session.commit()
         return proyecto.serialize()
@@ -316,7 +322,7 @@ class ProyectoInvestigacionService:
         return proyecto.serialize()
 
     @staticmethod
-    def desvincular_becarios_de_proyecto(proyecto_id, participaciones):
+    def desvincular_becarios_de_proyecto(proyecto_id, participaciones, user_id):
 
         proyecto = ProyectoInvestigacion.query.filter_by(
             id=proyecto_id,
@@ -337,7 +343,8 @@ class ProyectoInvestigacionService:
             if not participacion:
                 raise ValueError("Participación activa no encontrada.")
 
-            participacion.soft_delete(user_id=1)
+            participacion.fecha_fin = date.today()
+            participacion.soft_delete(user_id=user_id)
 
         db.session.commit()
         return proyecto.serialize()
