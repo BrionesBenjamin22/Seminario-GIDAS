@@ -1,8 +1,8 @@
-"""Auditoria agregada a entidades principales del sistema
+"""empty message
 
-Revision ID: 6b9613ba4423
+Revision ID: 47a9d171fb33
 Revises: 
-Create Date: 2026-02-26 00:34:32.684722
+Create Date: 2026-02-26 01:17:56.336448
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6b9613ba4423'
+revision = '47a9d171fb33'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -328,6 +328,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('descripcion', sa.Text(), nullable=False),
     sa.Column('anio', sa.Integer(), nullable=False),
+    sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('grupo_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['grupo_id'], ['grupo_utn.id'], ),
     sa.PrimaryKeyConstraint('id')

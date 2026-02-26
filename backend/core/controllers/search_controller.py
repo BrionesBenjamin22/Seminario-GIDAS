@@ -5,16 +5,50 @@ from core.services.search_service import SearchService
 class SearchController:
 
     @staticmethod
-    def search():
+    def buscar():
+        """
+        Endpoint principal de búsqueda estilo Google.
+
+        Query params:
+            - q: texto a buscar (requerido)
+            - orden: tipo de ordenamiento (opcional)
+                valores posibles:
+                    alf_asc
+                    alf_desc
+                    fecha_asc
+                    fecha_desc
+        """
+
         try:
-            query = request.args.get("q", "").strip()
+            query_text = request.args.get("q", "").strip()
+            orden = request.args.get("orden", "alf_asc")
 
-            if len(query) < 2:
-                return jsonify([]), 200
+            if not query_text:
+                return jsonify({
+                    "error": 'El parámetro "q" es obligatorio'
+                }), 400
 
-            results = SearchService.search(query)
+            if len(query_text) < 2:
+                return jsonify({
+                    "error": "El texto debe tener al menos 2 caracteres"
+                }), 400
 
-            return jsonify(results), 200
+            resultados = SearchService.search(
+                query_text=query_text,
+                orden=orden
+            )
+
+            return jsonify({
+                "query": query_text,
+                "orden": orden,
+                "total_resultados": len(resultados),
+                "resultados": resultados
+            }), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 400
+            return jsonify({
+                "error": f"Error interno del servidor: {str(e)}"
+            }), 500

@@ -1,290 +1,929 @@
 from sqlalchemy import or_
-from core.services.search_registry import SEARCH_ENTITIES
+from sqlalchemy.orm import joinedload
+from datetime import datetime
+from extension import db
+from core.models.fuente_financiamiento import FuenteFinanciamiento
+from core.models.participacion_relevante import ParticipacionRelevante
+from core.models.personal import Personal, Becario, Investigador
+from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioProyecto, InvestigadorProyecto, TipoProyecto
+from core.models.actividad_docencia import ActividadDocencia
+from core.models.articulo_divulgacion import ArticuloDivulgacion
+from core.models.equipamiento import Equipamiento
+from core.models.transferencia_socio import TipoContrato, TransferenciaSocioProductiva
+from core.models.erogacion import Erogacion, TipoErogacion
+from core.models.registro_patente import RegistrosPropiedad, TipoRegistroPropiedad
+from core.models.documentacion_autores import DocumentacionBibliografica, Autor
+from core.models.tipo_personal import TipoPersonal
+from core.models.trabajo_reunion import TrabajoReunionCientifica
+from core.models.trabajo_revista import TrabajosRevistasReferato
+from core.models.directivos import Directivo, DirectivoGrupo, Cargo
+import unicodedata
 
 
 class SearchService:
-    """
-    Servicio de búsqueda global del sistema.
-    Orquesta:
-    - búsquedas semánticas (secciones/módulos)
-    - búsquedas en entidades registradas
-    """
 
-    # =========================
-    # Secciones semánticas
-    # =========================
-    SEARCH_SECTIONS = [
-        {
-            "keywords": ["becario", "becarios"],
-            "result": {
-                "type": "section",
-                "title": "Becarios",
-                "description": "Listado de becarios del sistema",
-                "url": "/becarios"
-            }
-        },
-        {
-            "keywords": ["investigador", "investigadores"],
-            "result": {
-                "type": "section",
-                "title": "Investigadores",
-                "description": "Listado de investigadores",
-                "url": "/investigadores"
-            }
-        },
-        {
-            "keywords": ["personal"],
-            "result": {
-                "type": "section",
-                "title": "Personal",
-                "description": "Personal del grupo de investigación",
-                "url": "/personal"
-            }
-        },
-        {
-            "keywords": [
-                "transferencia",
-                "transferencias",
-                "transferencia socio productiva",
-                "socio productiva"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Transferencias Socio Productivas",
-                "description": "Actividades de vinculación y transferencia",
-                "url": "/transferencias"
-            }
-        },
-        {
-            "keywords": [
-                "proyecto",
-                "proyectos",
-                "proyecto de investigacion",
-                "investigacion"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Proyectos de Investigación",
-                "description": "Proyectos de investigación y desarrollo",
-                "url": "/proyectos"
-            }
-        },
-        {
-            "keywords": [
-                "documentacion",
-                "documentacion bibliografica",
-                "bibliografia",
-                "libros",
-                "autores"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Documentación Bibliográfica",
-                "description": "Libros, autores y material bibliográfico",
-                "url": "/documentacion"
-            }
-        },
-        {
-            "keywords": [
-                "articulo",
-                "articulos",
-                "divulgacion",
-                "articulo de divulgacion",
-                "articulos de divulgacion"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Artículos de Divulgación",
-                "description": "Artículos de divulgación científica",
-                "url": "/articulos-divulgacion"
-            }
-        },
-        {
-            "keywords": [
-                "trabajo",
-                "trabajos",
-                "reunion cientifica",
-                "reuniones cientificas",
-                "congreso",
-                "congresos",
-                "jornadas"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Trabajos en Reuniones Científicas",
-                "description": "Trabajos presentados en congresos y jornadas",
-                "url": "/trabajos-reunion-cientifica"
-            }
-        },
-        {
-            "keywords": [
-                "erogacion",
-                "erogaciones",
-                "egreso",
-                "egresos",
-                "ingreso",
-                "ingresos"
-                ],  
-            "result": {
-                "type": "section",
-                "title": "Erogaciones",
-                "description": "Erogaciones, ingresos y egresos del grupo",
-                "url": "/erogaciones"
-            },
-        },
-        {
-            "keywords": [
-                "distincion",
-                "distinciones",
-                "premio",
-                "premios",
-                "reconocimiento",
-                "reconocimientos"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Proyectos con Distinciones",
-                "description": "Proyectos de investigación que recibieron premios o reconocimientos",
-                "url": "/proyectos?filtro=distinciones"
-            }
-        },
-        {
-            "keywords": [
-                "equipamiento",
-                "equipo",
-                "equipos",
-                "instrumental",
-                "hardware"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Equipamiento",
-                "description": "Equipamiento e infraestructura del grupo",
-                "url": "/equipamiento"
-            }
-        },
-        {
-            "keywords": [
-                "visita",
-                "visitas",
-                "visita academica",
-                "visitas academicas",
-                "delegacion",
-                "intercambio"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Visitas Académicas",
-                "description": "Visitas académicas e intercambios institucionales",
-                "url": "/visitas-academicas"
-            }
-        },
-        {
-            "keywords": [
-                "revista",
-                "revistas",
-                "referato",
-                "revista con referato",
-                "publicacion",
-                "publicaciones",
-                "paper",
-                "articulo cientifico"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Trabajos en Revistas con Referato",
-                "description": "Publicaciones científicas en revistas con referato",
-                "url": "/trabajos-revistas"
-            }
-        },
-        {
-            "keywords": [
-                "participacion",
-                "participaciones",
-                "evento",
-                "eventos",
-                "charla",
-                "conferencia",
-                "workshop",
-                "exposicion",
-                "ponencia"
-            ],
-            "result": {
-                "type": "section",
-                "title": "Participaciones Relevantes",
-                "description": "Participaciones en eventos académicos y científicos",
-                "url": "/participaciones-relevantes"
-            }
-        }
-
-
-
-
-
-
-
-
-
-    ]
-
-    # =========================
-    # API pública
-    # =========================
+    # ==================================================
+    # FUNCIÓN DE NORMALIZACIÓN (quita acentos)
+    # ==================================================
     @staticmethod
-    def search(query: str) -> list:
-        if not query or len(query.strip()) < 2:
-            return []
+    def normalize_text(text: str) -> str:
+        if not text:
+            return ""
+        return ''.join(
+            c for c in unicodedata.normalize('NFD', text)
+            if unicodedata.category(c) != 'Mn'
+        ).lower()
 
-        query_clean = query.lower().strip()
-        query_ilike = f"%{query_clean}%"
-
-        results = []
-
-        # 1️⃣ Secciones semánticas (módulos)
-        results.extend(SearchService._search_sections(query_clean))
-
-        # 2️⃣ Entidades registradas
-        results.extend(SearchService._search_entities(query_ilike))
-
-        return results
-
-    # =========================
-    # Búsqueda de secciones
-    # =========================
+    # ==================================================
+    # SEARCH PRINCIPAL
+    # ==================================================
     @staticmethod
-    def _search_sections(query_clean: str) -> list:
-        results = []
+    def search(query_text: str, orden: str = "alf_asc"):
 
-        for section in SearchService.SEARCH_SECTIONS:
-            if any(keyword in query_clean for keyword in section["keywords"]):
-                results.append(section["result"])
+        if not query_text or len(query_text.strip()) < 2:
+            raise ValueError("El texto debe tener al menos 2 caracteres")
 
-        return results
+        query_normalized = SearchService.normalize_text(query_text.strip())
+        resultados = []
 
-    # =========================
-    # Búsqueda genérica en entidades
-    # =========================
-    @staticmethod
-    def _search_entities(query_ilike: str) -> list:
-        results = []
+        # ==================================================
+        # PERSONAL
+        # ==================================================
+        personal_results = db.session.query(Personal)\
+            .options(joinedload(Personal.tipo_personal))\
+            .all()
 
-        for entity in SEARCH_ENTITIES:
-            model = entity["model"]
-            fields = entity["fields"]
-            serializer = entity["serializer"]
+        for p in personal_results:
+            nombre_normalizado = SearchService.normalize_text(p.nombre_apellido)
 
-            filters = [
-                getattr(model, field).ilike(query_ilike)
-                for field in fields
+            if query_normalized in nombre_normalizado:
+                resultados.append({
+                    "tipo": "Persona",
+                    "id": p.id,
+                    "titulo": p.nombre_apellido,
+                    "subtitulo": p.tipo_personal.nombre if p.tipo_personal else None,
+                    "fecha": None,
+                    "url": f"/personal/{p.id}"
+                })
+
+        # ==================================================
+        # BECARIOS
+        # ==================================================
+        becario_results = db.session.query(Becario)\
+        .options(
+            joinedload(Becario.tipo_formacion),
+            joinedload(Becario.fuente_financiamiento),
+            joinedload(Becario.participaciones_proyecto)
+                .joinedload(BecarioProyecto.proyecto)
+        )\
+        .all()
+
+
+        for b in becario_results:
+            nombre_normalizado = SearchService.normalize_text(b.nombre_apellido)
+
+            if query_normalized in nombre_normalizado:
+                resultados.append({
+                    "tipo": "Becario",
+                    "id": b.id,
+                    "titulo": b.nombre_apellido,
+                    "subtitulo": b.tipo_formacion.nombre if b.tipo_formacion else None,
+                    "fecha": None,
+                    "url": f"/becarios/{b.id}",
+                    "extra": {
+                        "fuente_financiamiento": b.fuente_financiamiento.nombre
+                            if b.fuente_financiamiento else None,
+                        "proyectos": [
+                            {
+                                "id": p.proyecto.id,
+                                "nombre": p.proyecto.nombre_proyecto,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in b.participaciones_proyecto
+                        ]
+
+                    }
+                })
+
+        # ==================================================
+        # INVESTIGADORES
+        # ==================================================
+        investigador_results = db.session.query(Investigador)\
+        .options(
+            joinedload(Investigador.tipo_dedicacion),
+            joinedload(Investigador.categoria_utn),
+            joinedload(Investigador.programa_incentivos),
+            joinedload(Investigador.grupo_utn),
+            joinedload(Investigador.participaciones_proyecto)
+                .joinedload(InvestigadorProyecto.proyecto),
+            joinedload(Investigador.participaciones_relevantes),
+            joinedload(Investigador.trabajos_reunion_cientifica)
+        )\
+        .all()
+
+        for i in investigador_results:
+            nombre_normalizado = SearchService.normalize_text(i.nombre_apellido)
+
+            if query_normalized in nombre_normalizado:
+                resultados.append({
+                    "tipo": "Investigador",
+                    "id": i.id,
+                    "titulo": i.nombre_apellido,
+                    "subtitulo": i.tipo_dedicacion.nombre if i.tipo_dedicacion else None,
+                    "fecha": None,
+                    "url": f"/investigadores/{i.id}",
+                    "extra": {
+                        "categoria_utn": i.categoria_utn.nombre if i.categoria_utn else None,
+                        "programa_incentivos": i.programa_incentivos.nombre if i.programa_incentivos else None,
+                        "grupo": i.grupo_utn.nombre_sigla_grupo if i.grupo_utn else None,
+                        "proyectos": [
+                            {
+                                "id": p.proyecto.id,
+                                "nombre": p.proyecto.nombre_proyecto,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in i.participaciones_proyecto
+                        ],
+                        
+                        "participaciones_relevantes": [
+                            {"id": pr.id, "evento": pr.nombre_evento}
+                            for pr in i.participaciones_relevantes
+                        ],
+                        "trabajos_reunion": [
+                            {"id": tr.id, "titulo": tr.titulo_trabajo}
+                            for tr in i.trabajos_reunion_cientifica
+                        ]
+                    }
+                })
+
+        # ==================================================
+        # ACTIVIDADES DE DOCENCIA
+        # ==================================================
+        actividad_results = db.session.query(ActividadDocencia)\
+            .options(
+                joinedload(ActividadDocencia.investigador),
+                joinedload(ActividadDocencia.grado_academico),
+                joinedload(ActividadDocencia.rol_actividad)
+            )\
+            .all()
+
+        for a in actividad_results:
+            curso_norm = SearchService.normalize_text(a.curso)
+            institucion_norm = SearchService.normalize_text(a.institucion)
+
+            if query_normalized in curso_norm or query_normalized in institucion_norm:
+                resultados.append({
+                    "tipo": "Actividad de Docencia",
+                    "id": a.id,
+                    "titulo": a.curso,
+                    "subtitulo": a.institucion,
+                    "fecha": a.fecha_inicio,
+                    "url": f"/actividades-docencia/{a.id}",
+                    "extra": {
+                        "fecha_inicio": str(a.fecha_inicio),
+                        "fecha_fin": str(a.fecha_fin) if a.fecha_fin else None,
+                        "investigador": a.investigador.nombre_apellido if a.investigador else None,
+                        "grado_academico": {
+                            "id": a.grado_academico.id,
+                            "nombre": a.grado_academico.nombre
+                        } if a.grado_academico else None,
+                        "rol_actividad": {
+                            "id": a.rol_actividad.id,
+                            "nombre": a.rol_actividad.nombre
+                        } if a.rol_actividad else None
+                    }
+                })
+        # ==================================================
+        # PROYECTOS DE INVESTIGACIÓN (por nombre)
+        # ==================================================
+
+        proyecto_results = db.session.query(ProyectoInvestigacion)\
+            .options(
+                joinedload(ProyectoInvestigacion.tipo_proyecto),
+                joinedload(ProyectoInvestigacion.grupo_utn),
+                joinedload(ProyectoInvestigacion.fuente_financiamiento),
+                joinedload(ProyectoInvestigacion.participaciones_investigador)
+                    .joinedload(InvestigadorProyecto.investigador),
+                joinedload(ProyectoInvestigacion.participaciones_becario)
+                    .joinedload(BecarioProyecto.becario)
+            )\
+            .all()
+
+        for proyecto in proyecto_results:
+
+            nombre_norm = SearchService.normalize_text(proyecto.nombre_proyecto)
+            descripcion_norm = SearchService.normalize_text(proyecto.descripcion_proyecto)
+
+            if query_normalized in nombre_norm or query_normalized in descripcion_norm:
+
+
+                resultados.append({
+                    "tipo": "Proyecto de Investigación",
+                    "id": proyecto.id,
+                    "titulo": proyecto.nombre_proyecto,
+                    "subtitulo": proyecto.tipo_proyecto.nombre if proyecto.tipo_proyecto else None,
+                    "fecha": proyecto.fecha_inicio,
+                    "url": f"/proyectos/{proyecto.id}",
+                    "extra": {
+                        "codigo": proyecto.codigo_proyecto,
+                        "descripcion": proyecto.descripcion_proyecto,
+                        "grupo": proyecto.grupo_utn.nombre_sigla_grupo
+                            if proyecto.grupo_utn else None,
+                        "fuente_financiamiento": proyecto.fuente_financiamiento.nombre
+                            if proyecto.fuente_financiamiento else None,
+                        "investigadores": [
+                            {
+                                "id": p.investigador.id,
+                                "nombre": p.investigador.nombre_apellido,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in proyecto.participaciones_investigador
+                        ],
+                        "becarios": [
+                            {
+                                "id": p.becario.id,
+                                "nombre": p.becario.nombre_apellido,
+                                "fecha_inicio": str(p.fecha_inicio),
+                                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                            }
+                            for p in proyecto.participaciones_becario
+                        ]
+                    }
+                })
+                
+                    
+        # ==================================================
+        # TIPO PROYECTO
+        # ==================================================
+
+        tipo_proyecto_results = db.session.query(TipoProyecto)\
+            .options(joinedload(TipoProyecto.proyectos_investigacion))\
+            .all()
+
+        for tipo in tipo_proyecto_results:
+
+            tipo_nombre_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_nombre_norm:
+
+                proyectos = [
+                    {
+                        "id": proyecto.id,
+                        "nombre": proyecto.nombre_proyecto,
+                        "codigo": proyecto.codigo_proyecto,
+                        "url": f"/proyectos/{proyecto.id}"
+                    }
+                    for proyecto in tipo.proyectos_investigacion
+                ]
+
+                resultados.append({
+                    "tipo": "Tipo de Proyecto",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de proyectos",
+                    "fecha": None,
+                    "url": f"/tipos-proyecto/{tipo.id}",
+                    "extra": {
+                        "cantidad_proyectos": len(proyectos),
+                        "proyectos": proyectos
+                    }
+                })
+                    
+        # ==================================================
+        # EQUIPAMIENTO
+        # ==================================================
+
+        equipamiento_results = db.session.query(Equipamiento)\
+            .options(joinedload(Equipamiento.grupo_utn))\
+            .all()
+
+        for e in equipamiento_results:
+
+            denominacion_norm = SearchService.normalize_text(e.denominacion)
+
+            if query_normalized in denominacion_norm:
+
+                resultados.append({
+                    "tipo": "Equipamiento",
+                    "id": e.id,
+                    "titulo": e.denominacion,
+                    "subtitulo": e.descripcion_breve,
+                    "fecha": e.fecha_incorporacion,
+                    "url": f"/equipamiento/{e.id}",
+                    "extra": {
+                        "grupo": e.grupo_utn.nombre_sigla_grupo if e.grupo_utn else None,
+                        "monto_invertido": e.monto_invertido,
+                        "fecha_incorporacion": str(e.fecha_incorporacion)
+                    }
+                })
+
+        # ==================================================
+        # DOCUMENTACIÓN BIBLIOGRÁFICA
+        # ==================================================
+
+        documentos = db.session.query(DocumentacionBibliografica)\
+            .options(
+                joinedload(DocumentacionBibliografica.autores),
+                joinedload(DocumentacionBibliografica.grupo_utn)
+            )\
+            .all()
+
+        for doc in documentos:
+
+            titulo_norm = SearchService.normalize_text(doc.titulo)
+            editorial_norm = SearchService.normalize_text(doc.editorial)
+
+            if (
+                query_normalized in titulo_norm
+                or query_normalized in editorial_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Documentación",
+                    "id": doc.id,
+                    "titulo": doc.titulo,
+                    "subtitulo": doc.editorial,
+                    "fecha": doc.fecha,
+                    "url": f"/documentacion-bibliografica/{doc.id}",
+                    "extra": {
+                        "anio": doc.anio,
+                        "grupo": doc.grupo_utn.nombre_unidad_academica if doc.grupo_utn else None,
+                        "autores": [
+                            {
+                                "id": a.id,
+                                "nombre_apellido": a.nombre_apellido
+                            }
+                            for a in doc.autores
+                        ]
+                    }
+                })
+
+        # ==================================================
+        # AUTORES
+        # ==================================================
+
+        autores = db.session.query(Autor)\
+            .options(joinedload(Autor.libros))\
+            .all()
+
+        for autor in autores:
+
+            nombre_norm = SearchService.normalize_text(autor.nombre_apellido)
+
+            if query_normalized in nombre_norm:
+
+                documentos = [
+                    {
+                        "id": l.id,
+                        "titulo": l.titulo,
+                        "tipo": "Libro",  # Ajustar si tu modelo tiene campo tipo
+                        "url": f"/documentacion-bibliografica/{l.id}"
+                    }
+                    for l in autor.libros
+                ]
+
+                resultados.append({
+                    "tipo": "Autor",
+                    "id": autor.id,
+                    "titulo": autor.nombre_apellido,
+                    "subtitulo": "Autor bibliográfico",
+                    "fecha": None,
+                    "url": f"/autores/{autor.id}",
+                    "extra": {
+                        "cantidad_documentos": len(documentos),
+                        "documentos": documentos
+                    }
+                })
+                
+                
+        # ==================================================
+        # TIPO EROGACIÓN
+        # ==================================================
+
+        tipos_erogacion = db.session.query(TipoErogacion)\
+            .options(joinedload(TipoErogacion.erogaciones))\
+            .all()
+
+        for tipo in tipos_erogacion:
+
+            tipo_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_norm:
+
+                erogaciones = sorted(
+                    tipo.erogaciones,
+                    key=lambda e: e.fecha if hasattr(e, "fecha") else None,
+                    reverse=True
+                )
+
+                erogaciones_data = [
+                    {
+                        "id": e.id,
+                        "descripcion": e.descripcion if hasattr(e, "descripcion") else None,
+                        "monto": e.monto,
+                        "fecha": e.fecha,
+                        "url": f"/erogaciones/{e.id}"
+                    }
+                    for e in erogaciones[:5]  # recientes
+                ]
+
+                total_monto = sum(e.monto or 0 for e in tipo.erogaciones)
+
+                resultados.append({
+                    "tipo": "Tipo de Erogación",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de gastos",
+                    "fecha": None,
+                    "url": f"/tipos-erogacion/{tipo.id}",
+                    "extra": {
+                        "cantidad_erogaciones": len(tipo.erogaciones),
+                        "total_monto": total_monto,
+                        "erogaciones_recientes": erogaciones_data
+                    }
+                })
+                    
+        # ==================================================
+        # FUENTE DE FINANCIAMIENTO
+        # ==================================================
+
+        fuentes = db.session.query(FuenteFinanciamiento).all()
+
+        for fuente in fuentes:
+
+            nombre_norm = SearchService.normalize_text(fuente.nombre)
+
+            if query_normalized in nombre_norm:
+
+                proyectos = [
+                    {
+                        "id": p.id,
+                        "nombre": p.nombre_proyecto,
+                        "monto_financiamiento": p.monto_financiamiento,
+                        "url": f"/proyectos/{p.id}"
+                    }
+                    for p in fuente.proyectos_investigacion.all()
+                ]
+
+                resultados.append({
+                    "tipo": "Fuente de Financiamiento",
+                    "id": fuente.id,
+                    "titulo": fuente.nombre,
+                    "subtitulo": "Fuente activa",
+                    "fecha": None,
+                    "url": f"/fuentes-financiamiento/{fuente.id}",
+                    "extra": {
+                        "cantidad_proyectos": len(proyectos),
+                        "proyectos": proyectos
+                    }
+                })
+                
+        # ==================================================
+        # PARTICIPACIÓN RELEVANTE
+        # ==================================================
+
+        participaciones = db.session.query(ParticipacionRelevante)\
+            .options(joinedload(ParticipacionRelevante.investigador))\
+            .all()
+
+        for pr in participaciones:
+
+            evento_norm = SearchService.normalize_text(pr.nombre_evento)
+            forma_norm = SearchService.normalize_text(pr.forma_participacion)
+
+            if (
+                query_normalized in evento_norm
+                or query_normalized in forma_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Participación Relevante",
+                    "id": pr.id,
+                    "titulo": pr.nombre_evento,
+                    "subtitulo": pr.forma_participacion,
+                    "fecha": pr.fecha,
+                    "url": f"/participaciones-relevantes/{pr.id}",
+                    "extra": {
+                        "investigador": pr.investigador.nombre_apellido if pr.investigador else None
+                    }
+                })
+                
+        # ==================================================
+        # REGISTROS DE PROPIEDAD
+        # ==================================================
+
+        registros = db.session.query(RegistrosPropiedad)\
+            .options(
+                joinedload(RegistrosPropiedad.tipo_registro),
+                joinedload(RegistrosPropiedad.grupo_utn)
+            )\
+            .all()
+
+        for r in registros:
+
+            articulo_norm = SearchService.normalize_text(r.nombre_articulo)
+            organismo_norm = SearchService.normalize_text(r.organismo_registrante)
+
+            if (
+                query_normalized in articulo_norm
+                or query_normalized in organismo_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Registro de Propiedad",
+                    "id": r.id,
+                    "titulo": r.nombre_articulo,
+                    "subtitulo": r.organismo_registrante,
+                    "fecha": r.fecha_registro,
+                    "url": f"/registros-propiedad/{r.id}",
+                    "extra": {
+                        "tipo_registro": r.tipo_registro.nombre if r.tipo_registro else None,
+                        "grupo": r.grupo_utn.nombre_sigla_grupo if r.grupo_utn else None
+                    }
+                })
+                
+        # ==================================================
+        # TIPO REGISTRO PROPIEDAD
+        # ==================================================
+
+        tipos_registro = db.session.query(TipoRegistroPropiedad)\
+            .options(joinedload(TipoRegistroPropiedad.registros_propiedad))\
+            .all()
+
+        for tipo in tipos_registro:
+
+            tipo_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_norm:
+
+                registros = [
+                    {
+                        "id": r.id,
+                        "articulo": r.nombre_articulo,
+                        "organismo": r.organismo_registrante,
+                        "url": f"/registros-propiedad/{r.id}"
+                    }
+                    for r in tipo.registros_propiedad
+                ]
+
+                resultados.append({
+                    "tipo": "Tipo Registro Propiedad",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de registros",
+                    "fecha": None,
+                    "url": f"/tipos-registro-propiedad/{tipo.id}",
+                    "extra": {
+                        "cantidad_registros": len(registros),
+                        "registros": registros
+                    }
+                })
+        # ==================================================
+        # TRANSFERENCIA SOCIO PRODUCTIVA
+        # ==================================================
+
+        transferencias = db.session.query(TransferenciaSocioProductiva)\
+            .options(
+                joinedload(TransferenciaSocioProductiva.adoptantes),
+                joinedload(TransferenciaSocioProductiva.tipo_contrato_transferencia),
+                joinedload(TransferenciaSocioProductiva.grupo_utn)
+            )\
+            .all()
+
+        for t in transferencias:
+
+            descripcion_norm = SearchService.normalize_text(t.descripcion_actividad)
+            demandante_norm = SearchService.normalize_text(t.demandante)
+
+            if (
+                query_normalized in descripcion_norm
+                or query_normalized in demandante_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Transferencia Socio Productiva",
+                    "id": t.id,
+                    "titulo": t.descripcion_actividad,
+                    "subtitulo": t.demandante,
+                    "fecha": t.fecha_inicio,
+                    "url": f"/transferencias/{t.id}",
+                    "extra": {
+                        "tipo_contrato": (
+                            t.tipo_contrato_transferencia.nombre
+                            if t.tipo_contrato_transferencia else None
+                        ),
+                        "grupo": (
+                            t.grupo_utn.nombre_sigla_grupo
+                            if t.grupo_utn else None
+                        ),
+                        "monto": t.monto,
+                        "adoptantes": [
+                            a.nombre for a in t.adoptantes
+                        ]
+                    }
+                })
+                
+                        
+        # ==================================================
+        # TIPO CONTRATO TRANSFERENCIA
+        # ==================================================
+
+        tipos_contrato = db.session.query(TipoContrato)\
+            .options(joinedload(TipoContrato.transferencias))\
+            .all()
+
+        for tipo in tipos_contrato:
+
+            tipo_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_norm:
+
+                transferencias = [
+                    {
+                        "id": t.id,
+                        "descripcion": t.descripcion_actividad,
+                        "demandante": t.demandante,
+                        "url": f"/transferencias/{t.id}"
+                    }
+                    for t in tipo.transferencias
+                ]
+
+                resultados.append({
+                    "tipo": "Tipo de Contrato",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación contractual",
+                    "fecha": None,
+                    "url": f"/tipos-contrato/{tipo.id}",
+                    "extra": {
+                        "cantidad_transferencias": len(transferencias),
+                        "transferencias": transferencias
+                    }
+                })
+
+        # ==================================================
+        # TIPO PERSONAL
+        # ==================================================
+
+        tipos_personal = db.session.query(TipoPersonal).all()
+
+        for tipo in tipos_personal:
+
+            tipo_norm = SearchService.normalize_text(tipo.nombre)
+
+            if query_normalized in tipo_norm:
+
+                personal_data = [
+                    {
+                        "id": p.id,
+                        "nombre_apellido": p.nombre_apellido,
+                        "horas_semanales": p.horas_semanales,
+                        "activo": p.fecha_baja is None,
+                        "url": f"/personal/{p.id}"
+                    }
+                    for p in tipo.personal.all()
+                ]
+
+                resultados.append({
+                    "tipo": "Tipo Personal",
+                    "id": tipo.id,
+                    "titulo": tipo.nombre,
+                    "subtitulo": "Clasificación de personal",
+                    "fecha": None,
+                    "url": f"/tipos-personal/{tipo.id}",
+                    "extra": {
+                        "cantidad_personal": len(personal_data),
+                        "personal": personal_data
+                    }
+                })
+
+        # ==================================================
+        # TRABAJO REUNIÓN CIENTÍFICA
+        # ==================================================
+
+        trabajos_reunion = db.session.query(TrabajoReunionCientifica)\
+            .options(
+                joinedload(TrabajoReunionCientifica.tipo_reunion_cientifica),
+                joinedload(TrabajoReunionCientifica.investigadores),
+                joinedload(TrabajoReunionCientifica.grupo_utn)
+            )\
+            .all()
+
+        for tr in trabajos_reunion:
+
+            titulo_norm = SearchService.normalize_text(tr.titulo_trabajo)
+            reunion_norm = SearchService.normalize_text(tr.nombre_reunion)
+            procedencia_norm = SearchService.normalize_text(tr.procedencia)
+            investigadores_norm = [
+                SearchService.normalize_text(inv.nombre_apellido)
+                for inv in tr.investigadores
+            ]
+            
+            if (
+                query_normalized in titulo_norm
+                or query_normalized in reunion_norm
+                or query_normalized in procedencia_norm
+                or any(query_normalized in inv for inv in investigadores_norm)
+            ):
+
+                resultados.append({
+                    "tipo": "Trabajo en Reunión Científica",
+                    "id": tr.id,
+                    "titulo": tr.titulo_trabajo,
+                    "subtitulo": tr.nombre_reunion,
+                    "fecha": tr.fecha_inicio,
+                    "url": f"/trabajos-reunion/{tr.id}",
+                    "extra": {
+                        "tipo_reunion": (
+                            tr.tipo_reunion_cientifica.nombre
+                            if tr.tipo_reunion_cientifica else None
+                        ),
+                        "procedencia": tr.procedencia,
+                        "grupo": (
+                            tr.grupo_utn.nombre_unidad_academica
+                            if tr.grupo_utn else None
+                        ),
+                        "investigadores": [
+                            {
+                                "id": inv.id,
+                                "nombre": inv.nombre_apellido
+                            }
+                            for inv in tr.investigadores
+                        ]
+                    }
+                })
+                
+                
+        # ==================================================
+        # TRABAJOS EN REVISTAS CON REFERATO
+        # ==================================================
+
+        trabajos_revista = db.session.query(TrabajosRevistasReferato)\
+            .options(
+                joinedload(TrabajosRevistasReferato.grupo_utn),
+                joinedload(TrabajosRevistasReferato.tipo_reunion),
+                joinedload(TrabajosRevistasReferato.investigadores)
+            )\
+            .all()
+
+        for tr in trabajos_revista:
+
+            titulo_norm = SearchService.normalize_text(tr.titulo_trabajo)
+            revista_norm = SearchService.normalize_text(tr.nombre_revista)
+            editorial_norm = SearchService.normalize_text(tr.editorial)
+            issn_norm = SearchService.normalize_text(tr.issn)
+            pais_norm = SearchService.normalize_text(tr.pais)
+            investigadores_norm = [
+                SearchService.normalize_text(inv.nombre_apellido)
+                for inv in tr.investigadores
             ]
 
-            matches = (
-                model.query
-                .filter(or_(*filters))
-                .limit(5)   
-                .all()
+            if (
+                query_normalized in titulo_norm
+                or query_normalized in revista_norm
+                or query_normalized in editorial_norm
+                or query_normalized in issn_norm
+                or query_normalized in pais_norm
+                or any(query_normalized in inv for inv in investigadores_norm)
+            ):
+
+                resultados.append({
+                    "tipo": "Trabajo en Revista con Referato",
+                    "id": tr.id,
+                    "titulo": tr.titulo_trabajo,
+                    "subtitulo": tr.nombre_revista,
+                    "fecha": tr.fecha,
+                    "url": f"/trabajos-revistas/{tr.id}",
+                    "extra": {
+                        "editorial": tr.editorial,
+                        "issn": tr.issn,
+                        "pais": tr.pais,
+                        "grupo": tr.grupo_utn.nombre_sigla_grupo if tr.grupo_utn else None,
+                        "tipo_reunion": tr.tipo_reunion.nombre if tr.tipo_reunion else None,
+                        "investigadores": [
+                            {
+                                "id": inv.id,
+                                "nombre": inv.nombre_apellido
+                            }
+                            for inv in tr.investigadores
+                        ]
+                    }
+                })
+
+
+
+        # ==================================================
+        # DIRECTIVOS
+        # ==================================================
+
+        directivo_results = db.session.query(Directivo)\
+            .options(
+                joinedload(Directivo.participaciones_grupo)
+                    .joinedload(DirectivoGrupo.cargo),
+                joinedload(Directivo.participaciones_grupo)
+                    .joinedload(DirectivoGrupo.grupo_utn)
+            )\
+            .all()
+
+        for d in directivo_results:
+
+            nombre_norm = SearchService.normalize_text(d.nombre_apellido)
+
+            if query_normalized in nombre_norm:
+
+                participacion_activa = next(
+                    (p for p in d.participaciones_grupo if p.fecha_fin is None),
+                    None
+                )
+
+                if participacion_activa:
+
+                    resultados.append({
+                        "tipo": "Directivo",
+                        "id": d.id,
+                        "titulo": d.nombre_apellido,
+                        "subtitulo": participacion_activa.cargo.nombre if participacion_activa.cargo else None,
+                        "fecha": participacion_activa.fecha_inicio,
+                        "url": f"/directivos/{d.id}",
+                        "extra": {
+                            "cargo": participacion_activa.cargo.nombre if participacion_activa.cargo else None,
+                            "grupo_utn": participacion_activa.grupo_utn.nombre_sigla_grupo if participacion_activa.grupo_utn else None,
+                            "grupo_utn_id": participacion_activa.grupo_utn.id if participacion_activa.grupo_utn else None,
+                            "fecha_inicio": participacion_activa.fecha_inicio,
+                            "url_grupo": f"/uct/{participacion_activa.grupo_utn.id}" if participacion_activa.grupo_utn else None
+                        }
+                    })
+
+
+        # ==================================================
+        # ARTICULOS DE DIVULGACION
+        # ==================================================
+
+        articulos = db.session.query(ArticuloDivulgacion)\
+            .options(
+                joinedload(ArticuloDivulgacion.grupo_utn)
+            )\
+            .all()
+
+        for a in articulos:
+
+            titulo_norm = SearchService.normalize_text(a.titulo)
+            descripcion_norm = SearchService.normalize_text(a.descripcion)
+
+            if (
+                query_normalized in titulo_norm
+                or query_normalized in descripcion_norm
+            ):
+
+                resultados.append({
+                    "tipo": "Artículo de Divulgación",
+                    "id": a.id,
+                    "titulo": a.titulo,
+                    "grupo": (
+                        a.grupo_utn.nombre_sigla_grupo
+                        if a.grupo_utn else None
+                    ),
+                    "fecha": a.fecha_publicacion,
+                    "url": f"/articulos-divulgacion/{a.id}",
+                    "extra": {
+                        "descripcion": a.descripcion
+                    }
+                })
+
+
+
+        # ==================================================
+        # ORDENAMIENTO GLOBAL
+        # ==================================================
+        if orden == "alf_asc":
+            resultados.sort(
+                key=lambda x: (
+                    0 if x.get("activo") else 1,
+                    x["titulo"].lower()
+                )
             )
 
-            results.extend(serializer(obj) for obj in matches)
+        elif orden == "alf_desc":
+            resultados.sort(
+                key=lambda x: (
+                    0 if x.get("activo") else 1,
+                    x["titulo"].lower()
+                ),
+                reverse=True
+            )
+            
+        elif orden == "fecha_desc":
+            resultados.sort(
+                key=lambda x: x["fecha"] or datetime.min.date(),
+                reverse=True
+            )
 
-        return results
+        elif orden == "fecha_asc":
+            resultados.sort(
+                key=lambda x: x["fecha"] or datetime.min.date()
+            )
+
+        return resultados

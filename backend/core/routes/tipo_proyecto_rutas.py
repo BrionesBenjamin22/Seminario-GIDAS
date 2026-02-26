@@ -7,22 +7,22 @@ tipo_proyecto_bp = Blueprint(
     url_prefix="/tipos-proyecto"
 )
 
-tipo_proyecto_bp.route("/", methods=["GET"])(
-    TipoProyectoController.get_all
-)
+@tipo_proyecto_bp.route("/", methods=["GET"])
+def get_all():
+    return TipoProyectoController.get_all()
 
-tipo_proyecto_bp.route("/<int:tipo_id>", methods=["GET"])(
-    TipoProyectoController.get_by_id
-)
+@tipo_proyecto_bp.route("/<int:tipo_id>", methods=["GET"])
+def get_by_id(tipo_id):
+    return TipoProyectoController.get_by_id(tipo_id)
 
-tipo_proyecto_bp.route("/", methods=["POST"])(
-    TipoProyectoController.create
-)
+@tipo_proyecto_bp.route("/", methods=["POST"])
+def create():
+    return TipoProyectoController.create()
 
-tipo_proyecto_bp.route("/<int:tipo_id>", methods=["PUT"])(
-    TipoProyectoController.update
-)
+@tipo_proyecto_bp.route("/<int:tipo_id>", methods=["PUT"])
+def update(tipo_id):
+    return TipoProyectoController.update(tipo_id)
 
-tipo_proyecto_bp.route("/<int:tipo_id>", methods=["DELETE"])(
-    TipoProyectoController.delete
-)
+@tipo_proyecto_bp.route("/<int:tipo_id>", methods=["DELETE"])
+def delete(tipo_id):
+    return TipoProyectoController.delete(tipo_id)

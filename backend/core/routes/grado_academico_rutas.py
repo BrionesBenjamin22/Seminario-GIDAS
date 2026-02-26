@@ -13,3 +13,15 @@ grado_academico_bp.route("", methods=["GET"])(
 grado_academico_bp.route("/<int:grado_id>", methods=["GET"])(
     GradoAcademicoController.get_by_id
 )
+
+grado_academico_bp.route("", methods=["POST"])(
+    GradoAcademicoController.create
+)
+
+grado_academico_bp.route("/<int:grado_id>", methods=["PUT"])(
+    GradoAcademicoController.update
+)
+
+grado_academico_bp.route("/<int:grado_id>", methods=["DELETE"])(
+    GradoAcademicoController.delete
+)

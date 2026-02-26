@@ -8,22 +8,22 @@ registros_propiedad_bp = Blueprint(
 )
 
 
-registros_propiedad_bp.route("/", methods=["GET"])(
-    RegistrosPropiedadController.get_all
-)
+@registros_propiedad_bp.route("/", methods=["GET"])
+def get_all():
+    return RegistrosPropiedadController.get_all()
 
-registros_propiedad_bp.route("/<int:registro_id>", methods=["GET"])(
-    RegistrosPropiedadController.get_by_id
-)
+@registros_propiedad_bp.route("/<int:registro_id>", methods=["GET"])
+def get_by_id(registro_id):
+    return RegistrosPropiedadController.get_by_id(registro_id)
 
-registros_propiedad_bp.route("/", methods=["POST"])(
-    RegistrosPropiedadController.create
-)
+@registros_propiedad_bp.route("/", methods=["POST"])
+def create():
+    return RegistrosPropiedadController.create()
 
-registros_propiedad_bp.route("/<int:registro_id>", methods=["PUT"])(
-    RegistrosPropiedadController.update
-)
+@registros_propiedad_bp.route("/<int:registro_id>", methods=["PUT"])
+def update(registro_id):
+    return RegistrosPropiedadController.update(registro_id)
 
-registros_propiedad_bp.route("/<int:registro_id>", methods=["DELETE"])(
-    RegistrosPropiedadController.delete
-)
+@registros_propiedad_bp.route("/<int:registro_id>", methods=["DELETE"])
+def delete(registro_id):
+    return RegistrosPropiedadController.delete(registro_id)

@@ -7,22 +7,22 @@ distincion_recibida_bp = Blueprint(
     url_prefix="/distinciones"
 )
 
-distincion_recibida_bp.route("/", methods=["GET"])(
-    DistincionRecibidaController.get_all
-)
+@distincion_recibida_bp.route("/", methods=["GET"])
+def get_all():
+    return DistincionRecibidaController.get_all()
 
-distincion_recibida_bp.route("/<int:distincion_id>", methods=["GET"])(
-    DistincionRecibidaController.get_by_id
-)
+@distincion_recibida_bp.route("/<int:distincion_id>", methods=["GET"])
+def get_by_id(distincion_id):
+    return DistincionRecibidaController.get_by_id(distincion_id)
 
-distincion_recibida_bp.route("/", methods=["POST"])(
-    DistincionRecibidaController.create
-)
+@distincion_recibida_bp.route("/", methods=["POST"])
+def create():
+    return DistincionRecibidaController.create()
 
-distincion_recibida_bp.route("/<int:distincion_id>", methods=["PUT"])(
-    DistincionRecibidaController.update
-)
+@distincion_recibida_bp.route("/<int:distincion_id>", methods=["PUT"])
+def update(distincion_id):
+    return DistincionRecibidaController.update(distincion_id)
 
-distincion_recibida_bp.route("/<int:distincion_id>", methods=["DELETE"])(
-    DistincionRecibidaController.delete
-)
+@distincion_recibida_bp.route("/<int:distincion_id>", methods=["DELETE"])
+def delete(distincion_id):
+    return DistincionRecibidaController.delete(distincion_id)

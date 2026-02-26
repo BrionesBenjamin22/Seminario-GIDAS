@@ -91,9 +91,6 @@ def actualizar_personal(id, data, rol):
         if "tipo_formacion_id" in data:
             entidad.tipo_formacion_id = data["tipo_formacion_id"]
 
-        if "fuente_financiamiento_id" in data:
-            entidad.fuente_financiamiento_id = data["fuente_financiamiento_id"]
-
         if "grupo_utn_id" in data:
             entidad.grupo_utn_id = data["grupo_utn_id"]
 

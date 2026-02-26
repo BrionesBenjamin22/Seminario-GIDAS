@@ -61,7 +61,8 @@ class BecaService:
 
         nueva_beca = Beca(
             nombre_beca=data["nombre_beca"],
-            descripcion=data.get("descripcion")
+            descripcion=data.get("descripcion"),
+            fuente_financiamiento_id=data.get("fuente_financiamiento_id")
         )
 
         db.session.add(nueva_beca)
@@ -80,6 +81,9 @@ class BecaService:
 
         if "descripcion" in data:
             beca.descripcion = data["descripcion"]
+
+        if "fuente_financiamiento_id" in data:
+            beca.fuente_financiamiento_id = data["fuente_financiamiento_id"]
 
         db.session.commit()
         return beca.serialize()

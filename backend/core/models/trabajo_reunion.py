@@ -100,7 +100,7 @@ class TipoReunion(db.Model):
     
     visitas = db.relationship(
         'VisitaAcademica',
-        back_populates='procedencia_visita',
+        back_populates='tipo_visita',
         lazy='select'
     )
 
