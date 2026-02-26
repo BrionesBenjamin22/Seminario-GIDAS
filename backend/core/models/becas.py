@@ -8,15 +8,6 @@ class Beca(db.Model, AuditMixin):
     nombre_beca = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
 
-<<<<<<< HEAD
-    becarios = db.relationship(
-        "Beca_Becario",
-        back_populates="beca"
-    )
-
-    def serialize(self):
-        data = self.to_dict()
-=======
     fuente_financiamiento_id = db.Column(
         db.Integer,
         db.ForeignKey('fuente_financiamiento.id'),
@@ -40,7 +31,6 @@ class Beca(db.Model, AuditMixin):
                 "nombre": self.fuente_financiamiento.nombre
             } if self.fuente_financiamiento else None
         }
->>>>>>> origin/zoe
 
         data["becarios"] = [
             {
