@@ -10,30 +10,45 @@ class TrabajosRevistasReferatoService:
     @staticmethod
     def get_all(filters: dict = None):
         query = TrabajosRevistasReferato.query
+        filters = filters or {}
 
         # ---- FILTRAR POR PROYECTO ----
-        proyecto_id = filters.get("proyecto_id") if filters else None
-        if proyecto_id:
+        if filters.get("proyecto_id"):
             query = query.filter(
-                TrabajosRevistasReferato.proyecto_id == proyecto_id
+                TrabajosRevistasReferato.proyecto_id == filters["proyecto_id"]
             )
 
         # ---- FILTRAR POR GRUPO ----
-        grupo_utn_id = filters.get("grupo_utn_id") if filters else None
-        if grupo_utn_id:
+        if filters.get("grupo_utn_id"):
             query = query.filter(
-                TrabajosRevistasReferato.grupo_utn_id == grupo_utn_id
+                TrabajosRevistasReferato.grupo_utn_id == filters["grupo_utn_id"]
+            )
+
+        # ---- FILTRAR POR PAÍS ----
+        if filters.get("pais"):
+            query = query.filter(
+                TrabajosRevistasReferato.pais.ilike(
+                    f"%{filters['pais']}%"
+                )
+            )
+
+        # ---- FILTRAR POR EDITORIAL ----
+        if filters.get("editorial"):
+            query = query.filter(
+                TrabajosRevistasReferato.editorial.ilike(
+                    f"%{filters['editorial']}%"
+                )
             )
 
         # ---- ORDEN ----
-        orden = filters.get("orden") if filters else None
+        orden = filters.get("orden")
         if orden == "asc":
             query = query.order_by(TrabajosRevistasReferato.id.asc())
         else:
-            # default: descendente
             query = query.order_by(TrabajosRevistasReferato.id.desc())
 
         return [t.serialize() for t in query.all()]
+
 
 
     @staticmethod

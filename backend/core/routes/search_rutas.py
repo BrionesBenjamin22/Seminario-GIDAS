@@ -7,24 +7,6 @@ search_bp = Blueprint(
     url_prefix="/search"
 )
 
-
-@search_bp.route("/", methods=["GET"])
-def buscar():
-    """
-    Endpoint principal de búsqueda global
-
-    GET /search?q=<texto>&orden=<orden>
-
-    Parámetros:
-        - q (requerido): texto a buscar
-        - orden (opcional):
-            alf_asc
-            alf_desc
-            fecha_asc
-            fecha_desc
-
-    Ejemplos:
-        GET /search?q=Perez
-        GET /search?q=UTN&orden=fecha_desc
-    """
-    return SearchController.buscar()
+search_bp.route("/", methods=["GET"])(
+    SearchController.search
+)

@@ -10,12 +10,37 @@ class ProyectoInvestigacionController:
     @staticmethod
     def get_all():
         try:
-            filters = request.args.to_dict()
+            args = request.args
+            filters = {}
+
+            # -------------------------
+            # Filtros directos
+            # -------------------------
+            if args.get("tipo_proyecto_id"):
+                filters["tipo_proyecto_id"] = int(args.get("tipo_proyecto_id"))
+
+            if args.get("grupo_utn_id"):
+                filters["grupo_utn_id"] = int(args.get("grupo_utn_id"))
+
+            # -------------------------
+            # Filtros semánticos
+            # -------------------------
+            if args.get("filtro") == "distinciones":
+                filters["tiene_distinciones"] = True
+
+            # -------------------------
+            # Orden
+            # -------------------------
+            if args.get("orden") in ("asc", "desc"):
+                filters["orden"] = args.get("orden")
+
             return jsonify(
                 ProyectoInvestigacionService.get_all(filters)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     # =========================
     # GET BY ID

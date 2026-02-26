@@ -1,5 +1,6 @@
 from datetime import datetime
 from extension import db
+from sqlalchemy import func
 
 from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, InvestigadorProyecto, BecarioProyecto
 from core.models.grupo import GrupoInvestigacionUtn
@@ -17,19 +18,36 @@ class ProyectoInvestigacionService:
     @staticmethod
     def get_all(filters: dict = None):
         query = ProyectoInvestigacion.query
+        filters = filters or {}
 
-        if filters:
-            if filters.get("tipo_proyecto_id"):
-                query = query.filter(
-                    ProyectoInvestigacion.tipo_proyecto_id == filters["tipo_proyecto_id"]
-                )
+        # -------------------------
+        # Filtro: tipo de proyecto
+        # -------------------------
+        if filters.get("tipo_proyecto_id"):
+            query = query.filter(
+                ProyectoInvestigacion.tipo_proyecto_id == filters["tipo_proyecto_id"]
+            )
 
-            if filters.get("grupo_utn_id"):
-                query = query.filter(
-                    ProyectoInvestigacion.grupo_utn_id == filters["grupo_utn_id"]
-                )
+        # -------------------------
+        # Filtro: grupo UTN
+        # -------------------------
+        if filters.get("grupo_utn_id"):
+            query = query.filter(
+                ProyectoInvestigacion.grupo_utn_id == filters["grupo_utn_id"]
+            )
 
-        orden = filters.get("orden") if filters else None
+        # -------------------------
+        # Filtro: proyectos con distinciones
+        # -------------------------
+        if filters.get("tiene_distinciones"):
+            query = query.filter(
+                ProyectoInvestigacion.distinciones.any()
+            )
+
+        # -------------------------
+        # Ordenamiento
+        # -------------------------
+        orden = filters.get("orden")
         if orden == "asc":
             query = query.order_by(ProyectoInvestigacion.fecha_inicio.asc())
         elif orden == "monto_asc":
@@ -41,6 +59,7 @@ class ProyectoInvestigacionService:
         
 
         return [p.serialize() for p in query.all()]
+
 
     # =========================
     # GET BY ID
@@ -201,6 +220,7 @@ class ProyectoInvestigacionService:
         proyecto.fecha_fin = func.current_date()  # Cierra el proyecto al día de hoy
         db.session.commit()
         return {"message": "Proyecto cerrado correctamente"}
+
     # =========================
     # VINCULAR / DESVINCULAR BECARIOS
     # =========================

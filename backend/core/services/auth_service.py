@@ -193,16 +193,3 @@ class AuthService:
             db.session.rollback()
             raise Exception("Error al cambiar la contraseña")
         
-    
-    
-    @staticmethod
-    def delete_user(user_id: int, current_user_id: int):
-
-        user = Usuario.query.get(user_id)
-
-        if not user:
-            raise Exception("Usuario no encontrado")
-
-        user.soft_delete(current_user_id)
-
-        db.session.commit()

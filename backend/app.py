@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from extension import db, mail, migrate
 from flask_cors import CORS
 from config import DevelopmentConfig
@@ -18,11 +18,12 @@ def create_app():
     app.config.from_object(DevelopmentConfig)
 
     CORS(
-        app,
-        resources={r"/*": {"origins": "http://localhost:5173"}},
-        supports_credentials=True
-    )
-
+    app,
+    resources={r"/*": {"origins": "http://localhost:5173"}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+)
+    
     db.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
