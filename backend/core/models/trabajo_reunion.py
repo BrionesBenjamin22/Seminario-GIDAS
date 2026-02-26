@@ -1,4 +1,5 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
 investigador_x_trabajo_reunion = db.Table(
     'investigador_x_trabajo_reunion',
@@ -7,44 +8,77 @@ investigador_x_trabajo_reunion = db.Table(
 )
 
 
-class TrabajoReunionCientifica(db.Model):
+
+class TrabajoReunionCientifica(db.Model, AuditMixin):
     __tablename__ = 'trabajo_reunion_cientifica'
+
     id = db.Column(db.Integer, primary_key=True)
-    titulo_trabajo = db.Column(db.Text, nullable=False, unique=True)
+
+    titulo_trabajo = db.Column(db.Text, nullable=False)
     nombre_reunion = db.Column(db.Text, nullable=False)
-    procedencia = db.Column(db.Text, nullable=False) # procedencia
+    procedencia = db.Column(db.Text, nullable=False)
+
     fecha_inicio = db.Column(db.Date, nullable=False)
-    
-    tipo_reunion_id = db.Column(db.Integer, db.ForeignKey('tipo_reunion_cientifica.id'), nullable=False)
-    tipo_reunion_cientifica = db.relationship('TipoReunion', back_populates='trabajos_reunion_cientifica')
-    
-    # --- Clave Foránea y Relación ---
+
+    tipo_reunion_id = db.Column(
+        db.Integer,
+        db.ForeignKey('tipo_reunion_cientifica.id'),
+        nullable=False
+    )
+
+    tipo_reunion_cientifica = db.relationship(
+        'TipoReunion',
+        back_populates='trabajos_reunion_cientifica'
+    )
+
     investigadores = db.relationship(
         'Investigador',
         secondary=investigador_x_trabajo_reunion,
         back_populates='trabajos_reunion_cientifica'
     )
 
-	
-	# --- Relaciones (Muchos-a-Uno) ---
-    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id')) 
-    grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='trabajos_reunion_cientifica')
-    
+    grupo_utn_id = db.Column(
+        db.Integer,
+        db.ForeignKey('grupo_utn.id')
+    )
+
+    grupo_utn = db.relationship(
+        'GrupoInvestigacionUtn',
+        back_populates='trabajos_reunion_cientifica'
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "titulo_trabajo",
+            "deleted_at",
+            name="uq_trabajo_reunion_activo"
+        ),
+    )
+
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        data.pop("tipo_reunion_id", None)
-        data.pop("grupo_utn_id", None)
-        data["tipo_reunion"] = {
-            "id": self.tipo_reunion_cientifica.id,
-            "nombre": self.tipo_reunion_cientifica.nombre
-        }
-        data["investigadores"] = [
-            {
-                "id": inv.id,
-                "nombre_apellido": inv.nombre_apellido
-            } for inv in self.investigadores
-        ]
-        data["grupo_utn"] = self.grupo_utn.nombre_unidad_academica if self.grupo_utn else None
+        data = self.to_dict()
+
+        data.update({
+            "tipo_reunion": {
+                "id": self.tipo_reunion_cientifica.id,
+                "nombre": self.tipo_reunion_cientifica.nombre
+            } if self.tipo_reunion_cientifica else None,
+
+            "investigadores": [
+                {
+                    "id": inv.id,
+                    "nombre_apellido": inv.nombre_apellido
+                }
+                for inv in self.investigadores
+                if inv.deleted_at is None
+            ],
+
+            "grupo_utn": (
+                self.grupo_utn.nombre_unidad_academica
+                if self.grupo_utn else None
+            )
+        })
+
         return data
     
     

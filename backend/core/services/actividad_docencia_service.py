@@ -7,8 +7,15 @@ from datetime import datetime, date
 class ActividadDocenciaService:
 
     # -------------------------------------------------
-    # Validadores internos
+    # Helpers
     # -------------------------------------------------
+
+    @staticmethod
+    def _get_or_404(model, obj_id, message):
+        obj = db.session.get(model, obj_id)
+        if not obj or getattr(obj, "deleted_at", None) is not None:
+            raise Exception(message)
+        return obj
 
     @staticmethod
     def _validar_texto(valor, campo, min_len=2, max_len=255):
@@ -44,21 +51,27 @@ class ActividadDocenciaService:
             raise Exception("La fecha de fin no puede ser anterior a la fecha de inicio")
 
     # -------------------------------------------------
-    # CRUD
+    # Queries
     # -------------------------------------------------
 
     @staticmethod
     def get_all(filters: dict = None):
-        query = ActividadDocencia.query
+        query = ActividadDocencia.query.filter(
+            ActividadDocencia.deleted_at.is_(None)
+        )
 
-        investigador_id = filters.get("investigador_id") if filters else None
-        if investigador_id:
-            query = query.filter(
-                ActividadDocencia.investigador_id == investigador_id
-            )
-        orden = filters.get("orden") if filters else None
-        if orden == "asc":
-            query = query.order_by(ActividadDocencia.fecha_inicio.asc())
+        if filters:
+            investigador_id = filters.get("investigador_id")
+            if investigador_id:
+                query = query.filter(
+                    ActividadDocencia.investigador_id == investigador_id
+                )
+
+            orden = filters.get("orden")
+            if orden == "asc":
+                query = query.order_by(ActividadDocencia.fecha_inicio.asc())
+            else:
+                query = query.order_by(ActividadDocencia.fecha_inicio.desc())
         else:
             query = query.order_by(ActividadDocencia.fecha_inicio.desc())
 
@@ -66,14 +79,19 @@ class ActividadDocenciaService:
 
     @staticmethod
     def get_by_id(actividad_id: int):
-        actividad = ActividadDocencia.query.get(actividad_id)
-        if not actividad:
+        actividad = db.session.get(ActividadDocencia, actividad_id)
+
+        if not actividad or actividad.deleted_at is not None:
             raise Exception("Actividad de docencia no encontrada")
+
         return actividad.serialize()
 
+    # -------------------------------------------------
+    # Create
+    # -------------------------------------------------
+
     @staticmethod
-    def create(data: dict):
-        # ---- Validar fechas ----
+    def create(data: dict, user_id: int):
         try:
             fecha_inicio = datetime.strptime(
                 data["fecha_inicio"], "%Y-%m-%d"
@@ -88,7 +106,6 @@ class ActividadDocenciaService:
 
         ActividadDocenciaService._validar_fechas(fecha_inicio, fecha_fin)
 
-        # ---- Validar textos ----
         curso = ActividadDocenciaService._validar_texto(
             data.get("curso"), "curso", min_len=3
         )
@@ -97,45 +114,56 @@ class ActividadDocenciaService:
             data.get("institucion"), "institucion", min_len=3
         )
 
-        grado_academico_id = data.get("grado_academico_id")
-        if not grado_academico_id or not GradoAcademico.query.get(grado_academico_id):
-            raise Exception("Grado Academico Inválido")
-        
+        grado = ActividadDocenciaService._get_or_404(
+            GradoAcademico,
+            data.get("grado_academico_id"),
+            "Grado Académico inválido"
+        )
 
-        rol_actividad_id = data.get("rol_actividad_id")
-        if not rol_actividad_id or not RolActividad.query.get(rol_actividad_id):
-            raise Exception("Rol de Actividad Inválido")
+        rol = ActividadDocenciaService._get_or_404(
+            RolActividad,
+            data.get("rol_actividad_id"),
+            "Rol de actividad inválido"
+        )
 
-        # ---- Validar relación ----
-        investigador_id = data.get("investigador_id")
-        if not investigador_id or not Investigador.query.get(investigador_id):
-            raise Exception("Investigador inválido")
+        investigador = ActividadDocenciaService._get_or_404(
+            Investigador,
+            data.get("investigador_id"),
+            "Investigador inválido"
+        )
 
         actividad = ActividadDocencia(
             curso=curso,
             institucion=institucion,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            grado_academico_id=grado_academico_id,
-            rol_actividad_id=rol_actividad_id,
-            investigador_id=investigador_id
+            grado_academico_id=grado.id,
+            rol_actividad_id=rol.id,
+            investigador_id=investigador.id,
+            created_by=user_id
         )
 
         db.session.add(actividad)
-        try:        
+
+        try:
             db.session.commit()
         except Exception:
             db.session.rollback()
             raise Exception("Error al guardar la actividad")
+
         return actividad.serialize()
+
+    # -------------------------------------------------
+    # Update
+    # -------------------------------------------------
 
     @staticmethod
     def update(actividad_id: int, data: dict):
-        actividad = ActividadDocencia.query.get(actividad_id)
-        if not actividad:
+        actividad = db.session.get(ActividadDocencia, actividad_id)
+
+        if not actividad or actividad.deleted_at is not None:
             raise Exception("Actividad de docencia no encontrada")
 
-        # ---- Update parcial ----
         if "fecha_inicio" in data or "fecha_fin" in data:
             try:
                 fecha_inicio = datetime.strptime(
@@ -165,29 +193,45 @@ class ActividadDocenciaService:
             )
 
         if "grado_academico_id" in data:
-            if not GradoAcademico.query.get(data["grado_academico_id"]):
-                raise Exception("Grado Academico Inválido")
-            actividad.grado_academico_id = data["grado_academico_id"]
+            grado = ActividadDocenciaService._get_or_404(
+                GradoAcademico,
+                data["grado_academico_id"],
+                "Grado Académico inválido"
+            )
+            actividad.grado_academico_id = grado.id
 
         if "rol_actividad_id" in data:
-            if not RolActividad.query.get(data["rol_actividad_id"]):
-                raise Exception("Rol de Actividad Inválido")
-            actividad.rol_actividad_id = data["rol_actividad_id"]
+            rol = ActividadDocenciaService._get_or_404(
+                RolActividad,
+                data["rol_actividad_id"],
+                "Rol de actividad inválido"
+            )
+            actividad.rol_actividad_id = rol.id
 
         if "investigador_id" in data:
-            if not Investigador.query.get(data["investigador_id"]):
-                raise Exception("Investigador inválido")
-            actividad.investigador_id = data["investigador_id"]
+            investigador = ActividadDocenciaService._get_or_404(
+                Investigador,
+                data["investigador_id"],
+                "Investigador inválido"
+            )
+            actividad.investigador_id = investigador.id
 
         db.session.commit()
         return actividad.serialize()
 
+    # -------------------------------------------------
+    # Soft Delete
+    # -------------------------------------------------
+
     @staticmethod
-    def delete(actividad_id: int):
-        actividad = ActividadDocencia.query.get(actividad_id)
-        if not actividad:
+    def delete(actividad_id: int, user_id: int):
+        actividad = db.session.get(ActividadDocencia, actividad_id)
+
+        if not actividad or actividad.deleted_at is not None:
             raise Exception("Actividad de docencia no encontrada")
 
-        db.session.delete(actividad)
+        actividad.soft_delete(user_id)
+
         db.session.commit()
+
         return {"message": "Actividad de docencia eliminada correctamente"}

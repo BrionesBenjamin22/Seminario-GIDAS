@@ -1,47 +1,74 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
-class InvestigadorProyecto(db.Model):
+class InvestigadorProyecto(db.Model, AuditMixin):
     __tablename__ = "investigadorxproyecto"
 
-    id_investigador = db.Column(
-        db.Integer,
-        db.ForeignKey("investigador.id"),
-        primary_key=True
-    )
+    id = db.Column(db.Integer, primary_key=True)
 
-    id_proyecto = db.Column(
-        db.Integer,
-        db.ForeignKey("proyecto_investigacion.id"),
-        primary_key=True
-    )
+    id_investigador = db.Column(db.Integer, db.ForeignKey("investigador.id"))
+    id_proyecto = db.Column(db.Integer, db.ForeignKey("proyecto_investigacion.id"))
 
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=True)
 
-    investigador = db.relationship("Investigador", back_populates="participaciones_proyecto")
-    proyecto = db.relationship("ProyectoInvestigacion", back_populates="participaciones_investigador")
+    investigador = db.relationship(
+        "Investigador",
+        back_populates="participaciones_proyecto"
+    )
 
-class BecarioProyecto(db.Model):
+    proyecto = db.relationship(
+        "ProyectoInvestigacion",
+        back_populates="participaciones_investigador"
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "id_investigador",
+            "id_proyecto",
+            name="uq_investigador_proyecto_activo"
+        ),
+    )
+
+
+class BecarioProyecto(db.Model, AuditMixin):
     __tablename__ = "becarioxproyecto"
+
+    id = db.Column(db.Integer, primary_key=True)
 
     id_becario = db.Column(
         db.Integer,
         db.ForeignKey("becario.id"),
-        primary_key=True
+        nullable=False
     )
 
     id_proyecto = db.Column(
         db.Integer,
         db.ForeignKey("proyecto_investigacion.id"),
-        primary_key=True
+        nullable=False
     )
 
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=True)
 
-    becario = db.relationship("Becario", back_populates="participaciones_proyecto")
-    proyecto = db.relationship("ProyectoInvestigacion", back_populates="participaciones_becario")
+    __table_args__ = (
+        db.UniqueConstraint(
+            "id_becario",
+            "id_proyecto",
+            "deleted_at",
+            name="uq_becario_proyecto_activo"
+        ),
+    )
 
+    becario = db.relationship(
+        "Becario",
+        back_populates="participaciones_proyecto"
+    )
+
+    proyecto = db.relationship(
+        "ProyectoInvestigacion",
+        back_populates="participaciones_becario"
+    )
 
 
 class TipoProyecto(db.Model):
@@ -54,7 +81,7 @@ class TipoProyecto(db.Model):
     proyectos_investigacion = db.relationship('ProyectoInvestigacion', back_populates='tipo_proyecto')
 
 
-class ProyectoInvestigacion(db.Model):
+class ProyectoInvestigacion(db.Model, AuditMixin):
     __tablename__ = 'proyecto_investigacion'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -93,7 +120,7 @@ class ProyectoInvestigacion(db.Model):
         cascade="all, delete-orphan"
     )
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data = self.to_dict()
 
         data["grupo_utn"] = {
             "id": self.grupo_utn.id,
@@ -114,8 +141,8 @@ class ProyectoInvestigacion(db.Model):
         {
             "id": p.investigador.id,
             "nombre_apellido": p.investigador.nombre_apellido,
-            "fecha_inicio": str(p.fecha_inicio),
-            "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+            "fecha_inicio": p.fecha_inicio.isoformat(),
+            "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
         }
         for p in self.participaciones_investigador
         ]
@@ -124,8 +151,8 @@ class ProyectoInvestigacion(db.Model):
             {
                 "id": p.becario.id,
                 "nombre_apellido": p.becario.nombre_apellido,
-                "fecha_inicio": str(p.fecha_inicio),
-                "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                "fecha_inicio": p.fecha_inicio.isoformat(),
+                "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
             }
             for p in self.participaciones_becario
         ]

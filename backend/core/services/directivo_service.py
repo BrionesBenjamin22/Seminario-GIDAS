@@ -15,13 +15,14 @@ class DirectivoGrupoService:
     # CREAR DIRECTIVO
     # =========================
     @staticmethod
-    def crear_directivo(data: dict):
+    def crear_directivo(data: dict, user_id: int):
 
         if not data.get("nombre_apellido"):
             raise ValueError("El nombre es obligatorio.")
 
         directivo = Directivo(
-            nombre_apellido=data["nombre_apellido"]
+            nombre_apellido=data["nombre_apellido"].strip(),
+            created_by=user_id
         )
 
         db.session.add(directivo)
@@ -31,21 +32,23 @@ class DirectivoGrupoService:
     
     @staticmethod
     def actualizar_directivo(directivo_id: int, data: dict):
-        directivo = Directivo.query.get(directivo_id)
-        if not directivo:
-            raise ValueError("Directivo no encontrado.")
+
+        directivo = DirectivoGrupoService._get_activo_or_404(
+            Directivo,
+            directivo_id,
+            "Directivo no encontrado."
+        )
 
         if "nombre_apellido" in data:
-            directivo.nombre_apellido = data["nombre_apellido"]
+            directivo.nombre_apellido = data["nombre_apellido"].strip()
 
         db.session.commit()
 
         return directivo.serialize()
 
 
-
     @staticmethod
-    def asignar_a_grupo(data: dict):
+    def asignar_a_grupo(data: dict, user_id: int):
 
         required = ["id_directivo", "id_grupo_utn", "id_cargo", "fecha_inicio"]
 
@@ -53,16 +56,17 @@ class DirectivoGrupoService:
             if campo not in data:
                 raise ValueError(f"{campo} es obligatorio.")
 
-        directivo = Directivo.query.get(data["id_directivo"])
-        grupo = GrupoInvestigacionUtn.query.get(data["id_grupo_utn"])
-        cargo = Cargo.query.get(data["id_cargo"])
+        directivo = DirectivoGrupoService._get_activo_or_404(
+            Directivo, data["id_directivo"], "Directivo no encontrado."
+        )
 
-        if not directivo:
-            raise ValueError("Directivo no encontrado.")
-        if not grupo:
-            raise ValueError("Grupo no encontrado.")
-        if not cargo:
-            raise ValueError("Cargo no encontrado.")
+        grupo = DirectivoGrupoService._get_activo_or_404(
+            GrupoInvestigacionUtn, data["id_grupo_utn"], "Grupo no encontrado."
+        )
+
+        cargo = DirectivoGrupoService._get_activo_or_404(
+            Cargo, data["id_cargo"], "Cargo no encontrado."
+        )
 
         fecha_inicio = datetime.strptime(
             data["fecha_inicio"], "%Y-%m-%d"
@@ -77,47 +81,29 @@ class DirectivoGrupoService:
             if fecha_fin < fecha_inicio:
                 raise ValueError("La fecha_fin no puede ser anterior a fecha_inicio.")
 
-
-        if fecha_fin is None:
-            activo_existente = DirectivoGrupo.query.filter(
-                DirectivoGrupo.id_grupo_utn == grupo.id,
-                DirectivoGrupo.id_cargo == cargo.id,
-                DirectivoGrupo.fecha_fin.is_(None)
-            ).first()
-
-            if activo_existente:
-                raise ValueError(
-                    "Ya existe un directivo activo en ese cargo."
-                )
-
-
+        
         existentes = DirectivoGrupo.query.filter(
             DirectivoGrupo.id_grupo_utn == grupo.id,
-            DirectivoGrupo.id_cargo == cargo.id
+            DirectivoGrupo.id_cargo == cargo.id,
+            DirectivoGrupo.deleted_at.is_(None)
         ).all()
 
         for e in existentes:
-
-            e_inicio = e.fecha_inicio
-            e_fin = e.fecha_fin
-
-            # Si alguno no tiene fecha_fin → infinito
-            e_fin_real = e_fin if e_fin else datetime.max.date()
+            e_fin_real = e.fecha_fin if e.fecha_fin else datetime.max.date()
             nueva_fin_real = fecha_fin if fecha_fin else datetime.max.date()
 
-            # Condición de superposición
-            if fecha_inicio <= e_fin_real and nueva_fin_real >= e_inicio:
+            if fecha_inicio <= e_fin_real and nueva_fin_real >= e.fecha_inicio:
                 raise ValueError(
                     "El período se superpone con otro directivo en ese cargo."
                 )
-
 
         participacion = DirectivoGrupo(
             id_directivo=directivo.id,
             id_grupo_utn=grupo.id,
             id_cargo=cargo.id,
             fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin
+            fecha_fin=fecha_fin,
+            created_by=user_id
         )
 
         db.session.add(participacion)
@@ -138,7 +124,8 @@ class DirectivoGrupoService:
         participacion = DirectivoGrupo.query.filter(
             DirectivoGrupo.id_directivo == data["id_directivo"],
             DirectivoGrupo.id_grupo_utn == data["id_grupo_utn"],
-            DirectivoGrupo.fecha_fin.is_(None)
+            DirectivoGrupo.fecha_fin.is_(None),
+            DirectivoGrupo.deleted_at.is_(None)
         ).first()
 
         if not participacion:
@@ -177,7 +164,7 @@ class DirectivoGrupoService:
                 "fecha_inicio": str(p.fecha_inicio),
                 "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
             }
-            for p in grupo.participaciones_directivos
+            for p in grupo.participaciones_directivos if p.deleted_at is None
         ]
 
     @staticmethod
@@ -188,8 +175,9 @@ class DirectivoGrupoService:
             joinedload(DirectivoGrupo.cargo)
         ).filter(
             DirectivoGrupo.id_grupo_utn == grupo_id,
-            DirectivoGrupo.fecha_fin.is_(None)
-        ).all()
+            DirectivoGrupo.fecha_fin.is_(None),
+            DirectivoGrupo.deleted_at.is_(None)
+        )
 
         return [
             {

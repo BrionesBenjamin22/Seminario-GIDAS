@@ -1,6 +1,7 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
-class Persona(db.Model):
+class Persona(db.Model, AuditMixin):
     __tablename__ = "persona"
     
     id = db.Column(db.Integer, primary_key=True)
@@ -10,15 +11,13 @@ class Persona(db.Model):
     usuario = db.relationship(
         "Usuario",
         back_populates="persona",
-        uselist=False
+        foreign_keys="Usuario.id_persona"
     )
     
     
     def serialize(self):
-        return {
-            "id": self.id,
-            "nombre_apellido": self.nombre_apellido,
-            "dni": self.dni
-        }
+        data = self.to_dict()
+        data["usuario"] = self.usuario.serialize() if self.usuario else None
+        return data
     
     

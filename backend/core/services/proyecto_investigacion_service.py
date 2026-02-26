@@ -1,5 +1,6 @@
 from datetime import datetime
 from extension import db
+from sqlalchemy import func
 
 from core.models.proyecto_investigacion import ProyectoInvestigacion, TipoProyecto, InvestigadorProyecto, BecarioProyecto
 from core.models.grupo import GrupoInvestigacionUtn
@@ -219,6 +220,7 @@ class ProyectoInvestigacionService:
         proyecto.fecha_fin = func.current_date()  # Cierra el proyecto al día de hoy
         db.session.commit()
         return {"message": "Proyecto cerrado correctamente"}
+
     # =========================
     # VINCULAR / DESVINCULAR BECARIOS
     # =========================

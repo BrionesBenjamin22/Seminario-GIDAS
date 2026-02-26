@@ -1,6 +1,7 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
-class Equipamiento(db.Model):
+class Equipamiento(db.Model, AuditMixin):
     __tablename__ = 'equipamiento_grupo'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -10,13 +11,13 @@ class Equipamiento(db.Model):
     monto_invertido = db.Column(db.Float, nullable=False)
 
     # --- Claves Foráneas y Relaciones ---
-    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
+    grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=False)
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='equipamiento')
 
 
     def serialize(self):
-        """Serializa la instancia de Equipamiento en un diccionario."""
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        
+        data = self.to_dict()
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         return data
     

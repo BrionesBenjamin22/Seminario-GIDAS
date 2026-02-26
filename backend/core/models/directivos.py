@@ -1,8 +1,8 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
 
-
-class DirectivoGrupo(db.Model):
+class DirectivoGrupo(db.Model, AuditMixin):
     __tablename__ = 'directivo_grupo'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -42,6 +42,8 @@ class DirectivoGrupo(db.Model):
         'Cargo',
         back_populates='participaciones'
     )
+    
+    
 class Cargo(db.Model):
     __tablename__ = 'cargo'
 
@@ -50,15 +52,14 @@ class Cargo(db.Model):
 
     participaciones = db.relationship(
         'DirectivoGrupo',
-        back_populates='cargo',
-        cascade="all, delete-orphan"
+        back_populates='cargo'
     )
 
     def serialize(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 
-class Directivo(db.Model):
+class Directivo(db.Model, AuditMixin):
     __tablename__ = 'directivo'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -66,13 +67,10 @@ class Directivo(db.Model):
 
     participaciones_grupo = db.relationship(
         'DirectivoGrupo',
-        back_populates='directivo',
-        cascade="all, delete-orphan"
+        back_populates='directivo'
     )
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "nombre_apellido": self.nombre_apellido
-        }
+        return self.to_dict()
+    
     
