@@ -54,7 +54,7 @@ class RegistrosPropiedadService:
             fecha_registro=fecha_registro,
             tipo_registro_id=data["tipo_registro_id"],
             grupo_utn_id=data["grupo_utn_id"],
-            created_by=user_id,  # 🔥 auditoría
+            created_by=user_id,  
         )
 
         db.session.add(nuevo)
