@@ -1,5 +1,6 @@
 from flask import Blueprint
 from core.controllers.adoptante_controller import AdoptanteController
+from core.services.middleware import requiere_rol
 
 adoptante_bp = Blueprint(
     "adoptante",
@@ -7,8 +8,34 @@ adoptante_bp = Blueprint(
     url_prefix="/adoptantes"
 )
 
-adoptante_bp.route("", methods=["GET"])(AdoptanteController.get_all)
-adoptante_bp.route("/<int:adoptante_id>", methods=["GET"])(AdoptanteController.get_by_id)
-adoptante_bp.route("", methods=["POST"])(AdoptanteController.create)
-adoptante_bp.route("/<int:adoptante_id>", methods=["PUT"])(AdoptanteController.update)
-adoptante_bp.route("/<int:adoptante_id>", methods=["DELETE"])(AdoptanteController.delete)
+# -------------------------
+# GET (puede ser público o lectura)
+# -------------------------
+adoptante_bp.route("", methods=["GET"])(
+    AdoptanteController.get_all
+)
+
+adoptante_bp.route("/<int:adoptante_id>", methods=["GET"])(
+    AdoptanteController.get_by_id
+)
+
+# -------------------------
+# CREATE
+# -------------------------
+adoptante_bp.route("", methods=["POST"])(
+    requiere_rol("ADMIN", "GESTOR")(AdoptanteController.create)
+)
+
+# -------------------------
+# UPDATE
+# -------------------------
+adoptante_bp.route("/<int:adoptante_id>", methods=["PUT"])(
+    requiere_rol("ADMIN", "GESTOR")(AdoptanteController.update)
+)
+
+# -------------------------
+# DELETE
+# -------------------------
+adoptante_bp.route("/<int:adoptante_id>", methods=["DELETE"])(
+    requiere_rol("ADMIN")(AdoptanteController.delete)
+)

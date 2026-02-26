@@ -36,3 +36,7 @@ def add_investigadores(trabajo_id):
 @trabajo_reunion_cientifica_bp.route("/<int:trabajo_id>/investigadores/", methods=["DELETE"])
 def remove_investigadores(trabajo_id):
     return TrabajoReunionCientificaController.remove_investigadores(trabajo_id)
+
+@trabajo_reunion_cientifica_bp.route("/<int:trabajo_id>/restore", methods=["PUT"])
+def restore(trabajo_id):
+    return TrabajoReunionCientificaController.restore(trabajo_id)

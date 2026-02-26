@@ -5,64 +5,52 @@ from core.models.becas import Beca, Beca_Becario
 from core.models.personal import Becario
 
 
+# =====================================================
+# HELPERS
+# =====================================================
+
+def _get_beca_activa_or_404(beca_id: int):
+    beca = db.session.get(Beca, beca_id)
+    if not beca or beca.deleted_at is not None:
+        raise ValueError("Beca no encontrada.")
+    return beca
+
+
+def _get_relacion_activa(beca_id: int, becario_id: int):
+    return Beca_Becario.query.filter(
+        Beca_Becario.id_beca == beca_id,
+        Beca_Becario.id_becario == becario_id,
+        Beca_Becario.deleted_at.is_(None)
+    ).first()
+
+
+# =====================================================
+# CRUD BECA
+# =====================================================
+
 class BecaService:
-    
-    
-    @staticmethod
-    def get_becas_activas_en_anio(anio):
-        if not anio:
-            raise ValueError("Debe proporcionar un año.")
-
-        relaciones = Beca_Becario.query.filter(
-            extract("year", Beca_Becario.fecha_inicio) <= anio,
-            (
-                Beca_Becario.fecha_fin == None
-            ) |
-            (extract("year", Beca_Becario.fecha_fin) >= anio)
-        ).all()
-
-        resultado = []
-
-        for r in relaciones:
-            resultado.append({
-                "beca_id": r.beca.id,
-                "nombre_beca": r.beca.nombre_beca,
-                "becario": r.becario.nombre_apellido,
-                "anio_consultado": anio,
-                "fecha_inicio": str(r.fecha_inicio),
-                "fecha_fin": str(r.fecha_fin) if r.fecha_fin else None,
-                "monto_percibido": r.monto_percibido
-            })
-
-        return resultado
-
-    # =========================
-    # CRUD BECA
-    # =========================
-    
-    
 
     @staticmethod
     def get_all():
-        becas = Beca.query.all()
+        becas = Beca.query.filter(Beca.deleted_at.is_(None)).all()
         return [b.serialize() for b in becas]
 
     @staticmethod
     def get_by_id(beca_id):
-        beca = Beca.query.get(beca_id)
-        if not beca:
-            raise ValueError("Beca no encontrada.")
+        beca = _get_beca_activa_or_404(beca_id)
         return beca.serialize()
 
     @staticmethod
-    def create(data):
+    def create(data, user_id):
+
         if not data.get("nombre_beca"):
             raise ValueError("El nombre de la beca es obligatorio.")
 
         nueva_beca = Beca(
             nombre_beca=data["nombre_beca"],
             descripcion=data.get("descripcion"),
-            fuente_financiamiento_id=data.get("fuente_financiamiento_id")
+            fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
+            created_by=user_id
         )
 
         db.session.add(nueva_beca)
@@ -72,9 +60,7 @@ class BecaService:
 
     @staticmethod
     def update(beca_id, data):
-        beca = Beca.query.get(beca_id)
-        if not beca:
-            raise ValueError("Beca no encontrada.")
+        beca = _get_beca_activa_or_404(beca_id)
 
         if "nombre_beca" in data:
             beca.nombre_beca = data["nombre_beca"]
@@ -89,138 +75,125 @@ class BecaService:
         return beca.serialize()
 
     @staticmethod
-    def delete(beca_id):
-        beca = Beca.query.get(beca_id)
-        if not beca:
-            raise ValueError("Beca no encontrada.")
+    def delete(beca_id, user_id):
+        beca = _get_beca_activa_or_404(beca_id)
 
-        db.session.delete(beca)
+        beca.soft_delete(user_id)
         db.session.commit()
 
         return {"message": "Beca eliminada correctamente."}
 
 
-    # =========================
-    # VINCULAR BECARIOS
-    # =========================
+# =====================================================
+# VINCULAR BECARIO
+# =====================================================
 
     @staticmethod
-    def vincular_becario(beca_id, data):
-        """
-        data esperado:
-        {
-            "id_becario": int,
-            "fecha_inicio": "YYYY-MM-DD",
-            "fecha_fin": "YYYY-MM-DD" (opcional),
-            "monto_percibido": float (opcional)
-        }
-        """
+    def vincular_becario(beca_id, data, user_id):
 
-        beca = Beca.query.get(beca_id)
-        if not beca:
-            raise ValueError("Beca no encontrada.")
+        beca = _get_beca_activa_or_404(beca_id)
 
-        becario = Becario.query.get(data.get("id_becario"))
-        if not becario:
+        becario = db.session.get(Becario, data.get("id_becario"))
+        if not becario or becario.deleted_at is not None:
             raise ValueError("Becario no encontrado.")
 
-        # Convertir fechas
         try:
             fecha_inicio = datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date()
         except:
-            raise ValueError("Formato de fecha_inicio inválido. Usar YYYY-MM-DD.")
+            raise ValueError("Formato de fecha_inicio inválido.")
 
         fecha_fin = None
         if data.get("fecha_fin"):
-            try:
-                fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date()
-            except:
-                raise ValueError("Formato de fecha_fin inválido. Usar YYYY-MM-DD.")
-            
-        existe = Beca_Becario.query.filter_by(
-            id_beca=beca.id,
-            id_becario=becario.id
-        ).first()
+            fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date()
 
+        existe = _get_relacion_activa(beca.id, becario.id)
         if existe:
             raise ValueError("El becario ya está vinculado a esta beca.")
 
-        # Crear vínculo
         relacion = Beca_Becario(
             id_beca=beca.id,
             id_becario=becario.id,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            monto_percibido=data.get("monto_percibido")
+            monto_percibido=data.get("monto_percibido"),
+            created_by=user_id
         )
 
         db.session.add(relacion)
         db.session.commit()
 
-        return {
-            "message": "Becario vinculado correctamente a la beca."
-        }
+        return {"message": "Becario vinculado correctamente."}
 
 
-    # =========================
-    # DESVINCULAR BECARIO
-    # =========================
+# =====================================================
+# DESVINCULAR (SOFT DELETE)
+# =====================================================
 
     @staticmethod
-    def desvincular_becario(beca_id, becario_id):
-        relacion = Beca_Becario.query.filter_by(
-            id_beca=beca_id,
-            id_becario=becario_id
-        ).first()
+    def desvincular_becario(beca_id, becario_id, user_id):
+
+        relacion = _get_relacion_activa(beca_id, becario_id)
 
         if not relacion:
-            raise ValueError("La relación entre beca y becario no existe.")
+            raise ValueError("La relación no existe.")
 
-        db.session.delete(relacion)
+        relacion.soft_delete(user_id)
         db.session.commit()
 
         return {"message": "Becario desvinculado correctamente."}
 
 
-    # =========================
-    # LISTAR BECARIOS DE UNA BECA
-    # =========================
+# =====================================================
+# LISTAR BECARIOS DE UNA BECA
+# =====================================================
 
     @staticmethod
     def get_becarios_de_beca(beca_id):
-        beca = Beca.query.get(beca_id)
-        if not beca:
-            raise ValueError("Beca no encontrada.")
+
+        beca = _get_beca_activa_or_404(beca_id)
 
         resultado = []
-        for relacion in beca.becarios:
-            resultado.append({
-                "id_becario": relacion.becario.id,
-                "nombre": relacion.becario.nombre_apellido,
-                "fecha_inicio": relacion.fecha_inicio,
-                "fecha_fin": relacion.fecha_fin,
-                "monto_percibido": relacion.monto_percibido
-            })
+        for r in beca.becarios:
+            if r.deleted_at is None:
+                resultado.append({
+                    "id_becario": r.becario.id,
+                    "nombre": r.becario.nombre_apellido,
+                    "fecha_inicio": r.fecha_inicio,
+                    "fecha_fin": r.fecha_fin,
+                    "monto_percibido": r.monto_percibido
+                })
 
         return resultado
     
     
-
     # =========================
-    # DASHBOARD POR AÑO
+    # DASHBOARD POR AÑO (AUDITORÍA)
     # =========================
     @staticmethod
-    def dashboard_por_anio(anio):
+    def dashboard_por_anio(anio: int):
+
         if not anio:
             raise ValueError("Debe proporcionar un año.")
 
-        relaciones = Beca_Becario.query.join(Becario).filter(
-            extract("year", Beca_Becario.fecha_inicio) <= anio,
-            or_(
-                Beca_Becario.fecha_fin == None,
-                extract("year", Beca_Becario.fecha_fin) >= anio
+        relaciones = (
+            Beca_Becario.query
+            .join(Beca, Beca.id == Beca_Becario.id_beca)
+            .join(Becario, Becario.id == Beca_Becario.id_becario)
+            .filter(
+                # SOLO registros activos
+                Beca.deleted_at.is_(None),
+                Becario.deleted_at.is_(None),
+                Beca_Becario.deleted_at.is_(None),
+
+                # Rango temporal
+                extract("year", Beca_Becario.fecha_inicio) <= anio,
+                or_(
+                    Beca_Becario.fecha_fin == None,
+                    extract("year", Beca_Becario.fecha_fin) >= anio
+                )
             )
-        ).all()
+            .all()
+        )
 
         if not relaciones:
             return {

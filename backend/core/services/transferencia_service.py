@@ -1,95 +1,133 @@
 from datetime import datetime
-from core.models.transferencia_socio import Adoptante, TransferenciaSocioProductiva, TipoContrato
-from core.models.grupo import GrupoInvestigacionUtn
 from extension import db
+
+from core.models.transferencia_socio import (
+    Adoptante,
+    TransferenciaSocioProductiva,
+    TipoContrato,
+    AdoptanteTransferencia
+)
+from core.models.grupo import GrupoInvestigacionUtn
 
 
 class TransferenciaSocioProductivaService:
 
-    # -------------------------------------------------
-    # Validadores
-    # -------------------------------------------------
+    # =================================================
+    # VALIDADORES
+    # =================================================
 
     @staticmethod
     def _validar_texto(valor, campo, min_len=3):
         if valor is None:
-            raise Exception(f"El campo '{campo}' es obligatorio")
+            raise ValueError(f"El campo '{campo}' es obligatorio")
 
         if not isinstance(valor, str):
-            raise Exception(f"El campo '{campo}' debe ser texto")
+            raise ValueError(f"El campo '{campo}' debe ser texto")
 
         valor = valor.strip()
 
         if not valor:
-            raise Exception(f"El campo '{campo}' no puede estar vacío")
+            raise ValueError(f"El campo '{campo}' no puede estar vacío")
 
         if len(valor) < min_len:
-            raise Exception(
+            raise ValueError(
                 f"El campo '{campo}' debe tener al menos {min_len} caracteres"
             )
 
         return valor
+
 
     @staticmethod
     def _validar_monto(monto):
         try:
             monto = float(monto)
         except (TypeError, ValueError):
-            raise Exception("El monto debe ser numérico")
+            raise ValueError("El monto debe ser numérico")
 
         if monto <= 0:
-            raise Exception("El monto debe ser mayor a 0")
+            raise ValueError("El monto debe ser mayor a 0")
 
         return monto
 
-    # -------------------------------------------------
-    # CRUD
-    # -------------------------------------------------
+
+    # =================================================
+    # GET ALL
+    # =================================================
 
     @staticmethod
     def get_all(filters: dict = None):
-        query = TransferenciaSocioProductiva.query
 
-        grupo_utn_id = filters.get("grupo_utn_id") if filters else None
-        if grupo_utn_id:
+        query = TransferenciaSocioProductiva.query
+        filters = filters or {}
+
+        # 🔥 Filtro activos
+        activos = filters.get("activos", "true")
+
+        if activos == "true":
             query = query.filter(
-                TransferenciaSocioProductiva.grupo_utn_id == grupo_utn_id
+                TransferenciaSocioProductiva.deleted_at.is_(None)
+            )
+        elif activos == "false":
+            query = query.filter(
+                TransferenciaSocioProductiva.deleted_at.isnot(None)
+            )
+        elif activos == "all":
+            pass
+
+        if filters.get("grupo_utn_id"):
+            query = query.filter(
+                TransferenciaSocioProductiva.grupo_utn_id == filters["grupo_utn_id"]
             )
 
-        tipo_contrato_id = filters.get("tipo_contrato_id") if filters else None
-        if tipo_contrato_id:
+        if filters.get("tipo_contrato_id"):
             query = query.filter(
-                TransferenciaSocioProductiva.tipo_contrato_id == tipo_contrato_id
+                TransferenciaSocioProductiva.tipo_contrato_id == filters["tipo_contrato_id"]
             )
 
         return [t.serialize() for t in query.all()]
 
-    @staticmethod
-    def get_by_id(transferencia_id):
-        transferencia = TransferenciaSocioProductiva.query.get(transferencia_id)
-        if not transferencia:
-            raise Exception("Transferencia socio-productiva no encontrada")
-        return transferencia.serialize()
+
+    # =================================================
+    # GET BY ID
+    # =================================================
 
     @staticmethod
-    def create(data: dict):
-        
+    def get_by_id(transferencia_id):
+
+        transferencia = db.session.get(
+            TransferenciaSocioProductiva,
+            transferencia_id
+        )
+
+        if not transferencia:
+            raise ValueError("Transferencia socio-productiva no encontrada")
+
+        return transferencia.serialize()
+
+
+    # =================================================
+    # CREATE
+    # =================================================
+
+    @staticmethod
+    def create(data: dict, user_id: int):
+
         numero_transferencia = data.get("numero_transferencia")
-        if numero_transferencia is None:
-            raise Exception("El número de transferencia es obligatorio")
         if not isinstance(numero_transferencia, int) or numero_transferencia <= 0:
-            raise Exception("El número de transferencia debe ser un entero positivo")
-        
+            raise ValueError("El número de transferencia debe ser un entero positivo")
+
         denominacion = TransferenciaSocioProductivaService._validar_texto(
             data.get("denominacion"), "denominacion"
         )
-    
+
         demandante = TransferenciaSocioProductivaService._validar_texto(
             data.get("demandante"), "demandante"
         )
 
         descripcion_actividad = TransferenciaSocioProductivaService._validar_texto(
-            data.get("descripcion_actividad"), "descripcion_actividad", min_len=10
+            data.get("descripcion_actividad"),
+            "descripcion_actividad",
+            min_len=10
         )
 
         monto = TransferenciaSocioProductivaService._validar_monto(
@@ -107,15 +145,18 @@ class TransferenciaSocioProductivaService:
                 data["fecha_fin"],
                 "%Y-%m-%d"
             ).date()
-        
-        # ---- Validar relaciones ----
+
+            if fecha_fin < fecha_inicio:
+                raise ValueError("La fecha_fin no puede ser anterior a fecha_inicio")
+
+        # Validar relaciones
         tipo_contrato_id = data.get("tipo_contrato_id")
         if not tipo_contrato_id or not TipoContrato.query.get(tipo_contrato_id):
-            raise Exception("Tipo de contrato inválido")
+            raise ValueError("Tipo de contrato inválido")
 
         grupo_utn_id = data.get("grupo_utn_id")
         if not grupo_utn_id or not GrupoInvestigacionUtn.query.get(grupo_utn_id):
-            raise Exception("Grupo UTN inválido")
+            raise ValueError("Grupo UTN inválido")
 
         transferencia = TransferenciaSocioProductiva(
             numero_transferencia=numero_transferencia,
@@ -126,31 +167,34 @@ class TransferenciaSocioProductivaService:
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
             tipo_contrato_id=tipo_contrato_id,
-            grupo_utn_id=grupo_utn_id
+            grupo_utn_id=grupo_utn_id,
+            created_by=user_id
         )
 
         db.session.add(transferencia)
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            print("Error:", str(e))
-            raise Exception(f"Error real: {str(e)}")
+        db.session.commit()
 
         return transferencia.serialize()
 
+
+    # =================================================
+    # UPDATE
+    # =================================================
+
     @staticmethod
     def update(transferencia_id, data: dict):
-        transferencia = TransferenciaSocioProductiva.query.get(transferencia_id)
-        if not transferencia:
-            raise Exception("Transferencia socio-productiva no encontrada")
 
-        if "numero_transferencia" in data:
-            numero_transferencia = data["numero_transferencia"]
-            if not isinstance(numero_transferencia, int) or numero_transferencia <= 0:
-                raise Exception("El número de transferencia debe ser un entero positivo")
-            transferencia.numero_transferencia = numero_transferencia
-            
+        transferencia = db.session.get(
+            TransferenciaSocioProductiva,
+            transferencia_id
+        )
+
+        if not transferencia:
+            raise ValueError("Transferencia socio-productiva no encontrada")
+
+        if transferencia.deleted_at is not None:
+            raise ValueError("No se puede modificar una transferencia eliminada")
+
         if "denominacion" in data:
             transferencia.denominacion = TransferenciaSocioProductivaService._validar_texto(
                 data["denominacion"], "denominacion"
@@ -162,12 +206,10 @@ class TransferenciaSocioProductivaService:
             )
 
         if "descripcion_actividad" in data:
-            transferencia.descripcion_actividad = (
-                TransferenciaSocioProductivaService._validar_texto(
-                    data["descripcion_actividad"],
-                    "descripcion_actividad",
-                    min_len=10
-                )
+            transferencia.descripcion_actividad = TransferenciaSocioProductivaService._validar_texto(
+                data["descripcion_actividad"],
+                "descripcion_actividad",
+                min_len=10
             )
 
         if "monto" in data:
@@ -176,50 +218,27 @@ class TransferenciaSocioProductivaService:
             )
 
         if "fecha_inicio" in data:
-            if not data["fecha_inicio"]:
-                raise Exception("La fecha de inicio es obligatoria")
-            transferencia.fecha_inicio = datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date()
-            
+            transferencia.fecha_inicio = datetime.strptime(
+                data["fecha_inicio"],
+                "%Y-%m-%d"
+            ).date()
+
         if "fecha_fin" in data:
-            transferencia.fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date() if data["fecha_fin"] else None
-        
-        if "tipo_contrato_id" in data:
-            if not TipoContrato.query.get(data["tipo_contrato_id"]):
-                raise Exception("Tipo de contrato inválido")
-            transferencia.tipo_contrato_id = data["tipo_contrato_id"]
+            transferencia.fecha_fin = (
+                datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date()
+                if data["fecha_fin"] else None
+            )
 
-        if "grupo_utn_id" in data:
-            if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
-                raise Exception("Grupo UTN inválido")
-            transferencia.grupo_utn_id = data["grupo_utn_id"]
-
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            raise Exception("Error al actualizar la transferencia socio-productiva")
-
+        db.session.commit()
         return transferencia.serialize()
 
-    @staticmethod
-    def delete(transferencia_id):
-        transferencia = TransferenciaSocioProductiva.query.get(transferencia_id)
-        if not transferencia:
-            raise Exception("Transferencia socio-productiva no encontrada")
 
-        db.session.delete(transferencia)
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            raise Exception("No se puede eliminar la transferencia socio-productiva")
+    # =================================================
+    # SOFT DELETE
+    # =================================================
 
-        return {"message": "Transferencia socio-productiva eliminada correctamente"}
-    
     @staticmethod
-    def add_adoptantes(transferencia_id: int, adoptantes_ids: list[int]):
-        if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
-            raise ValueError("adoptantes_ids debe ser una lista no vacía")
+    def delete(transferencia_id, user_id: int):
 
         transferencia = db.session.get(
             TransferenciaSocioProductiva,
@@ -229,48 +248,119 @@ class TransferenciaSocioProductivaService:
         if not transferencia:
             raise ValueError("Transferencia socio-productiva no encontrada")
 
-        adoptantes = (
-            db.session.query(Adoptante)
-            .filter(Adoptante.id.in_(adoptantes_ids))
-            .all()
-        )
+        if transferencia.deleted_at is not None:
+            raise ValueError("La transferencia ya está eliminada")
 
-        if len(adoptantes) != len(adoptantes_ids):
-            raise ValueError("Uno o más adoptantes no existen")
-
-        for adoptante in adoptantes:
-            if adoptante not in transferencia.adoptantes:
-                transferencia.adoptantes.append(adoptante)
+        transferencia.soft_delete(user_id)
 
         db.session.commit()
 
-        return transferencia.serialize()
+        return {"message": "Transferencia eliminada correctamente (soft delete)"}
+
+
+    # =================================================
+    # RESTORE
+    # =================================================
 
     @staticmethod
-    def remove_adoptantes(transferencia_id: int, adoptantes_ids: list[int]):
-        if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
-            raise ValueError("adoptantes_ids debe ser una lista no vacía")
+    def restore(transferencia_id):
+
         transferencia = db.session.get(
             TransferenciaSocioProductiva,
             transferencia_id
         )
 
         if not transferencia:
-            raise ValueError("Transferencia socio-productiva no encontrada")
+            raise ValueError("Transferencia no encontrada")
+
+        transferencia.restore()
+        transferencia.activo = True
+
+        db.session.commit()
+
+        return transferencia.serialize()
+
+
+    # =================================================
+    # VINCULAR ADOPTANTES (M:N con entidad intermedia)
+    # =================================================
+
+    @staticmethod
+    def add_adoptantes(transferencia_id: int, adoptantes_ids: list[int], user_id: int):
+
+        if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
+            raise ValueError("adoptantes_ids debe ser una lista no vacía")
+
+        transferencia = db.session.get(
+            TransferenciaSocioProductiva,
+            transferencia_id
+        )
+
+        if not transferencia:
+            raise ValueError("Transferencia no encontrada")
 
         adoptantes = (
             db.session.query(Adoptante)
-            .filter(Adoptante.id.in_(adoptantes_ids))
+            .filter(
+                Adoptante.id.in_(adoptantes_ids),
+                Adoptante.deleted_at.is_(None)
+            )
             .all()
         )
 
         if len(adoptantes) != len(adoptantes_ids):
-            raise ValueError("Uno o más adoptantes no existen")
+            raise ValueError("Uno o más adoptantes no existen o están eliminados")
 
         for adoptante in adoptantes:
-            if adoptante in transferencia.adoptantes:
-                transferencia.adoptantes.remove(adoptante)
+
+            existente = db.session.query(AdoptanteTransferencia).filter(
+                AdoptanteTransferencia.transferencia_id == transferencia_id,
+                AdoptanteTransferencia.adoptante_id == adoptante.id,
+                AdoptanteTransferencia.deleted_at.is_(None)
+            ).first()
+
+            if existente:
+                continue
+
+            nueva = AdoptanteTransferencia(
+                transferencia_id=transferencia_id,
+                adoptante_id=adoptante.id,
+                created_by=user_id
+            )
+
+            db.session.add(nueva)
 
         db.session.commit()
+
+        return transferencia.serialize()
+
+
+    # =================================================
+    # DESVINCULAR ADOPTANTES (SOFT DELETE)
+    # =================================================
+
+    @staticmethod
+    def remove_adoptantes(transferencia_id: int, adoptantes_ids: list[int], user_id: int):
+
+        if not isinstance(adoptantes_ids, list) or not adoptantes_ids:
+            raise ValueError("adoptantes_ids debe ser una lista no vacía")
+
+        for adoptante_id in adoptantes_ids:
+
+            participacion = db.session.query(AdoptanteTransferencia).filter(
+                AdoptanteTransferencia.transferencia_id == transferencia_id,
+                AdoptanteTransferencia.adoptante_id == adoptante_id,
+                AdoptanteTransferencia.deleted_at.is_(None)
+            ).first()
+
+            if participacion:
+                participacion.soft_delete(user_id)
+
+        db.session.commit()
+
+        transferencia = db.session.get(
+            TransferenciaSocioProductiva,
+            transferencia_id
+        )
 
         return transferencia.serialize()

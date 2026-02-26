@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.documentacion_service import (
     DocumentacionBibliograficaService
 )
@@ -14,6 +14,7 @@ class DocumentacionBibliograficaController:
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
+
     @staticmethod
     def get_by_id(doc_id):
         try:
@@ -23,34 +24,46 @@ class DocumentacionBibliograficaController:
         except Exception as e:
             return jsonify({"error": str(e)}), 404
 
+
     @staticmethod
     def create():
         try:
             data = request.get_json()
+            user_id = g.current_user_id
+
             return jsonify(
-                DocumentacionBibliograficaService.create(data)
+                DocumentacionBibliograficaService.create(data, user_id)
             ), 201
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def update(doc_id):
         try:
             data = request.get_json()
+
             return jsonify(
                 DocumentacionBibliograficaService.update(doc_id, data)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def delete(doc_id):
         try:
+            user_id = g.current_user_id
+
             return jsonify(
-                DocumentacionBibliograficaService.delete(doc_id)
+                DocumentacionBibliograficaService.delete(doc_id, user_id)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     # -------- RELACIÓN DOCUMENTO - AUTOR --------
 
@@ -58,14 +71,17 @@ class DocumentacionBibliograficaController:
     def add_autor(doc_id):
         try:
             data = request.get_json()
+
             return jsonify(
                 DocumentacionBibliograficaService.add_autor(
                     doc_id,
                     data["autor_id"]
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def remove_autor(doc_id, autor_id):
@@ -76,5 +92,6 @@ class DocumentacionBibliograficaController:
                     autor_id
                 )
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400

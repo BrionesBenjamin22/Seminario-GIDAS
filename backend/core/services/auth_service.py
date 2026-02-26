@@ -13,7 +13,7 @@ class AuthService:
         access_payload = {
             "sub": str(user.id),
             "nombre_usuario": user.nombre_usuario,
-            "rol": user.rol.nombre,   # 🔥 IMPORTANTE
+            "rol": user.rol.nombre,   
             "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15),
             "iss": "auth-service"
         }

@@ -19,7 +19,11 @@ class Beca(db.Model, AuditMixin):
         back_populates='becas'
     )
 
-    becarios = db.relationship("Beca_Becario", back_populates="beca", cascade="all, delete-orphan")
+    becarios = db.relationship(
+        "Beca_Becario",
+        back_populates="beca",
+        cascade="all, delete-orphan"
+    )
 
     def serialize(self):
         data = {
@@ -29,24 +33,24 @@ class Beca(db.Model, AuditMixin):
             "fuente_financiamiento": {
                 "id": self.fuente_financiamiento.id,
                 "nombre": self.fuente_financiamiento.nombre
-            } if self.fuente_financiamiento else None
-        }
+            } if self.fuente_financiamiento else None,
 
-        data["becarios"] = [
-            {
-                "id": b.becario.id,
-                "nombre_apellido": b.becario.nombre_apellido,
-                "fecha_inicio": b.fecha_inicio.isoformat(),
-                "fecha_fin": b.fecha_fin.isoformat() if b.fecha_fin else None,
-                "monto_percibido": b.monto_percibido
-            }
-            for b in self.becarios
-            if b.deleted_at is None
-        ]
+            "becarios": [
+                {
+                    "id": b.becario.id,
+                    "nombre_apellido": b.becario.nombre_apellido,
+                    "fecha_inicio": b.fecha_inicio.isoformat(),
+                    "fecha_fin": b.fecha_fin.isoformat() if b.fecha_fin else None,
+                    "monto_percibido": b.monto_percibido
+                }
+                for b in self.becarios
+                if not hasattr(b, "deleted_at") or b.deleted_at is None
+            ]
+        })
 
         return data
-
-
+    
+    
 class Beca_Becario(db.Model, AuditMixin):
     __tablename__ = "beca_becario"
 

@@ -1,12 +1,28 @@
 from extension import db
-from core.models.personal import Becario
+from core.models.personal import Becario, TipoFormacion
 from core.models.grupo import GrupoInvestigacionUtn
-from core.models.fuente_financiamiento import FuenteFinanciamiento
-from core.models.personal import TipoFormacion
 from core.models.proyecto_investigacion import ProyectoInvestigacion
 
 
-def crear_becario(data):
+# =====================================================
+# HELPERS
+# =====================================================
+
+def _get_activo_or_404(id: int):
+    becario = db.session.get(Becario, id)
+
+    if not becario or becario.deleted_at is not None:
+        raise ValueError("Becario no encontrado.")
+
+    return becario
+
+
+# =====================================================
+# CREATE
+# =====================================================
+
+def crear_becario(data: dict, user_id: int):
+
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
 
@@ -48,10 +64,10 @@ def crear_becario(data):
         if len(proyectos) != len(proyectos_ids):
             raise ValueError("Uno o más proyectos son inválidos.")
 
-        becario.proyectos.extend(proyectos)
-
+        becario.participaciones_proyecto = proyectos
 
     db.session.add(becario)
+
     try:
         db.session.commit()
         return becario
@@ -60,26 +76,19 @@ def crear_becario(data):
         raise
 
 
-def actualizar_becario(id, data):
-    becario = Becario.query.get(id)
-    if not becario:
-        raise ValueError("Becario no encontrado.")
+# =====================================================
+# UPDATE
+# =====================================================
 
+def actualizar_becario(id: int, data: dict):
+
+    becario = _get_activo_or_404(id)
 
     if "activo" in data:
         if not isinstance(data["activo"], bool):
             raise ValueError("El campo 'activo' debe ser booleano.")
 
-        # Solo cambiar si es distinto
-        if becario.activo != data["activo"]:
-            becario.activo = data["activo"]
-            db.session.commit()
-            return becario
-
-    if not becario.activo:
-        raise ValueError(
-            "No se puede modificar un becario dado de baja. Reactívelo primero."
-        )
+        becario.activo = data["activo"]
 
     if "nombre_apellido" in data:
         nombre = data["nombre_apellido"]
@@ -109,7 +118,7 @@ def actualizar_becario(id, data):
         proyectos_ids = data["proyectos"]
 
         if not isinstance(proyectos_ids, list):
-            raise ValueError("El campo 'proyectos' debe ser una lista de IDs.")
+            raise ValueError("El campo 'proyectos' debe ser una lista.")
 
         proyectos = ProyectoInvestigacion.query.filter(
             ProyectoInvestigacion.id.in_(proyectos_ids)
@@ -118,8 +127,7 @@ def actualizar_becario(id, data):
         if len(proyectos) != len(proyectos_ids):
             raise ValueError("Uno o más proyectos son inválidos.")
 
-        becario.proyectos = proyectos
-
+        becario.participaciones_proyecto = proyectos
 
     try:
         db.session.commit()
@@ -129,15 +137,19 @@ def actualizar_becario(id, data):
         raise
 
 
-def eliminar_becario(id):
-    becario = Becario.query.get(id)
-    if not becario:
-        raise ValueError("Becario no encontrado.")
+# =====================================================
+# SOFT DELETE
+# =====================================================
+
+def eliminar_becario(id: int, user_id: int):
+
+    becario = _get_activo_or_404(id)
 
     if not becario.activo:
         raise ValueError("El becario ya se encuentra dado de baja.")
 
     becario.activo = False
+    becario.soft_delete(user_id)
 
     try:
         db.session.commit()
@@ -146,32 +158,34 @@ def eliminar_becario(id):
         raise
 
     return {
-        "message": "Becario dado de baja correctamente.",
+        "message": "Becario eliminado correctamente.",
         "id": becario.id
     }
 
 
-
+# =====================================================
+# LISTAR
+# =====================================================
 
 def listar_becarios(activos=None):
-    query = Becario.query
+
+    query = Becario.query.filter(Becario.deleted_at.is_(None))
 
     if activos == "true":
         query = query.filter_by(activo=True)
     elif activos == "false":
         query = query.filter_by(activo=False)
     elif activos == "all":
-        pass  
+        pass
     else:
-        # default: solo activos
         query = query.filter_by(activo=True)
 
     return query.all()
 
 
+# =====================================================
+# OBTENER POR ID
+# =====================================================
 
-def obtener_becario_por_id(id):
-    becario = Becario.query.get(id)
-    if not becario:
-        raise ValueError("Becario no encontrado.")
-    return becario
+def obtener_becario_por_id(id: int):
+    return _get_activo_or_404(id)

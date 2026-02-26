@@ -1,11 +1,12 @@
 from extension import db
 from core.models.trabajo_reunion import investigador_x_trabajo_reunion
 from core.models.trabajo_revista import investigador_x_trabajo_revista
+from core.models.audit_mixin import AuditMixin
 
 # =====================================================
 # PERSONAL
 # =====================================================
-class Personal(db.Model):
+class Personal(db.Model, AuditMixin):
     __tablename__ = 'personal'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -36,7 +37,7 @@ class Personal(db.Model):
 # =====================================================
 # BECARIO
 # =====================================================
-class Becario(db.Model):
+class Becario(db.Model, AuditMixin):
     __tablename__ = 'becario'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -52,7 +53,6 @@ class Becario(db.Model):
 
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'))
 
-    # --- Relaciones ---
     tipo_formacion = db.relationship(
         'TipoFormacion',
         back_populates='becarios'
@@ -63,14 +63,12 @@ class Becario(db.Model):
         back_populates='becarios'
     )
 
-
-
     participaciones_proyecto = db.relationship(
         "BecarioProyecto",
         back_populates="becario",
         cascade="all, delete-orphan"
     )
-    
+
     becas = db.relationship(
         "Beca_Becario",
         back_populates="becario",
@@ -78,15 +76,9 @@ class Becario(db.Model):
     )
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "nombre_apellido": self.nombre_apellido,
-            "horas_semanales": self.horas_semanales,
-            "activo": self.activo,
+        data = self.to_dict()
 
-            "tipo_formacion_id": self.tipo_formacion_id,
-            "grupo_utn_id": self.grupo_utn_id,
-
+        data.update({
             "tipo_formacion": self.tipo_formacion.nombre if self.tipo_formacion else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
             "proyectos": [
@@ -104,18 +96,15 @@ class Becario(db.Model):
                     "id": b.beca.id,
                     "nombre_beca": b.beca.nombre_beca,
                     "descripcion": b.beca.descripcion,
-                    "fuente_financiamiento": {
-                        "id": b.beca.fuente_financiamiento.id,
-                        "nombre": b.beca.fuente_financiamiento.nombre
-                    } if b.beca.fuente_financiamiento else None,
                     "fecha_inicio": str(b.fecha_inicio),
                     "fecha_fin": str(b.fecha_fin) if b.fecha_fin else None,
                     "monto_percibido": b.monto_percibido
                 }
                 for b in self.becas
             ]
-    
-        }
+        })
+
+        return data
 
 
 class TipoFormacion(db.Model):
@@ -162,7 +151,7 @@ class TipoDedicacion(db.Model):
 # =====================================================
 # INVESTIGADOR
 # =====================================================
-class Investigador(db.Model):
+class Investigador(db.Model, AuditMixin):
     __tablename__ = 'investigador'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -175,16 +164,15 @@ class Investigador(db.Model):
     programa_incentivos_id = db.Column(db.Integer, db.ForeignKey('programa_incentivos_investigador.id'), nullable=True)
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=True)
 
-    # --- Relaciones ---
     categoria_utn = db.relationship('CategoriaUtn', back_populates='investigadores')
     programa_incentivos = db.relationship('ProgramaIncentivos', back_populates='investigadores')
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='investigadores')
     tipo_dedicacion = db.relationship('TipoDedicacion', back_populates='investigadores')
 
     trabajos_reunion_cientifica = db.relationship(
-    'TrabajoReunionCientifica',
-    secondary=investigador_x_trabajo_reunion,
-    back_populates='investigadores'
+        'TrabajoReunionCientifica',
+        secondary=investigador_x_trabajo_reunion,
+        back_populates='investigadores'
     )
 
     actividades_docencia = db.relationship(
@@ -205,33 +193,20 @@ class Investigador(db.Model):
         back_populates='investigadores'
     )
 
-
     participaciones_proyecto = db.relationship(
         "InvestigadorProyecto",
         back_populates="investigador",
         cascade="all, delete-orphan"
     )
-    
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "nombre_apellido": self.nombre_apellido,
-            "horas_semanales": self.horas_semanales,
-            "activo": self.activo,
+        data = self.to_dict()
 
-        
-            "categoria_utn_id": self.categoria_utn_id,
-            "programa_incentivos_id": self.programa_incentivos_id,
-            "tipo_dedicacion_id": self.tipo_dedicacion_id,
-            "grupo_utn_id": self.grupo_utn_id,
-
-        
+        data.update({
             "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
             "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
             "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
-        
             "proyectos": [
                 {
                     "id": p.proyecto.id,
@@ -242,18 +217,16 @@ class Investigador(db.Model):
                 }
                 for p in self.participaciones_proyecto
             ],
-
-            
-
             "participaciones_relevantes": [
                 {"id": p.id, "evento": p.nombre_evento}
                 for p in self.participaciones_relevantes
             ],
-
             "trabajos_reunion_cientifica": [
                 {"id": t.id, "trabajo": t.titulo_trabajo}
                 for t in self.trabajos_reunion_cientifica
             ]
-        }
+        })
+
+        return data
 
     

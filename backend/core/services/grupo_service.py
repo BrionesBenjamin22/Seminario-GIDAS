@@ -2,99 +2,92 @@ from extension import db
 from core.models.grupo import GrupoInvestigacionUtn
 
 
-def crear_grupo_utn(data):
-    if GrupoInvestigacionUtn.query.first():
-        raise ValueError("Ya existe un grupo de investigación. Solo se permite uno.")
+def crear_grupo_utn(data, user_id):
+    if GrupoInvestigacionUtn.query.filter(
+        GrupoInvestigacionUtn.deleted_at.is_(None)
+    ).first():
+        raise ValueError("Ya existe un grupo de investigación activo.")
 
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
-        
-    # Extraer datos del payload
-    nombre_unidad_academica = data.get("nombre_unidad_academica")
-    nombre_sigla_grupo = data.get("nombre_sigla_grupo")
-    mail = data.get("mail")
-    objetivo_desarrollo = data.get("objetivo_desarrollo")
 
-    # Validaciones
-    if not nombre_unidad_academica or not nombre_sigla_grupo or not mail or not objetivo_desarrollo:
-        raise ValueError("Faltan campos obligatorios: nombre_unidad_academica, nombre_sigla_grupo, mail, objetivo_desarrollo son requeridos.")
+    campos = [
+        "nombre_unidad_academica",
+        "nombre_sigla_grupo",
+        "mail",
+        "objetivo_desarrollo"
+    ]
+
+    for campo in campos:
+        if not data.get(campo):
+            raise ValueError(f"El campo '{campo}' es obligatorio.")
 
     nuevo_grupo = GrupoInvestigacionUtn(
-        nombre_unidad_academica=nombre_unidad_academica,
-        nombre_sigla_grupo=nombre_sigla_grupo,
-        mail=mail,
-        objetivo_desarrollo=objetivo_desarrollo
+        nombre_unidad_academica=data["nombre_unidad_academica"].strip(),
+        nombre_sigla_grupo=data["nombre_sigla_grupo"].strip(),
+        mail=data["mail"].strip(),
+        objetivo_desarrollo=data["objetivo_desarrollo"].strip(),
+        created_by=user_id
     )
-    
+
     db.session.add(nuevo_grupo)
-    try:
-        db.session.commit()
-        return nuevo_grupo
-    except Exception as e:
-        db.session.rollback()
-        raise e
+    db.session.commit()
+
+    return nuevo_grupo
 
 
 def obtener_grupo_utn():
-    """
-    Devuelve el grupo UTN único.
-    Si no existe, lo crea usando load().
-    """
-    return GrupoInvestigacionUtn.load()
+    return GrupoInvestigacionUtn.query.filter(
+        GrupoInvestigacionUtn.deleted_at.is_(None)
+    ).first()
 
 
 def actualizar_grupo_utn(data):
-    grupo = GrupoInvestigacionUtn.load()
+    grupo = obtener_grupo_utn()
     if not grupo:
-        raise ValueError("No se puede actualizar porque no existe ningún grupo de investigación.")
+        raise ValueError("No existe grupo activo.")
 
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
 
-    # Extraer datos del payload
-    mail = data.get("mail")
-    nombre_unidad_academica = data.get("nombre_unidad_academica")
-    objetivo_desarrollo = data.get("objetivo_desarrollo")
-    nombre_sigla_grupo = data.get("nombre_sigla_grupo")
+    for campo in [
+        "mail",
+        "nombre_unidad_academica",
+        "objetivo_desarrollo",
+        "nombre_sigla_grupo"
+    ]:
+        if campo in data:
+            valor = data[campo]
+            if not isinstance(valor, str) or not valor.strip():
+                raise ValueError(f"El campo '{campo}' no puede estar vacío.")
+            setattr(grupo, campo, valor.strip())
+
+    db.session.commit()
+    return grupo
 
 
-    if mail is not None:
-        if not isinstance(mail, str) or not mail.strip():
-            raise ValueError("El mail debe ser un texto no vacío.")
-        grupo.mail = mail.strip()
+def eliminar_grupo_utn(user_id):
+    grupo = obtener_grupo_utn()
 
-    if nombre_unidad_academica is not None:
-        if not isinstance(nombre_unidad_academica, str) or not nombre_unidad_academica.strip():
-            raise ValueError("El nombre de la unidad académica no puede estar vacío.")
-        grupo.nombre_unidad_academica = nombre_unidad_academica.strip()
-
-    if objetivo_desarrollo is not None:
-        if not isinstance(objetivo_desarrollo, str) or not objetivo_desarrollo.strip():
-            raise ValueError("El objetivo de desarrollo no puede estar vacío.")
-        grupo.objetivo_desarrollo = objetivo_desarrollo.strip()
-
-    if nombre_sigla_grupo is not None:
-        if not isinstance(nombre_sigla_grupo, str) or not nombre_sigla_grupo.strip():
-            raise ValueError("El nombre o sigla del grupo no puede estar vacío.")
-        grupo.nombre_sigla_grupo = nombre_sigla_grupo.strip()
-        
-    
-
-    try:
-        db.session.commit()
-        return grupo
-    except Exception:
-        db.session.rollback()
-        raise
-
-def eliminar_grupo_utn():
-    grupo = GrupoInvestigacionUtn.query.first()
     if not grupo:
-        raise ValueError("No hay ningún grupo de investigación para eliminar.")
+        raise ValueError("No hay grupo activo para eliminar.")
 
-    db.session.delete(grupo)
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        raise e
+    grupo.soft_delete(user_id)
+
+    db.session.commit()
+
+    return {"message": "Grupo eliminado correctamente (soft delete)."}
+
+def restaurar_grupo_utn():
+    grupo = db.session.query(GrupoInvestigacionUtn).filter(
+        GrupoInvestigacionUtn.deleted_at.isnot(None)
+    ).first()
+
+    if not grupo:
+        raise ValueError("No existe grupo eliminado para restaurar.")
+
+    grupo.restore()
+
+    db.session.commit()
+
+    return grupo

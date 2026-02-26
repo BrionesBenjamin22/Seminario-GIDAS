@@ -1,3 +1,4 @@
+from core.models.grupo import GrupoInvestigacionUtn
 from core.models.documentacion_autores import DocumentacionBibliografica, Autor
 from extension import db
 from datetime import datetime
@@ -48,6 +49,9 @@ class DocumentacionBibliograficaService:
     @staticmethod
     def create(data: dict, user_id: int):
 
+        grupo = db.session.get(GrupoInvestigacionUtn, data["grupo_id"])
+        if not grupo or grupo.deleted_at is not None:
+                raise Exception("Grupo no encontrado")
         if not data.get("titulo") or not data.get("editorial"):
             raise Exception("Título y editorial son obligatorios")
 
@@ -111,11 +115,11 @@ class DocumentacionBibliograficaService:
         doc = DocumentacionBibliograficaService._get_activo_or_404(doc_id)
 
         autor = db.session.get(Autor, autor_id)
-        if not autor:
-            raise Exception("Autor no encontrado")
+        if not autor or getattr(autor, "deleted_at", None) is not None:
+            raise ValueError("Autor no encontrado")
 
         if autor in doc.autores:
-            raise Exception("El autor ya está asociado")
+            raise ValueError("El autor ya está asociado")
 
         doc.autores.append(autor)
         db.session.commit()

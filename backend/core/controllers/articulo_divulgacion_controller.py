@@ -49,8 +49,8 @@ class ArticuloDivulgacionController:
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 404
 
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
     def actualizar(req: Request, articulo_id: int) -> Response:
