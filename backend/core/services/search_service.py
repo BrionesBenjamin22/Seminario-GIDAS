@@ -72,7 +72,6 @@ class SearchService:
         becario_results = db.session.query(Becario)\
         .options(
             joinedload(Becario.tipo_formacion),
-            joinedload(Becario.fuente_financiamiento),
             joinedload(Becario.participaciones_proyecto)
                 .joinedload(BecarioProyecto.proyecto)
         )\
