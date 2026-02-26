@@ -1,21 +1,49 @@
 from core.models.transferencia_socio import Adoptante
 from extension import db
+from datetime import datetime
+
 
 class AdoptanteService:
 
+    # -------------------------------------------------
+    # Helpers
+    # -------------------------------------------------
+
+    @staticmethod
+    def _get_or_404(adoptante_id: int):
+        adoptante = db.session.get(Adoptante, adoptante_id)
+
+        if not adoptante or adoptante.deleted_at is not None:
+            raise ValueError("Adoptante no encontrado.")
+
+        return adoptante
+
+    # -------------------------------------------------
+    # Queries
+    # -------------------------------------------------
+
     @staticmethod
     def get_all():
-        return [a.serialize() for a in Adoptante.query.all()]
+        adoptantes = (
+            Adoptante.query
+            .filter(Adoptante.deleted_at.is_(None))
+            .order_by(Adoptante.nombre.asc())
+            .all()
+        )
+
+        return [a.serialize() for a in adoptantes]
 
     @staticmethod
     def get_by_id(adoptante_id: int):
-        adoptante = db.session.get(Adoptante, adoptante_id)
-        if not adoptante:
-            raise ValueError("Adoptante no encontrado.")
+        adoptante = AdoptanteService._get_or_404(adoptante_id)
         return adoptante.serialize()
 
+    # -------------------------------------------------
+    # Create
+    # -------------------------------------------------
+
     @staticmethod
-    def create(data: dict):
+    def create(data: dict, user_id: int):
         if not data:
             raise ValueError("El body es obligatorio.")
 
@@ -26,24 +54,39 @@ class AdoptanteService:
 
         nombre = nombre.strip()
 
-        # Opcional: evitar duplicados
-        if db.session.query(Adoptante).filter_by(nombre=nombre).first():
+        # Verificar duplicado SOLO entre activos
+        existente = (
+            Adoptante.query
+            .filter(
+                Adoptante.nombre == nombre,
+                Adoptante.deleted_at.is_(None)
+            )
+            .first()
+        )
+
+        if existente:
             raise ValueError("Ya existe un adoptante con ese nombre.")
 
-        adoptante = Adoptante(nombre=nombre)
+        adoptante = Adoptante(
+            nombre=nombre,
+            created_by=user_id
+        )
+
         db.session.add(adoptante)
         db.session.commit()
 
         return adoptante.serialize()
+
+    # -------------------------------------------------
+    # Update
+    # -------------------------------------------------
 
     @staticmethod
     def update(adoptante_id: int, data: dict):
         if not data:
             raise ValueError("El body es obligatorio.")
 
-        adoptante = db.session.get(Adoptante, adoptante_id)
-        if not adoptante:
-            raise ValueError("Adoptante no encontrado.")
+        adoptante = AdoptanteService._get_or_404(adoptante_id)
 
         if "nombre" in data:
             nombre = data["nombre"]
@@ -54,16 +97,19 @@ class AdoptanteService:
             adoptante.nombre = nombre.strip()
 
         db.session.commit()
+
         return adoptante.serialize()
 
+    # -------------------------------------------------
+    # Soft Delete
+    # -------------------------------------------------
 
     @staticmethod
-    def eliminar(adoptante_id: int):
-        adoptante = db.session.get(Adoptante, adoptante_id)
-        if not adoptante:
-            raise ValueError("Adoptante no encontrado.")
+    def delete(adoptante_id: int, user_id: int):
+        adoptante = AdoptanteService._get_or_404(adoptante_id)
 
-        db.session.delete(adoptante)
+        adoptante.soft_delete(user_id)
+
         db.session.commit()
 
-        return {"message": "Adoptante eliminado exitosamente."}
+        return {"message": "Adoptante eliminado correctamente."}

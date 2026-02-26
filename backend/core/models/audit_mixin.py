@@ -12,6 +12,8 @@ class AuditMixin:
     )
 
     deleted_at = db.Column(db.DateTime, nullable=True)
+    
+    activo = db.Column(db.Boolean, default=True, nullable=False)
 
 
     @declared_attr
@@ -26,6 +28,7 @@ class AuditMixin:
     def soft_delete(self, user_id: int):
         self.deleted_at = datetime.utcnow()
         self.deleted_by = user_id
+        self.activo = False
 
     def restore(self):
         self.deleted_at = None
