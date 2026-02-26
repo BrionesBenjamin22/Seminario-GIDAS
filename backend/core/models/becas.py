@@ -8,6 +8,7 @@ class Beca(db.Model, AuditMixin):
     nombre_beca = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text, nullable=True)
 
+<<<<<<< HEAD
     becarios = db.relationship(
         "Beca_Becario",
         back_populates="beca"
@@ -15,6 +16,31 @@ class Beca(db.Model, AuditMixin):
 
     def serialize(self):
         data = self.to_dict()
+=======
+    fuente_financiamiento_id = db.Column(
+        db.Integer,
+        db.ForeignKey('fuente_financiamiento.id'),
+        nullable=True
+    )
+    
+    fuente_financiamiento = db.relationship(
+        'FuenteFinanciamiento',
+        back_populates='becas'
+    )
+
+    becarios = db.relationship("Beca_Becario", back_populates="beca", cascade="all, delete-orphan")
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "nombre_beca": self.nombre_beca,
+            "descripcion": self.descripcion,
+            "fuente_financiamiento": {
+                "id": self.fuente_financiamiento.id,
+                "nombre": self.fuente_financiamiento.nombre
+            } if self.fuente_financiamiento else None
+        }
+>>>>>>> origin/zoe
 
         data["becarios"] = [
             {

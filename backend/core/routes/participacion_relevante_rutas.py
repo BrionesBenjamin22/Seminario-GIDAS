@@ -9,22 +9,22 @@ participacion_relevante_bp = Blueprint(
     url_prefix="/participaciones-relevantes"
 )
 
-participacion_relevante_bp.route("/", methods=["GET"])(
-    ParticipacionRelevanteController.get_all
-)
+@participacion_relevante_bp.route("/", methods=["GET"])
+def get_all():
+    return ParticipacionRelevanteController.get_all()
 
-participacion_relevante_bp.route("/<int:participacion_id>", methods=["GET"])(
-    ParticipacionRelevanteController.get_by_id
-)
+@participacion_relevante_bp.route("/<int:participacion_id>", methods=["GET"])
+def get_by_id(participacion_id):
+    return ParticipacionRelevanteController.get_by_id(participacion_id)
 
-participacion_relevante_bp.route("/", methods=["POST"])(
-    ParticipacionRelevanteController.create
-)
+@participacion_relevante_bp.route("/", methods=["POST"])
+def create():
+    return ParticipacionRelevanteController.create()
 
-participacion_relevante_bp.route("/<int:participacion_id>", methods=["PUT"])(
-    ParticipacionRelevanteController.update
-)
+@participacion_relevante_bp.route("/<int:participacion_id>", methods=["PUT"])
+def update(participacion_id):
+    return ParticipacionRelevanteController.update(participacion_id)
 
-participacion_relevante_bp.route("/<int:participacion_id>", methods=["DELETE"])(
-    ParticipacionRelevanteController.delete
-)
+@participacion_relevante_bp.route("/<int:participacion_id>", methods=["DELETE"])
+def delete(participacion_id):
+    return ParticipacionRelevanteController.delete(participacion_id)

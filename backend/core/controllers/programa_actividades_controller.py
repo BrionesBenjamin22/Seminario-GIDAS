@@ -15,19 +15,22 @@ class PlanificacionGrupoController:
         data = req.get_json()
         try:
             plan = crear_planificacion_grupo(data)
-            return jsonify(plan.serialize()), 201
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Internal Error: {str(e)}"}), 500
 
     @staticmethod
     def listar(req: Request) -> Response:
         try:
             planes = listar_planificaciones()
             return jsonify([p.serialize() for p in planes]), 200
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Internal Error: {str(e)}"}), 500
 
     @staticmethod
     def obtener_por_id(req: Request, id: int) -> Response:
