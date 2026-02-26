@@ -1,5 +1,6 @@
 from flask import Blueprint
 from core.controllers.search_controller import SearchController
+from core.services.middleware import requiere_rol
 
 search_bp = Blueprint(
     "search",
@@ -8,6 +9,7 @@ search_bp = Blueprint(
 
 
 @search_bp.route("/search/", methods=["GET"], strict_slashes=False)
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def buscar():
     """
     Endpoint principal de búsqueda global

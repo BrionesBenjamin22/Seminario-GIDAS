@@ -13,25 +13,16 @@ class ProyectoInvestigacionController:
             args = request.args
             filters = {}
 
-            # -------------------------
-            # Filtros directos
-            # -------------------------
-            if args.get("tipo_proyecto_id"):
-                filters["tipo_proyecto_id"] = int(args.get("tipo_proyecto_id"))
+            if args.get("tipo_proyecto_id", type=int):
+                filters["tipo_proyecto_id"] = args.get("tipo_proyecto_id", type=int)
 
-            if args.get("grupo_utn_id"):
-                filters["grupo_utn_id"] = int(args.get("grupo_utn_id"))
+            if args.get("grupo_utn_id", type=int):
+                filters["grupo_utn_id"] = args.get("grupo_utn_id", type=int)
 
-            # -------------------------
-            # Filtros semánticos
-            # -------------------------
             if args.get("filtro") == "distinciones":
                 filters["tiene_distinciones"] = True
 
-            # -------------------------
-            # Orden
-            # -------------------------
-            if args.get("orden") in ("asc", "desc"):
+            if args.get("orden") in ("asc", "monto_asc", "monto_desc"):
                 filters["orden"] = args.get("orden")
 
             return jsonify(
@@ -40,7 +31,6 @@ class ProyectoInvestigacionController:
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
-
 
     # =========================
     # GET BY ID
@@ -51,6 +41,7 @@ class ProyectoInvestigacionController:
             return jsonify(
                 ProyectoInvestigacionService.get_by_id(proyecto_id)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 404
 
@@ -61,12 +52,17 @@ class ProyectoInvestigacionController:
     def create():
         try:
             data = request.get_json()
+
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.create(data)
             ), 201
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
@@ -77,17 +73,22 @@ class ProyectoInvestigacionController:
     def update(proyecto_id):
         try:
             data = request.get_json()
+
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.update(proyecto_id, data)
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
     # =========================
-    # DELETE
+    # CERRAR PROYECTO
     # =========================
     @staticmethod
     def cerrar(proyecto_id):
@@ -95,19 +96,21 @@ class ProyectoInvestigacionController:
             return jsonify(
                 ProyectoInvestigacionService.cerrar_proyecto(proyecto_id)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
-    # =========================
+    # =====================================================
     # VINCULAR / DESVINCULAR BECARIOS
-    # =========================
+    # =====================================================
+
     @staticmethod
     def vincular_becarios(proyecto_id):
         try:
             participaciones = request.get_json()
 
-            if not participaciones:
-                return jsonify({"error": "El body es obligatorio"}), 400
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_becarios_a_proyecto(
@@ -116,17 +119,19 @@ class ProyectoInvestigacionController:
                 )
             ), 200
 
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
-
 
     @staticmethod
     def desvincular_becarios(proyecto_id):
         try:
             participaciones = request.get_json()
 
-            if not participaciones:
-                return jsonify({"error": "El body es obligatorio"}), 400
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.desvincular_becarios_de_proyecto(
@@ -135,20 +140,23 @@ class ProyectoInvestigacionController:
                 )
             ), 200
 
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
-
-    # =========================
+    # =====================================================
     # VINCULAR / DESVINCULAR INVESTIGADORES
-    # =========================
+    # =====================================================
+
     @staticmethod
     def vincular_investigadores(proyecto_id):
         try:
             participaciones = request.get_json()
 
-            if not participaciones:
-                return jsonify({"error": "El body es obligatorio"}), 400
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_investigadores_a_proyecto(
@@ -157,17 +165,19 @@ class ProyectoInvestigacionController:
                 )
             ), 200
 
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
-
 
     @staticmethod
     def desvincular_investigadores(proyecto_id):
         try:
             participaciones = request.get_json()
 
-            if not participaciones:
-                return jsonify({"error": "El body es obligatorio"}), 400
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.desvincular_investigadores_de_proyecto(
@@ -176,6 +186,8 @@ class ProyectoInvestigacionController:
                 )
             ), 200
 
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
-

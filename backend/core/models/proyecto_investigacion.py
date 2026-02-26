@@ -26,6 +26,7 @@ class InvestigadorProyecto(db.Model, AuditMixin):
         db.UniqueConstraint(
             "id_investigador",
             "id_proyecto",
+            "deleted_at",
             name="uq_investigador_proyecto_activo"
         ),
     )
@@ -145,6 +146,7 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
             "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
         }
         for p in self.participaciones_investigador
+        if p.deleted_at is None
         ]
 
         data["becarios"] = [
@@ -155,8 +157,9 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
                 "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
             }
             for p in self.participaciones_becario
+            if p.deleted_at is None
         ]
-
+        
         data["tipo_proyecto"] = {
             "id": self.tipo_proyecto.id,
             "nombre": self.tipo_proyecto.nombre

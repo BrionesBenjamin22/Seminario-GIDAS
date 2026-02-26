@@ -14,7 +14,7 @@ class AuthService:
             "sub": str(user.id),
             "nombre_usuario": user.nombre_usuario,
             "rol": user.rol.nombre,   
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15),
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
             "iss": "auth-service"
         }
 

@@ -14,10 +14,12 @@ def crear():
     return PersonalController.crear(request)
 
 @personal_bp.route("/", methods=["GET"])
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def listar():
     return PersonalController.listar(request)
 
 @personal_bp.route("/<string:rol>/<int:id>", methods=["GET"])
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def obtener(rol, id):
     return PersonalController.obtener_por_id(request, rol, id)
 
@@ -27,6 +29,6 @@ def actualizar(rol, id):
     return PersonalController.actualizar(request, rol, id)
 
 @personal_bp.route("/<string:rol>/<int:id>", methods=["DELETE"])
-@requiere_rol("ADMIN", "GESTOR")
+@requiere_rol("ADMIN")
 def eliminar(rol, id):
     return PersonalController.eliminar(request, rol, id)
