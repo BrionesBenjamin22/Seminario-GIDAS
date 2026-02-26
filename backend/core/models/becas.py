@@ -22,7 +22,7 @@ class Beca(db.Model, AuditMixin):
     becarios = db.relationship("Beca_Becario", back_populates="beca", cascade="all, delete-orphan")
 
     def serialize(self):
-        return {
+        data = {
             "id": self.id,
             "nombre_beca": self.nombre_beca,
             "descripcion": self.descripcion,
