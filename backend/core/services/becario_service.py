@@ -14,7 +14,7 @@ def crear_becario(data):
     horas = data.get("horas_semanales")
     tipo_formacion_id = data.get("tipo_formacion_id")
     grupo_utn_id = data.get("grupo_utn_id")
-    fuente_id = data.get("fuente_financiamiento_id")
+
     proyectos_ids = data.get("proyectos", [])
 
     if not nombre or not isinstance(nombre, str):
@@ -29,15 +29,13 @@ def crear_becario(data):
     if grupo_utn_id and not GrupoInvestigacionUtn.query.get(grupo_utn_id):
         raise ValueError("Grupo UTN inválido.")
 
-    if fuente_id and not FuenteFinanciamiento.query.get(fuente_id):
-        raise ValueError("Fuente de financiamiento inválida.")
 
     becario = Becario(
         nombre_apellido=nombre.strip(),
         horas_semanales=horas,
         tipo_formacion_id=tipo_formacion_id,
         grupo_utn_id=grupo_utn_id,
-        fuente_financiamiento_id=fuente_id,
+
         activo=True
     )
 
@@ -105,10 +103,6 @@ def actualizar_becario(id, data):
             raise ValueError("Grupo UTN inválido.")
         becario.grupo_utn_id = data["grupo_utn_id"]
 
-    if "fuente_financiamiento_id" in data:
-        if data["fuente_financiamiento_id"] and not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
-            raise ValueError("Fuente de financiamiento inválida.")
-        becario.fuente_financiamiento_id = data["fuente_financiamiento_id"]
 
     # Reemplazar proyectos
     if "proyectos" in data:
