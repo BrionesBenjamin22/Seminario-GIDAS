@@ -1,21 +1,8 @@
-from flask import jsonify
+from flask import jsonify, request, g
 from core.services.becas_service import BecaService
 
 
 class BecaController:
-    @staticmethod
-    def get_activas(request):
-        try:
-            anio = request.args.get("anio", type=int)
-
-            data = BecaService.get_becas_activas_en_anio(anio)
-
-            return jsonify(data), 200
-
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
 
     # =========================
     # GET ALL
@@ -47,11 +34,12 @@ class BecaController:
     # CREATE
     # =========================
     @staticmethod
-    def create(request):
+    def create():
         try:
             data = request.get_json()
+            user_id = g.current_user_id
 
-            nueva_beca = BecaService.create(data)
+            nueva_beca = BecaService.create(data, user_id)
 
             return jsonify(nueva_beca), 201
 
@@ -65,7 +53,7 @@ class BecaController:
     # UPDATE
     # =========================
     @staticmethod
-    def update(beca_id, request):
+    def update(beca_id):
         try:
             data = request.get_json()
 
@@ -80,13 +68,16 @@ class BecaController:
 
 
     # =========================
-    # DELETE
+    # DELETE (SOFT DELETE)
     # =========================
     @staticmethod
     def delete(beca_id):
         try:
-            result = BecaService.delete(beca_id)
+            user_id = g.current_user_id
+
+            result = BecaService.delete(beca_id, user_id)
             return jsonify(result), 200
+
         except ValueError as e:
             return jsonify({"error": str(e)}), 404
         except Exception as e:
@@ -97,11 +88,12 @@ class BecaController:
     # VINCULAR BECARIO
     # =========================
     @staticmethod
-    def vincular_becario(beca_id, request):
+    def vincular_becario(beca_id):
         try:
             data = request.get_json()
+            user_id = g.current_user_id
 
-            result = BecaService.vincular_becario(beca_id, data)
+            result = BecaService.vincular_becario(beca_id, data, user_id)
 
             return jsonify(result), 200
 
@@ -117,7 +109,14 @@ class BecaController:
     @staticmethod
     def desvincular_becario(beca_id, becario_id):
         try:
-            result = BecaService.desvincular_becario(beca_id, becario_id)
+            user_id = g.current_user_id
+
+            result = BecaService.desvincular_becario(
+                beca_id,
+                becario_id,
+                user_id
+            )
+
             return jsonify(result), 200
 
         except ValueError as e:
@@ -139,9 +138,31 @@ class BecaController:
             return jsonify({"error": str(e)}), 404
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-        
+
+
+    # =========================
+    # ACTIVAS POR AÑO
+    # =========================
     @staticmethod
-    def dashboard(request):
+    def get_activas():
+        try:
+            anio = request.args.get("anio", type=int)
+
+            data = BecaService.get_becas_activas_en_anio(anio)
+
+            return jsonify(data), 200
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+    # =========================
+    # DASHBOARD
+    # =========================
+    @staticmethod
+    def dashboard():
         try:
             anio = request.args.get("anio", type=int)
 

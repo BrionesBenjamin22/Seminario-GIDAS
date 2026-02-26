@@ -66,7 +66,7 @@ class ArticuloDivulgacionService:
     def get_by_id(articulo_id: int):
         articulo = ArticuloDivulgacion.query.get(articulo_id)
         if not articulo:
-            raise Exception("Artículo de divulgación no encontrado")
+            raise ValueError("Artículo de divulgación no encontrado")
 
         return articulo.serialize()
 

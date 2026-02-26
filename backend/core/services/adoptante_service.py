@@ -106,7 +106,11 @@ class AdoptanteService:
 
     @staticmethod
     def delete(adoptante_id: int, user_id: int):
-        adoptante = AdoptanteService._get_or_404(adoptante_id)
+
+        adoptante = db.session.get(Adoptante, adoptante_id)
+
+        if not adoptante or adoptante.deleted_at is not None:
+            raise ValueError("Adoptante no encontrado.")
 
         adoptante.soft_delete(user_id)
 

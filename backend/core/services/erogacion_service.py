@@ -2,19 +2,36 @@ from core.models.erogacion import Erogacion, TipoErogacion
 from core.models.fuente_financiamiento import FuenteFinanciamiento
 from core.models.grupo import GrupoInvestigacionUtn
 from extension import db
+from datetime import datetime
 
 
 class ErogacionService:
 
-    # =========================
-    # GET ALL (con filtros y orden)
-    # =========================
+    # ==========================================
+    # HELPERS
+    # ==========================================
+
+    @staticmethod
+    def _get_activa_or_404(erogacion_id: int):
+        erogacion = db.session.get(Erogacion, erogacion_id)
+        if not erogacion or erogacion.deleted_at is not None:
+            raise Exception("Erogación no encontrada")
+        return erogacion
+
+
+    # ==========================================
+    # GET ALL
+    # ==========================================
+
     @staticmethod
     def get_all(filters: dict = None):
-        query = Erogacion.query
+
+        query = Erogacion.query.filter(
+            Erogacion.deleted_at.is_(None)
+        )
 
         if filters:
-            # ---- FILTROS ----
+
             if filters.get("fuente_financiamiento_id"):
                 query = query.filter(
                     Erogacion.fuente_financiamiento_id == filters["fuente_financiamiento_id"]
@@ -24,177 +41,131 @@ class ErogacionService:
                 query = query.filter(
                     Erogacion.tipo_erogacion_id == filters["tipo_erogacion_id"]
                 )
-            # ---- ORDEN ----
-            if filters.get("orden_ingresos") == "asc":
-                query = query.order_by(Erogacion.ingresos.asc())
-            elif filters.get("orden_ingresos") == "desc":
-                query = query.order_by(Erogacion.ingresos.desc())
-
-            if filters.get("orden_egresos") == "asc":
-                query = query.order_by(Erogacion.egresos.asc())
-            elif filters.get("orden_egresos") == "desc":
-                query = query.order_by(Erogacion.egresos.desc())
 
         return [e.serialize() for e in query.all()]
 
-    # =========================
+
+    # ==========================================
     # GET BY ID
-    # =========================
+    # ==========================================
+
     @staticmethod
     def get_by_id(erogacion_id: int):
-        erogacion = Erogacion.query.get(erogacion_id)
-        if not erogacion:
-            raise Exception("Erogación no encontrada")
+        erogacion = ErogacionService._get_activa_or_404(erogacion_id)
         return erogacion.serialize()
 
 
-    
+    # ==========================================
+    # CREATE
+    # ==========================================
 
     @staticmethod
-    def create(data: dict):
+    def create(data: dict, user_id: int):
+
         if not data:
             raise Exception("El body es obligatorio")
 
-        # ---- egresos ----
-        if "egresos" not in data:
-            raise Exception("El campo 'egresos' es obligatorio")
+        numero = data.get("numero_erogacion")
+        grupo_id = data.get("grupo_utn_id")
 
+        if not numero:
+            raise ValueError("El número de erogación es obligatorio")
+
+        if not grupo_id:
+            raise ValueError("El grupo es obligatorio")
+
+        # Validar grupo
+        grupo = db.session.get(GrupoInvestigacionUtn, grupo_id)
+        if not grupo or grupo.deleted_at is not None:
+            raise Exception("Grupo inválido")
+
+        # Validar duplicado activo
+        existe = Erogacion.query.filter(
+            Erogacion.numero_erogacion == numero,
+            Erogacion.grupo_utn_id == grupo_id,
+            Erogacion.deleted_at.is_(None)
+        ).first()
+
+        if existe:
+            raise Exception("Ya existe una erogación activa con ese número en el grupo")
+
+        # Validar egresos / ingresos
         try:
             egresos = float(data["egresos"])
-        except (TypeError, ValueError):
-            raise Exception("El campo 'egresos' debe ser numérico")
-
-        if egresos < 0:
-            raise Exception("El campo 'egresos' no puede ser negativo")
-
-        # ---- ingresos ----
-        if "ingresos" not in data:
-            raise Exception("El campo 'ingresos' es obligatorio")
-
-        try:
             ingresos = float(data["ingresos"])
-        except (TypeError, ValueError):
-            raise Exception("El campo 'ingresos' debe ser numérico")
+        except:
+            raise Exception("Ingresos y egresos deben ser numéricos")
 
-        if ingresos < 0:
-            raise Exception("El campo 'ingresos' no puede ser negativo")
+        if egresos < 0 or ingresos < 0:
+            raise Exception("Ingresos y egresos no pueden ser negativos")
 
-        # ---- al menos uno distinto de 0 ----
         if egresos == 0 and ingresos == 0:
             raise Exception("Egresos e ingresos no pueden ser ambos 0")
 
-        # ---- tipo erogación ----
-        if data.get("tipo_erogacion_id"):
-            if not TipoErogacion.query.get(data["tipo_erogacion_id"]):
-                raise Exception("Tipo de erogación inválido")
+        # Validar tipo
+        tipo = db.session.get(TipoErogacion, data.get("tipo_erogacion_id"))
+        if not tipo:
+            raise Exception("Tipo de erogación inválido")
 
-        # ---- fuente financiamiento ----
-        if data.get("fuente_financiamiento_id"):
-            if not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
-                raise Exception("Fuente de financiamiento inválida")
+        # Validar fuente
+        fuente = db.session.get(FuenteFinanciamiento, data.get("fuente_financiamiento_id"))
+        if not fuente:
+            raise Exception("Fuente de financiamiento inválida")
 
-        
-        # ---- grupo UTN ----
-        if data.get("grupo_utn_id"):
-            if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
-                raise Exception("Grupo UTN inválido")
-        
-        numero = data.get("numero_erogacion")
-        if not numero:
-            raise ValueError("El número de erogación es obligatorio")
+        fecha = datetime.strptime(
+            data.get("fecha"), "%Y-%m-%d"
+        ).date() if data.get("fecha") else datetime.today().date()
 
         erogacion = Erogacion(
             numero_erogacion=numero,
             egresos=egresos,
             ingresos=ingresos,
-            tipo_erogacion_id=data.get("tipo_erogacion_id"),
-            fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
-            grupo_utn_id=data.get("grupo_utn_id")
+            fecha=fecha,
+            tipo_erogacion_id=tipo.id,
+            fuente_financiamiento_id=fuente.id,
+            grupo_utn_id=grupo.id,
+            created_by=user_id
         )
 
         db.session.add(erogacion)
         db.session.commit()
+
         return erogacion.serialize()
 
-    
+
+    # ==========================================
+    # UPDATE
+    # ==========================================
+
     @staticmethod
     def update(erogacion_id: int, data: dict):
-        if not data:
-            raise Exception("El body es obligatorio")
 
-        erogacion = Erogacion.query.get(erogacion_id)
-        if not erogacion:
-            raise Exception("Erogación no encontrada")
+        erogacion = ErogacionService._get_activa_or_404(erogacion_id)
 
-        # ---- egresos ----
         if "egresos" in data:
-            try:
-                egresos = float(data["egresos"])
-            except (TypeError, ValueError):
-                raise Exception("El campo 'egresos' debe ser numérico")
+            erogacion.egresos = float(data["egresos"])
 
-            if egresos < 0:
-                raise Exception("El campo 'egresos' no puede ser negativo")
-
-            erogacion.egresos = egresos
-
-        # ---- ingresos ----
         if "ingresos" in data:
-            try:
-                ingresos = float(data["ingresos"])
-            except (TypeError, ValueError):
-                raise Exception("El campo 'ingresos' debe ser numérico")
+            erogacion.ingresos = float(data["ingresos"])
 
-            if ingresos < 0:
-                raise Exception("El campo 'ingresos' no puede ser negativo")
-
-            erogacion.ingresos = ingresos
-
-        # ---- validar estado final ----
         if erogacion.egresos == 0 and erogacion.ingresos == 0:
             raise Exception("Egresos e ingresos no pueden ser ambos 0")
 
-        # ---- tipo erogación ----
-        if "tipo_erogacion_id" in data:
-            if data["tipo_erogacion_id"] is None:
-                erogacion.tipo_erogacion_id = None
-            else:
-                if not TipoErogacion.query.get(data["tipo_erogacion_id"]):
-                    raise Exception("Tipo de erogación inválido")
-                erogacion.tipo_erogacion_id = data["tipo_erogacion_id"]
-
-        if "fecha" in data:
-            if not data["fecha"]:                
-                raise Exception("La fecha es obligatoria")
-            erogacion.fecha = data["fecha"]
-        # ---- fuente financiamiento ----
-        if "fuente_financiamiento_id" in data:
-            if data["fuente_financiamiento_id"] is None:
-                erogacion.fuente_financiamiento_id = None
-            else:
-                if not FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"]):
-                    raise Exception("Fuente de financiamiento inválida")
-                erogacion.fuente_financiamiento_id = data["fuente_financiamiento_id"]
-
-        # ---- grupo UTN ----
-        if "grupo_utn_id" in data:
-            if data["grupo_utn_id"] is None:
-                erogacion.grupo_utn_id = None
-            else:
-                if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
-                    raise Exception("Grupo UTN inválido")
-                erogacion.grupo_utn_id = data["grupo_utn_id"]
-
         db.session.commit()
         return erogacion.serialize()
-  
-  
-    @staticmethod
-    def delete(erogacion_id: int):
-        erogacion = Erogacion.query.get(erogacion_id)
-        if not erogacion:
-            raise Exception("Erogación no encontrada")
 
-        db.session.delete(erogacion)
+
+    # ==========================================
+    # SOFT DELETE
+    # ==========================================
+
+    @staticmethod
+    def delete(erogacion_id: int, user_id: int):
+
+        erogacion = ErogacionService._get_activa_or_404(erogacion_id)
+
+        erogacion.soft_delete(user_id)
+
         db.session.commit()
+
         return {"message": "Erogación eliminada correctamente"}
