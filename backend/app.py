@@ -32,24 +32,6 @@ def create_app():
     migrate.init_app(app, db)
 
 
-    if not hasattr(db.session, "_soft_delete_filter_registered"):
-
-        @event.listens_for(db.session, "do_orm_execute")
-        def _add_filtering_criteria(execute_state):
-            if (
-                execute_state.is_select
-                and not execute_state.execution_options.get("include_deleted", False)
-            ):
-                execute_state.statement = execute_state.statement.options(
-                    with_loader_criteria(
-                        AuditMixin,
-                        lambda cls: cls.deleted_at.is_(None),
-                        include_aliases=True,
-                    )
-                )
-
-        db.session._soft_delete_filter_registered = True
-
     for bp in blueprints:
         app.register_blueprint(bp)
 
