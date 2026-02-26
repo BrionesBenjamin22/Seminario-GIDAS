@@ -148,7 +148,6 @@ def eliminar_becario(id: int, user_id: int):
     if not becario.activo:
         raise ValueError("El becario ya se encuentra dado de baja.")
 
-    becario.activo = False
     becario.soft_delete(user_id)
 
     try:

@@ -67,7 +67,7 @@ class TrabajosRevistasReferatoController:
             if not data:
                 return jsonify({"error": "Body requerido"}), 400
 
-            user_id = g.user.id  # 🔥 JWT
+            user_id = g.get("current_user_id")  # 🔥 JWT
 
             result = TrabajosRevistasReferatoService.create(data, user_id)
 
@@ -106,7 +106,7 @@ class TrabajosRevistasReferatoController:
     @staticmethod
     def delete(trabajo_id):
         try:
-            user_id = g.user.id  # 🔥 auditoría
+            user_id = g.get("current_user_id")  # 🔥 auditoría
 
             result = TrabajosRevistasReferatoService.delete(trabajo_id, user_id)
 

@@ -85,11 +85,11 @@ class DistincionRecibidaService:
         return dist.serialize()
 
     @staticmethod
-    def delete(distincion_id: int):
+    def delete(distincion_id: int, user_id: int):
         dist = DistincionRecibida.query.get(distincion_id)
         if not dist:
             raise Exception("Distinción no encontrada")
 
-        db.session.delete(dist)
+        dist.soft_delete(user_id)
         db.session.commit()
         return {"message": "Distinción eliminada correctamente"}

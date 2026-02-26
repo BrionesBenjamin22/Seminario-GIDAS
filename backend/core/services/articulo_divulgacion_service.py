@@ -103,7 +103,7 @@ class ArticuloDivulgacionService:
             titulo=titulo,
             descripcion=descripcion,
             fecha_publicacion=fecha_publicacion,
-            grupo_utn_id=grupo_utn_id
+            grupo_utn_id=grupo_utn_id,
         )
 
         db.session.add(articulo)
@@ -160,13 +160,13 @@ class ArticuloDivulgacionService:
         return articulo.serialize()
 
     @staticmethod
-    def delete(articulo_id: int):
+    def delete(articulo_id: int, user_id: int):
         articulo = ArticuloDivulgacion.query.get(articulo_id)
 
         if not articulo:
             raise Exception("Artículo de divulgación no encontrado")
 
-        db.session.delete(articulo)
+        articulo.soft_delete(user_id)
 
         try:
             db.session.commit()

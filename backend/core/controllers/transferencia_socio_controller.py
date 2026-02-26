@@ -52,7 +52,7 @@ class TransferenciaSocioProductivaController:
             if not data:
                 return jsonify({"error": "Body requerido"}), 400
 
-            user_id = g.user.id  # 🔥 JWT
+            user_id = g.get("current_user_id")  # 🔥 JWT
 
             result = TransferenciaSocioProductivaService.create(
                 data,
@@ -97,7 +97,7 @@ class TransferenciaSocioProductivaController:
     @staticmethod
     def delete(transferencia_id):
         try:
-            user_id = g.user.id  # 🔥 auditoría
+            user_id = g.get("current_user_id")  # 🔥 auditoría
 
             result = TransferenciaSocioProductivaService.delete(
                 transferencia_id,
@@ -148,7 +148,7 @@ class TransferenciaSocioProductivaController:
                     "error": "adoptantes_ids debe ser una lista no vacía"
                 }), 400
 
-            user_id = g.user.id
+            user_id = g.get("current_user_id")
 
             result = TransferenciaSocioProductivaService.add_adoptantes(
                 transferencia_id,
@@ -182,7 +182,7 @@ class TransferenciaSocioProductivaController:
                     "error": "adoptantes_ids debe ser una lista no vacía"
                 }), 400
 
-            user_id = g.user.id
+            user_id = g.get("current_user_id")
 
             result = TransferenciaSocioProductivaService.remove_adoptantes(
                 transferencia_id,

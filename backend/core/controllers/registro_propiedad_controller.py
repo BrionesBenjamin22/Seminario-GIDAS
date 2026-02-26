@@ -38,16 +38,13 @@ class RegistrosPropiedadController:
     def create():
         try:
             data = request.get_json()
+            user_id = g.get("current_user_id")
 
-            user_id = g.user.id  # 🔥 del JWT
-
-            registro = RegistrosPropiedadService.create(data, user_id)
-            return jsonify(registro), 201
-
-        except ValueError as e:
+            return jsonify(
+                RegistrosPropiedadService.create(data, user_id)
+            ), 201
+        except Exception as e:
             return jsonify({"error": str(e)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
 
 
     # =========================
@@ -58,13 +55,11 @@ class RegistrosPropiedadController:
         try:
             data = request.get_json()
 
-            registro = RegistrosPropiedadService.update(registro_id, data)
-            return jsonify(registro), 200
-
-        except ValueError as e:
+            return jsonify(
+                RegistrosPropiedadService.update(registro_id, data)
+            ), 200
+        except Exception as e:
             return jsonify({"error": str(e)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
 
 
     # =========================

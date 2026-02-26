@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.participacion_relevante_service import (
     ParticipacionRelevanteService
 )
@@ -30,8 +30,9 @@ class ParticipacionRelevanteController:
     def create():
         try:
             data = request.get_json()
+            user_id = g.get("current_user_id")
             return jsonify(
-                ParticipacionRelevanteService.create(data)
+                ParticipacionRelevanteService.create(data, user_id)
             ), 201
         except Exception as e:
             return jsonify({"error": str(e)}), 400
@@ -51,8 +52,9 @@ class ParticipacionRelevanteController:
     @staticmethod
     def delete(participacion_id):
         try:
+            user_id = g.get("current_user_id")
             return jsonify(
-                ParticipacionRelevanteService.delete(participacion_id)
+                ParticipacionRelevanteService.delete(participacion_id, user_id)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400

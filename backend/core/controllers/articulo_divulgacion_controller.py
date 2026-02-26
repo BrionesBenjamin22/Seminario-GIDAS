@@ -1,4 +1,4 @@
-from flask import Request, Response, jsonify
+from flask import Request, Response, jsonify, g
 from core.services.articulo_divulgacion_service import ArticuloDivulgacionService
 
 
@@ -9,7 +9,8 @@ class ArticuloDivulgacionController:
         data = req.get_json(force=True, silent=False)
 
         try:
-            articulo = ArticuloDivulgacionService.create(data)
+            user_id = g.get("current_user_id")
+            articulo = ArticuloDivulgacionService.create(data, user_id)
             return jsonify(articulo), 201
 
         except ValueError as ve:
@@ -74,7 +75,8 @@ class ArticuloDivulgacionController:
     @staticmethod
     def eliminar(req: Request, articulo_id: int) -> Response:
         try:
-            result = ArticuloDivulgacionService.delete(articulo_id)
+            user_id = g.get("current_user_id")
+            result = ArticuloDivulgacionService.delete(articulo_id, user_id)
             return jsonify(result), 200
 
         except ValueError as ve:

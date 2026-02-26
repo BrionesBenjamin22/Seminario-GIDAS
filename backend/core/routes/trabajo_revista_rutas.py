@@ -1,6 +1,7 @@
-from flask import Blueprint
+from flask import Blueprint, request
 from core.controllers.trabajo_revista_controller import (
     TrabajosRevistasReferatoController )
+from core.services.middleware import requiere_rol
 
 trabajos_revistas_referato_bp = Blueprint(
     "trabajos_revistas_referato",
@@ -9,30 +10,37 @@ trabajos_revistas_referato_bp = Blueprint(
 )
 
 @trabajos_revistas_referato_bp.route("/", methods=["GET"])
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def get_all():
     return TrabajosRevistasReferatoController.get_all()
 
 @trabajos_revistas_referato_bp.route("/<int:trabajo_id>", methods=["GET"])
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def get_by_id(trabajo_id):
     return TrabajosRevistasReferatoController.get_by_id(trabajo_id)
 
 @trabajos_revistas_referato_bp.route("/", methods=["POST"])
+@requiere_rol("ADMIN", "GESTOR")
 def create():
     return TrabajosRevistasReferatoController.create()
 
 @trabajos_revistas_referato_bp.route("/<int:trabajo_id>", methods=["PUT"])
+@requiere_rol("ADMIN", "GESTOR")
 def update(trabajo_id):
     return TrabajosRevistasReferatoController.update(trabajo_id)
 
 @trabajos_revistas_referato_bp.route("/<int:trabajo_id>", methods=["DELETE"])
+@requiere_rol("ADMIN")
 def delete(trabajo_id):
     return TrabajosRevistasReferatoController.delete(trabajo_id)
 
 @trabajos_revistas_referato_bp.route("/<int:trabajo_id>/investigadores/", methods=["POST"])
+@requiere_rol("ADMIN", "GESTOR")
 def add_investigadores(trabajo_id):
     return TrabajosRevistasReferatoController.add_investigadores(trabajo_id)
 
 @trabajos_revistas_referato_bp.route("/<int:trabajo_id>/investigadores/", methods=["DELETE"])
+@requiere_rol("ADMIN", "GESTOR")
 def remove_investigadores(trabajo_id):
     return TrabajosRevistasReferatoController.remove_investigadores(trabajo_id)
         

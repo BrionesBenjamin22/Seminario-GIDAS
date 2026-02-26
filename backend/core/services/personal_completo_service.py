@@ -25,7 +25,13 @@ def listar_personal_completo():
                     "id": p.tipo_personal.id,
                     "nombre": p.tipo_personal.nombre
                 } if p.tipo_personal else None
-            }
+            },
+
+            # Auditoría
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "creator_name": p.creator_name,
+            "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
+            "deleter_name": p.deleter_name
         })
 
     # --------------------
@@ -50,8 +56,6 @@ def listar_personal_completo():
                     "nombre": b.tipo_formacion.nombre
                 } if b.tipo_formacion else None,
 
-
-
                 "proyectos": [
                     {
                         "id": p.proyecto.id,
@@ -60,7 +64,13 @@ def listar_personal_completo():
                     }
                     for p in b.participaciones_proyecto
                 ]
-            }
+            },
+
+            # Auditoría
+            "created_at": b.created_at.isoformat() if b.created_at else None,
+            "creator_name": b.creator_name,
+            "deleted_at": b.deleted_at.isoformat() if b.deleted_at else None,
+            "deleter_name": b.deleter_name
         })
 
     # --------------------
@@ -127,7 +137,13 @@ def listar_personal_completo():
                     }
                     for t in i.trabajos_reunion_cientifica
                 ]
-            }
+            },
+
+            # Auditoría
+            "created_at": i.created_at.isoformat() if i.created_at else None,
+            "creator_name": i.creator_name,
+            "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
+            "deleter_name": i.deleter_name
         })
 
     return resultado
@@ -156,7 +172,12 @@ def obtener_personal_por_tipo(rol, id):
                     "id": p.tipo_personal.id,
                     "nombre": p.tipo_personal.nombre
                 } if p.tipo_personal else None
-            }
+            },
+            # Auditoría
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "creator_name": p.creator_name,
+            "deleted_at": p.deleted_at.isoformat() if p.deleted_at else None,
+            "deleter_name": p.deleter_name
         }
 
     if rol == "becario":
@@ -202,7 +223,12 @@ def obtener_personal_por_tipo(rol, id):
                     "monto_percibido": bex.monto_percibido
                 }
                 for bex in b.becas
-            ] if hasattr(b, "becas") else []
+            ] if hasattr(b, "becas") else [],
+            # Auditoría
+            "created_at": b.created_at.isoformat() if b.created_at else None,
+            "creator_name": b.creator_name,
+            "deleted_at": b.deleted_at.isoformat() if b.deleted_at else None,
+            "deleter_name": b.deleter_name
         }
 
     if rol == "investigador":
@@ -268,7 +294,13 @@ def obtener_personal_por_tipo(rol, id):
                     }
                     for t in i.trabajos_reunion_cientifica
                 ]
-            }
+            },
+
+            # Auditoría
+            "created_at": i.created_at.isoformat() if i.created_at else None,
+            "creator_name": i.creator_name,
+            "deleted_at": i.deleted_at.isoformat() if i.deleted_at else None,
+            "deleter_name": i.deleter_name
         }
 
     return None

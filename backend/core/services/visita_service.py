@@ -5,7 +5,7 @@ from core.models.trabajo_reunion import TipoReunion
 from datetime import datetime
 
 
-def crear_visita_academica(data):
+def crear_visita_academica(data, user_id=None):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
 
@@ -49,7 +49,8 @@ def crear_visita_academica(data):
         razon=razon.strip(),
         procedencia=procedencia.strip(),  # Ahora es string
         fecha=fecha,
-        grupo_utn_id=grupo_utn_id
+        grupo_utn_id=grupo_utn_id,
+        created_by=user_id
     )
 
     db.session.add(visita)
@@ -91,21 +92,21 @@ def actualizar_visita_academica(id, data):
         raise
 
 
-def eliminar_visita_academica(id):
+def eliminar_visita_academica(id, user_id):
     visita = VisitaAcademica.query.get(id)
     if not visita:
         raise ValueError("Visita académica no encontrada.")
 
-    db.session.delete(visita)
+    visita.soft_delete(user_id)
     db.session.commit()
 
 
 def listar_visitas():
-    return VisitaAcademica.query.all()
+    return VisitaAcademica.query.filter(VisitaAcademica.deleted_at.is_(None)).all()
 
 
 def obtener_visita_por_id(id):
     visita = VisitaAcademica.query.get(id)
-    if not visita:
+    if not visita or visita.deleted_at is not None:
         raise ValueError("Visita académica no encontrada.")
     return visita

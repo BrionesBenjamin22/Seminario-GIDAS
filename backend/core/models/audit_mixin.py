@@ -57,7 +57,10 @@ class AuditMixin:
         try:
             data["creator_name"] = self.creator.nombre_usuario if self.creator else None
             data["deleter_name"] = self.deleter.nombre_usuario if self.deleter else None
-        except Exception:
+        except Exception as e:
+            print(f"Error in AuditMixin: {e}")
+            import traceback
+            traceback.print_exc()
             data["creator_name"] = None
             data["deleter_name"] = None
 

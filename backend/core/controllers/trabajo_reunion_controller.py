@@ -53,7 +53,7 @@ class TrabajoReunionCientificaController:
             if not data:
                 return jsonify({"error": "Body requerido"}), 400
 
-            user_id = g.user.id  # 🔥 viene del JWT
+            user_id = g.get("current_user_id")  # 🔥 viene del JWT
 
             result = TrabajoReunionCientificaService.create(data, user_id)
 
@@ -92,7 +92,7 @@ class TrabajoReunionCientificaController:
     @staticmethod
     def delete(trabajo_id):
         try:
-            user_id = g.user.id  # 🔥 auditoría
+            user_id = g.get("current_user_id")  # 🔥 auditoría
 
             result = TrabajoReunionCientificaService.delete(trabajo_id, user_id)
 

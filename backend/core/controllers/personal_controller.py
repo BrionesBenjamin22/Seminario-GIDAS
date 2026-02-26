@@ -78,7 +78,9 @@ class PersonalController:
     @staticmethod
     def eliminar(req, rol, id):
         try:
-            result = eliminar_personal_por_rol(id, rol)
+            from flask import g
+            user_id = g.get("current_user_id")
+            result = eliminar_personal_por_rol(id, rol, user_id)
             return jsonify(result), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400

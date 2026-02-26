@@ -1,6 +1,7 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
-class ArticuloDivulgacion(db.Model):
+class ArticuloDivulgacion(db.Model, AuditMixin):
     __tablename__ = 'articulo_divulgacion'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     titulo = db.Column(db.Text, nullable=False)
@@ -10,7 +11,7 @@ class ArticuloDivulgacion(db.Model):
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='articulos_divulgacion')
     
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data = self.to_dict()
         data["grupo_utn"] = {
             "id": self.grupo_utn.id,
             "nombre": self.grupo_utn.nombre_sigla_grupo

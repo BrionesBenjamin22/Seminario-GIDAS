@@ -112,7 +112,7 @@ def actualizar_personal(id, data, rol):
         raise
 
 
-def eliminar_personal_por_rol(id, rol):
+def eliminar_personal_por_rol(id, rol, user_id):
     if rol == 'personal':
         personal = Personal.query.get(id)
     elif rol == 'becario':
@@ -121,13 +121,14 @@ def eliminar_personal_por_rol(id, rol):
         personal = Investigador.query.get(id)
     else:
         raise ValueError("Rol inválido.")
+    
     if not personal:
         raise ValueError("Personal no encontrado.")
 
     if not personal.activo:
         raise ValueError("El personal ya se encuentra dado de baja.")
 
-    personal.activo = False
+    personal.soft_delete(user_id)
 
     try:
         db.session.commit()

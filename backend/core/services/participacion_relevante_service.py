@@ -45,7 +45,7 @@ class ParticipacionRelevanteService:
 
 
     @staticmethod
-    def create(data: dict):
+    def create(data: dict, user_id: int):
         # ---- Validar fecha ----
         try:
             fecha = datetime.strptime(data["fecha"], "%Y-%m-%d").date()
@@ -73,7 +73,8 @@ class ParticipacionRelevanteService:
             existente = ParticipacionRelevante.query.filter(
                 and_(
                     ParticipacionRelevante.investigador_id == investigador_id,
-                    ParticipacionRelevante.nombre_evento == nombre_evento
+                    ParticipacionRelevante.nombre_evento == nombre_evento,
+                    ParticipacionRelevante.deleted_at.is_(None)
                 )
             ).first()
 
@@ -86,7 +87,7 @@ class ParticipacionRelevanteService:
             nombre_evento=nombre_evento,
             forma_participacion=data["forma_participacion"],
             fecha=fecha,
-            investigador_id=investigador_id
+            investigador_id=investigador_id,
         )
 
         db.session.add(participacion)
@@ -122,7 +123,8 @@ class ParticipacionRelevanteService:
             existente = ParticipacionRelevante.query.filter(
                 ParticipacionRelevante.investigador_id == investigador_id,
                 ParticipacionRelevante.nombre_evento == nombre_evento,
-                ParticipacionRelevante.id != participacion_id
+                ParticipacionRelevante.id != participacion_id,
+                ParticipacionRelevante.deleted_at.is_(None)
             ).first()
 
             if existente:
@@ -150,11 +152,11 @@ class ParticipacionRelevanteService:
 
 
     @staticmethod
-    def delete(participacion_id: int):
+    def delete(participacion_id: int, user_id: int):
         part = ParticipacionRelevante.query.get(participacion_id)
         if not part:
             raise Exception("Participación relevante no encontrada")
 
-        db.session.delete(part)
+        part.soft_delete(user_id)
         db.session.commit()
         return {"message": "Participación relevante eliminada correctamente"}
