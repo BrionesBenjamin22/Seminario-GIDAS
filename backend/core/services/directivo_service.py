@@ -7,13 +7,39 @@ from core.models.grupo import GrupoInvestigacionUtn
 
 class DirectivoGrupoService:
 
+    # =========================================================
+    # HELPERS
+    # =========================================================
+
+    @staticmethod
+    def _get_activo_or_404(model, obj_id, mensaje):
+        obj = db.session.get(model, obj_id)
+
+        if not obj or obj.deleted_at is not None:
+            raise ValueError(mensaje)
+
+        return obj
+
+
+    # =========================================================
+    # GET ALL
+    # =========================================================
 
     @staticmethod
     def get_all_srv():
-        return [d.serialize() for d in Directivo.query.all()]
-    # =========================
+        directivos = (
+            Directivo.query
+            .filter(Directivo.deleted_at.is_(None))
+            .all()
+        )
+
+        return [d.serialize() for d in directivos]
+
+
+    # =========================================================
     # CREAR DIRECTIVO
-    # =========================
+    # =========================================================
+
     @staticmethod
     def crear_directivo(data: dict, user_id: int):
 
@@ -29,9 +55,14 @@ class DirectivoGrupoService:
         db.session.commit()
 
         return directivo.serialize()
-    
+
+
+    # =========================================================
+    # UPDATE DIRECTIVO
+    # =========================================================
+
     @staticmethod
-    def actualizar_directivo(directivo_id: int, data: dict):
+    def actualizar_directivo(directivo_id: int, data: dict, user_id: int):
 
         directivo = DirectivoGrupoService._get_activo_or_404(
             Directivo,
@@ -46,6 +77,10 @@ class DirectivoGrupoService:
 
         return directivo.serialize()
 
+
+    # =========================================================
+    # ASIGNAR DIRECTIVO A GRUPO
+    # =========================================================
 
     @staticmethod
     def asignar_a_grupo(data: dict, user_id: int):
@@ -64,9 +99,9 @@ class DirectivoGrupoService:
             GrupoInvestigacionUtn, data["id_grupo_utn"], "Grupo no encontrado."
         )
 
-        cargo = DirectivoGrupoService._get_activo_or_404(
-            Cargo, data["id_cargo"], "Cargo no encontrado."
-        )
+        cargo = db.session.get(Cargo, data["id_cargo"])
+        if not cargo:
+            raise ValueError("Cargo no encontrado.")
 
         fecha_inicio = datetime.strptime(
             data["fecha_inicio"], "%Y-%m-%d"
@@ -81,7 +116,7 @@ class DirectivoGrupoService:
             if fecha_fin < fecha_inicio:
                 raise ValueError("La fecha_fin no puede ser anterior a fecha_inicio.")
 
-        
+        # 🔍 Validar superposición de períodos
         existentes = DirectivoGrupo.query.filter(
             DirectivoGrupo.id_grupo_utn == grupo.id,
             DirectivoGrupo.id_cargo == cargo.id,
@@ -112,8 +147,12 @@ class DirectivoGrupoService:
         return {"message": "Directivo asignado correctamente."}
 
 
+    # =========================================================
+    # FINALIZAR CARGO
+    # =========================================================
+
     @staticmethod
-    def finalizar_cargo(data: dict):
+    def finalizar_cargo(data: dict, user_id: int):
 
         required = ["id_directivo", "id_grupo_utn", "fecha_fin"]
 
@@ -145,15 +184,16 @@ class DirectivoGrupoService:
         return {"message": "Cargo finalizado correctamente."}
 
 
-    # =========================
+    # =========================================================
     # OBTENER DIRECTIVOS POR GRUPO
-    # =========================
+    # =========================================================
+
     @staticmethod
     def get_por_grupo(grupo_id: int):
 
         grupo = GrupoInvestigacionUtn.query.get(grupo_id)
 
-        if not grupo:
+        if not grupo or grupo.deleted_at is not None:
             raise ValueError("Grupo no encontrado.")
 
         return [
@@ -164,8 +204,10 @@ class DirectivoGrupoService:
                 "fecha_inicio": str(p.fecha_inicio),
                 "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
             }
-            for p in grupo.participaciones_directivos if p.deleted_at is None
+            for p in grupo.participaciones_directivos
+            if p.deleted_at is None
         ]
+
 
     @staticmethod
     def get_actuales_por_grupo(grupo_id: int):
@@ -177,7 +219,7 @@ class DirectivoGrupoService:
             DirectivoGrupo.id_grupo_utn == grupo_id,
             DirectivoGrupo.fecha_fin.is_(None),
             DirectivoGrupo.deleted_at.is_(None)
-        )
+        ).all()
 
         return [
             {
@@ -188,3 +230,23 @@ class DirectivoGrupoService:
             }
             for p in participaciones
         ]
+
+
+    # =========================================================
+    # SOFT DELETE DIRECTIVO
+    # =========================================================
+
+    @staticmethod
+    def delete_directivo(directivo_id: int, user_id: int):
+
+        directivo = DirectivoGrupoService._get_activo_or_404(
+            Directivo,
+            directivo_id,
+            "Directivo no encontrado."
+        )
+
+        directivo.soft_delete(user_id)
+
+        db.session.commit()
+
+        return {"message": "Directivo eliminado correctamente."}
