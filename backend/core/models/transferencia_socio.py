@@ -1,29 +1,50 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 
+class AdoptanteTransferencia(db.Model, AuditMixin):
+    __tablename__ = 'adoptante_x_transferencia'
 
-adoptante_transferencia = db.Table(
-    'adoptante_x_transferencia',
-    db.Column('adoptante_id', db.Integer, db.ForeignKey('adoptante.id'), primary_key=True),
-    db.Column('transferencia_socio_productiva_id', db.Integer, db.ForeignKey('transferencia_socio_productiva.id'), primary_key=True)
-)
+    id = db.Column(db.Integer, primary_key=True)
 
+    adoptante_id = db.Column(
+        db.Integer,
+        db.ForeignKey('adoptante.id'),
+        nullable=False
+    )
 
-class Adoptante(db.Model):
+    transferencia_id = db.Column(
+        db.Integer,
+        db.ForeignKey('transferencia_socio_productiva.id'),
+        nullable=False
+    )
+
+    adoptante = db.relationship('Adoptante', back_populates='participaciones')
+    transferencia = db.relationship('TransferenciaSocioProductiva', back_populates='participaciones')
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "adoptante_id",
+            "transferencia_id",
+            "deleted_at",
+            name="uq_adoptante_transferencia_activo"
+        ),
+    )
+
+class Adoptante(db.Model, AuditMixin):
     __tablename__ = 'adoptante'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     nombre = db.Column(db.Text, nullable=False)
     
-    transferencias = db.relationship(
-        'TransferenciaSocioProductiva',
-        secondary=adoptante_transferencia,
-        back_populates='adoptantes'
+    participaciones = db.relationship(
+        'AdoptanteTransferencia',
+        back_populates='adoptante'
     )
 
     def serialize(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return self.to_dict()
 
-class TransferenciaSocioProductiva(db.Model):
+class TransferenciaSocioProductiva(db.Model, AuditMixin):
     __tablename__ = 'transferencia_socio_productiva'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -35,12 +56,11 @@ class TransferenciaSocioProductiva(db.Model):
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=True)
     
-    adoptantes = db.relationship(
-        'Adoptante',
-        secondary=adoptante_transferencia,
-        back_populates='transferencias'
+    participaciones = db.relationship(
+        'AdoptanteTransferencia',
+        back_populates='transferencia'
     )
-
+    
     tipo_contrato_id = db.Column(db.Integer, db.ForeignKey('tipo_contrato_transferencia.id'), nullable=False)
     tipo_contrato_transferencia = db.relationship('TipoContrato', back_populates='transferencias')
 
@@ -48,9 +68,7 @@ class TransferenciaSocioProductiva(db.Model):
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='transferencias_socio_productivas')
 
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        data.pop("tipo_contrato_id", None)
-        data.pop("grupo_utn_id", None)
+        data = self.to_dict()
         data["tipo_contrato"] = (
             self.tipo_contrato_transferencia.nombre if self.tipo_contrato_transferencia else None
         )
@@ -63,8 +81,6 @@ class TransferenciaSocioProductiva(db.Model):
         data["grupo"] = (
             self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         )
-        data["fecha_inicio"] = self.fecha_inicio.isoformat()
-        data["fecha_fin"] = self.fecha_fin.isoformat() if self.fecha_fin else None
 
         return data
 
