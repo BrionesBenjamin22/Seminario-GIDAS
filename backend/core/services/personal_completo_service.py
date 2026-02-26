@@ -48,10 +48,7 @@ def listar_personal_completo():
                     "nombre": b.tipo_formacion.nombre
                 } if b.tipo_formacion else None,
 
-                "fuente_financiamiento": {
-                    "id": b.fuente_financiamiento.id,
-                    "nombre": b.fuente_financiamiento.nombre
-                } if b.fuente_financiamiento else None,
+
 
                 "proyectos": [
                     {

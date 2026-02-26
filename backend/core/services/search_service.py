@@ -72,7 +72,7 @@ class SearchService:
         becario_results = db.session.query(Becario)\
         .options(
             joinedload(Becario.tipo_formacion),
-            joinedload(Becario.fuente_financiamiento),
+
             joinedload(Becario.participaciones_proyecto)
                 .joinedload(BecarioProyecto.proyecto)
         )\
@@ -91,8 +91,7 @@ class SearchService:
                     "fecha": None,
                     "url": f"/becarios/{b.id}",
                     "extra": {
-                        "fuente_financiamiento": b.fuente_financiamiento.nombre
-                            if b.fuente_financiamiento else None,
+
                         "proyectos": [
                             {
                                 "id": p.proyecto.id,
