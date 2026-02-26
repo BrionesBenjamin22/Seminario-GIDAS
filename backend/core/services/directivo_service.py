@@ -99,9 +99,9 @@ class DirectivoGrupoService:
             GrupoInvestigacionUtn, data["id_grupo_utn"], "Grupo no encontrado."
         )
 
-        cargo = DirectivoGrupoService._get_activo_or_404(
-            Cargo, data["id_cargo"], "Cargo no encontrado."
-        )
+        cargo = db.session.get(Cargo, data["id_cargo"])
+        if not cargo:
+            raise ValueError("Cargo no encontrado.")
 
         fecha_inicio = datetime.strptime(
             data["fecha_inicio"], "%Y-%m-%d"
