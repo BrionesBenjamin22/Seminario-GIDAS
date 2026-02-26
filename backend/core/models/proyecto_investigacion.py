@@ -120,53 +120,75 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
         back_populates="proyecto",
         cascade="all, delete-orphan"
     )
+
+
     def serialize(self):
         data = self.to_dict()
 
-        data["grupo_utn"] = {
-            "id": self.grupo_utn.id,
-            "nombre": self.grupo_utn.nombre_sigla_grupo
-        } if self.grupo_utn else None
-
-        data["fuente_financiamiento"] = {
-            "id": self.fuente_financiamiento.id,
-            "nombre": self.fuente_financiamiento.nombre
-        } if self.fuente_financiamiento else None
-
-        data["planificacion"] = {
-            "id": self.planificacion.id,
-            "descripcion": self.planificacion.descripcion
-        } if self.planificacion else None
-
-        data["investigadores"] = [
-        {
-            "id": p.investigador.id,
-            "nombre_apellido": p.investigador.nombre_apellido,
-            "fecha_inicio": p.fecha_inicio.isoformat(),
-            "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
-        }
-        for p in self.participaciones_investigador
-        if p.deleted_at is None
-        ]
-
-        data["becarios"] = [
-            {
-                "id": p.becario.id,
-                "nombre_apellido": p.becario.nombre_apellido,
-                "fecha_inicio": p.fecha_inicio.isoformat(),
-                "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
+        # Grupo
+        if self.grupo_utn:
+            data["grupo_utn"] = {
+                "id": self.grupo_utn.id,
+                "nombre": self.grupo_utn.nombre_sigla_grupo
             }
-            for p in self.participaciones_becario
-            if p.deleted_at is None
-        ]
-        
-        data["tipo_proyecto"] = {
-            "id": self.tipo_proyecto.id,
-            "nombre": self.tipo_proyecto.nombre
-        } if self.tipo_proyecto else None
+        else:
+            data["grupo_utn"] = None
 
-        data["distinciones"] = [
-            d.serialize() for d in self.distinciones
-        ]
-        
+        # Fuente
+        if self.fuente_financiamiento:
+            data["fuente_financiamiento"] = {
+                "id": self.fuente_financiamiento.id,
+                "nombre": self.fuente_financiamiento.nombre
+            }
+        else:
+            data["fuente_financiamiento"] = None
+
+        # Planificación
+        if self.planificacion:
+            data["planificacion"] = {
+                "id": self.planificacion.id,
+                "descripcion": self.planificacion.descripcion
+            }
+        else:
+            data["planificacion"] = None
+
+        # Tipo
+        if self.tipo_proyecto:
+            data["tipo_proyecto"] = {
+                "id": self.tipo_proyecto.id,
+                "nombre": self.tipo_proyecto.nombre
+            }
+        else:
+            data["tipo_proyecto"] = None
+
+        # Investigadores
+        data["investigadores"] = []
+        for p in self.participaciones_investigador:
+            if p.deleted_at is None and p.investigador:
+                data["investigadores"].append({
+                    "id": p.investigador.id,
+                    "nombre_apellido": p.investigador.nombre_apellido,
+                    "fecha_inicio": p.fecha_inicio.isoformat(),
+                    "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
+                })
+
+        # Becarios
+        data["becarios"] = []
+        for p in self.participaciones_becario:
+            if p.deleted_at is None and p.becario:
+                data["becarios"].append({
+                    "id": p.becario.id,
+                    "nombre_apellido": p.becario.nombre_apellido,
+                    "fecha_inicio": p.fecha_inicio.isoformat(),
+                    "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
+                })
+
+        # Distinciones (blindado)
+        data["distinciones"] = []
+        for d in self.distinciones:
+            try:
+                data["distinciones"].append(d.serialize())
+            except:
+                pass
+
         return data

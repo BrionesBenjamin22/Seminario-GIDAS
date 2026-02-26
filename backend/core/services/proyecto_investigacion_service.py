@@ -98,6 +98,26 @@ class ProyectoInvestigacionService:
 
         if not TipoProyecto.query.get(data.get("tipo_proyecto_id")):
             raise Exception("Tipo de proyecto inválido")
+        
+        if data.get("planificacion_id"):
+            planificacion = PlanificacionGrupo.query.get(data["planificacion_id"])
+            if not planificacion:
+                raise ValueError("Planificación inválida")
+            
+        if data.get("fuente_financiamiento_id"):
+            fuente = FuenteFinanciamiento.query.get(data["fuente_financiamiento_id"])
+            if not fuente:
+                raise ValueError("Fuente de financiamiento inválida")
+            
+        if data.get("grupo_utn_id"):
+            grupo = GrupoInvestigacionUtn.query.get(data["grupo_utn_id"])
+            if not grupo:
+                raise ValueError("Grupo UTN inválido")
+            
+        if data.get("tipo_proyecto_id"):
+            tipo = TipoProyecto.query.get(data["tipo_proyecto_id"])
+            if not tipo:
+                raise ValueError("Tipo de proyecto inválido")
 
         proyecto = ProyectoInvestigacion(
             codigo_proyecto=data["codigo_proyecto"],
@@ -111,6 +131,7 @@ class ProyectoInvestigacionService:
             grupo_utn_id=data.get("grupo_utn_id"),
             fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
             planificacion_id=data.get("planificacion_id"),
+            created_by=user_id
         )
 
         db.session.add(proyecto)
