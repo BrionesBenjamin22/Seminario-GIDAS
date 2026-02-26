@@ -584,7 +584,6 @@ class SearchService:
 
         transferencias = db.session.query(TransferenciaSocioProductiva)\
             .options(
-                joinedload(TransferenciaSocioProductiva.adoptantes),
                 joinedload(TransferenciaSocioProductiva.tipo_contrato_transferencia),
                 joinedload(TransferenciaSocioProductiva.grupo_utn)
             )\
@@ -618,7 +617,9 @@ class SearchService:
                         ),
                         "monto": t.monto,
                         "adoptantes": [
-                            a.nombre for a in t.adoptantes
+                            p.adoptante.nombre
+                            for p in t.participaciones
+                            if p.deleted_at is None and p.adoptante
                         ]
                     }
                 })

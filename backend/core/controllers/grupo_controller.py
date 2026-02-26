@@ -1,4 +1,4 @@
-from flask import jsonify, request, g
+from flask import jsonify, request, g, send_file
 from core.services.grupo_service import (
     crear_grupo_utn,
     obtener_grupo_utn,
@@ -6,6 +6,7 @@ from core.services.grupo_service import (
     eliminar_grupo_utn,
     restaurar_grupo_utn
 )
+from core.services.exportacion_service import ExportService
 
 class GrupoUtnController:
 
@@ -76,3 +77,15 @@ class GrupoUtnController:
                 return jsonify({"error": str(ve)}), 400
         except Exception as e:
                 return jsonify({"error": str(e)}), 500
+            
+            
+    @staticmethod
+    def exportar_excel():
+        archivo = ExportService.generar_excel_grupo(1)
+
+        return send_file(
+            archivo,
+            as_attachment=True,
+            download_name="reporte_GIDAS.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
