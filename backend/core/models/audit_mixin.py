@@ -33,6 +33,14 @@ class AuditMixin:
     def deleter(cls):
         return db.relationship("Usuario", foreign_keys=[cls.deleted_by], primaryjoin=f"Usuario.id == {cls.__name__}.deleted_by")
 
+    @property
+    def creator_name(self):
+        return self.creator.nombre_usuario if self.creator else None
+
+    @property
+    def deleter_name(self):
+        return self.deleter.nombre_usuario if self.deleter else None
+
     def soft_delete(self, user_id: int):
         self.deleted_at = datetime.utcnow()
         self.deleted_by = user_id
