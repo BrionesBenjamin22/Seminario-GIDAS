@@ -1,56 +1,78 @@
-from flask import jsonify, request, Response, Request
+from flask import jsonify, request, g
 from core.services.grupo_service import (
     crear_grupo_utn,
     obtener_grupo_utn,
     actualizar_grupo_utn,
-    eliminar_grupo_utn
+    eliminar_grupo_utn,
+    restaurar_grupo_utn
 )
 
 class GrupoUtnController:
 
     @staticmethod
     def crear():
-        data = request.get_json()
         try:
-            grupo = crear_grupo_utn(data)
+            data = request.get_json()
+            user_id = g.current_user_id
+
+            grupo = crear_grupo_utn(data, user_id)
+
             return jsonify(grupo.serialize()), 201
+
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception as e:
-            print(e)
-            return jsonify({"error": "Error interno", "detail": str(e)}), 500
+            return jsonify({"error": str(e)}), 500
+
 
     @staticmethod
-    def obtener() -> Response:
+    def obtener():
         try:
             grupo = obtener_grupo_utn()
+
             if not grupo:
-                return jsonify({"error": "No se ha configurado un grupo de investigación."}), 404
+                return jsonify({"error": "No se ha configurado un grupo."}), 404
+
             return jsonify(grupo.serialize()), 200
+
         except Exception as e:
-            print("ERROR REAL:", e)   # 👈 CLAVE
             return jsonify({"error": str(e)}), 500
 
 
     @staticmethod
     def actualizar():
-        data = request.get_json()
         try:
+            data = request.get_json()
             grupo = actualizar_grupo_utn(data)
+
             return jsonify(grupo.serialize()), 200
+
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception as e:
-            print(e)
-            return jsonify({"error": "Error interno", "detail": str(e)}), 500
+            return jsonify({"error": str(e)}), 500
+
 
     @staticmethod
     def eliminar():
         try:
-            eliminar_grupo_utn()
-            return jsonify({"message": "Grupo eliminado correctamente"}), 200
+            user_id = g.current_user_id
+
+            result = eliminar_grupo_utn(user_id)
+
+            return jsonify(result), 200
+
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 404
         except Exception as e:
-            print(e)
-            return jsonify({"error": "Error interno", "detail": str(e)}), 500
+            return jsonify({"error": str(e)}), 500
+        
+    @staticmethod
+    def restaurar():
+        try:
+            grupo = restaurar_grupo_utn()
+            return jsonify(grupo.serialize()), 200
+        except ValueError as ve:
+                return jsonify({"error": str(ve)}), 400
+        except Exception as e:
+                return jsonify({"error": str(e)}), 500

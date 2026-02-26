@@ -72,12 +72,14 @@ class TransferenciaSocioProductiva(db.Model, AuditMixin):
         data["tipo_contrato"] = (
             self.tipo_contrato_transferencia.nombre if self.tipo_contrato_transferencia else None
         )
-        data["adoptantes"] = [{
-            "id": adoptante.id,
-            "nombre": adoptante.nombre
+        data["adoptantes"] = [
+        {
+            "id": p.adoptante.id,
+            "nombre": p.adoptante.nombre
         }
-        for adoptante in self.adoptantes
-        ]
+        for p in self.participaciones
+        if p.deleted_at is None
+]
         data["grupo"] = (
             self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         )

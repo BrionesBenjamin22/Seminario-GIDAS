@@ -20,6 +20,7 @@ def crear():
 # Obtener grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["GET"], strict_slashes=False)
+@requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def obtener():
     return GrupoUtnController.obtener()
 
@@ -39,3 +40,9 @@ def actualizar():
 @requiere_rol("ADMIN")
 def eliminar():
     return GrupoUtnController.eliminar()
+
+
+@grupo_utn_bp.route("/restore", methods=["PUT"])
+@requiere_rol("ADMIN")
+def restaurar():
+    return GrupoUtnController.restaurar()

@@ -1,14 +1,8 @@
-"""Columna activo en Audit mixin
+"""empty message
 
-<<<<<<<< HEAD:backend/migrations/versions/b3f2e396589a_columna_activo_en_audit_mixin.py
-Revision ID: b3f2e396589a
+Revision ID: 61496a28b39f
 Revises: 
-Create Date: 2026-02-26 01:49:57.683367
-========
-Revision ID: f6c66392f883
-Revises: 
-Create Date: 2026-02-26 01:49:26.653293
->>>>>>>> 797d783380a36657f741dce471345d6dfd688309:backend/migrations/versions/f6c66392f883_.py
+Create Date: 2026-02-26 04:55:50.019425
 
 """
 from alembic import op
@@ -16,11 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-<<<<<<<< HEAD:backend/migrations/versions/b3f2e396589a_columna_activo_en_audit_mixin.py
-revision = 'b3f2e396589a'
-========
-revision = 'f6c66392f883'
->>>>>>>> 797d783380a36657f741dce471345d6dfd688309:backend/migrations/versions/f6c66392f883_.py
+revision = '61496a28b39f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -219,6 +209,12 @@ def upgrade():
     sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('tipo_formacion_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['tipo_formacion_id'], ['tipo_formacion_becario.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -307,7 +303,13 @@ def upgrade():
     sa.Column('categoria_utn_id', sa.Integer(), nullable=True),
     sa.Column('programa_incentivos_id', sa.Integer(), nullable=True),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['categoria_utn_id'], ['categoria_utn.id'], ),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['programa_incentivos_id'], ['programa_incentivos_investigador.id'], ),
     sa.ForeignKeyConstraint(['tipo_dedicacion_id'], ['tipo_dedicacion.id'], ),
@@ -320,6 +322,12 @@ def upgrade():
     sa.Column('activo', sa.Boolean(), nullable=False),
     sa.Column('tipo_personal_id', sa.Integer(), nullable=False),
     sa.Column('grupo_utn_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
     sa.ForeignKeyConstraint(['grupo_utn_id'], ['grupo_utn.id'], ),
     sa.ForeignKeyConstraint(['tipo_personal_id'], ['tipo_personal.id'], ),
     sa.PrimaryKeyConstraint('id')
