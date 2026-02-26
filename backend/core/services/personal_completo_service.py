@@ -7,11 +7,12 @@ def listar_personal_completo():
     # --------------------
     # PERSONAL (solo activos)
     # --------------------
-    for p in Personal.query.filter(Personal.activo == True).all():
+    for p in Personal.query.all():
         resultado.append({
             "id": p.id,
             "nombre_apellido": p.nombre_apellido,
             "horas_semanales": p.horas_semanales,
+            "activo": p.activo,
             "rol": "personal",
 
             "grupo": {
@@ -30,11 +31,12 @@ def listar_personal_completo():
     # --------------------
     # BECARIOS (solo activos)
     # --------------------
-    for b in Becario.query.filter(Becario.activo == True).all():
+    for b in Becario.query.all():
         resultado.append({
             "id": b.id,
             "nombre_apellido": b.nombre_apellido,
             "horas_semanales": b.horas_semanales,
+            "activo": b.activo,
             "rol": "becario",
 
             "grupo": {
@@ -64,11 +66,12 @@ def listar_personal_completo():
     # --------------------
     # INVESTIGADORES (solo activos)
     # --------------------
-    for i in Investigador.query.filter(Investigador.activo == True).all():
+    for i in Investigador.query.all():
         resultado.append({
             "id": i.id,
             "nombre_apellido": i.nombre_apellido,
             "horas_semanales": i.horas_semanales,
+            "activo": i.activo,
             "rol": "investigador",
 
             "grupo": {
@@ -134,7 +137,7 @@ def obtener_personal_por_tipo(rol, id):
     rol = rol.lower()
 
     if rol == "personal":
-        p = Personal.query.filter_by(id=id, activo=True).first()
+        p = Personal.query.filter_by(id=id).first()
         if not p:
             return None
 
@@ -142,6 +145,7 @@ def obtener_personal_por_tipo(rol, id):
             "id": p.id,
             "nombre_apellido": p.nombre_apellido,
             "horas_semanales": p.horas_semanales,
+            "activo": p.activo,
             "rol": "personal",
             "grupo": {
                 "id": p.grupo_utn.id,
@@ -156,7 +160,7 @@ def obtener_personal_por_tipo(rol, id):
         }
 
     if rol == "becario":
-        b = Becario.query.filter_by(id=id, activo=True).first()
+        b = Becario.query.filter_by(id=id).first()
         if not b:
             return None
 
@@ -202,7 +206,7 @@ def obtener_personal_por_tipo(rol, id):
         }
 
     if rol == "investigador":
-        i = Investigador.query.filter_by(id=id, activo=True).first()
+        i = Investigador.query.filter_by(id=id).first()
         if not i:
             return None
 
