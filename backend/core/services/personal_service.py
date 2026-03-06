@@ -1,7 +1,8 @@
 from extension import db
-from core.models.personal import Personal, Becario, Investigador
+from core.models.personal import Personal, Becario, Investigador, PersonalHorasHistorial, BecarioHorasHistorial, InvestigadorHorasHistorial
 from core.models.tipo_personal import TipoPersonal
 from core.models.grupo import GrupoInvestigacionUtn
+from datetime import date
 
 
 # =====================================================
@@ -40,26 +41,42 @@ def crear_personal(data, user_id):
     )
 
     db.session.add(nuevo)
+    db.session.flush()
+
+    # Crear historial inicial
+    historial = PersonalHorasHistorial(
+        personal_id=nuevo.id,
+        horas_semanales=horas,
+        fecha_inicio=date.today(),
+        fecha_fin=None,
+        created_by=user_id
+    )
+
+    db.session.add(historial)
     db.session.commit()
 
     return nuevo
-
 
 # =====================================================
 # ACTUALIZAR PERSONAL
 # =====================================================
 
-def actualizar_personal(id, data, rol):
-
+def actualizar_personal(id, data, rol, user_id:int):
     if rol == "personal":
         entidad = Personal.query.get(id)
+        HistorialModel = PersonalHorasHistorial
+        fk_field = "personal_id"
+
     elif rol == "becario":
         entidad = Becario.query.get(id)
+        HistorialModel = BecarioHorasHistorial
+        fk_field = "becario_id"
+
     elif rol == "investigador":
         entidad = Investigador.query.get(id)
-    else:
-        raise ValueError("Rol inválido.")
-
+        HistorialModel = InvestigadorHorasHistorial
+        fk_field = "investigador_id"
+    
     if not entidad:
         raise ValueError("Registro no encontrado.")
 
@@ -71,9 +88,41 @@ def actualizar_personal(id, data, rol):
         entidad.nombre_apellido = data["nombre_apellido"].strip()
 
     if "horas_semanales" in data:
-        if not isinstance(data["horas_semanales"], int) or data["horas_semanales"] <= 0:
+
+        horas = data["horas_semanales"]
+
+        if not isinstance(horas, int) or horas <= 0:
             raise ValueError("Las horas semanales deben ser un número positivo.")
-        entidad.horas_semanales = data["horas_semanales"]
+
+        historial_activo = next(
+            (h for h in entidad.historial_horas if h.fecha_fin is None),
+            None
+        )
+
+        if not historial_activo:
+            nuevo = HistorialModel(
+                **{fk_field: entidad.id},
+                horas_semanales=horas,
+                fecha_inicio=date.today(),
+                fecha_fin=None,
+                created_by=user_id
+            )
+            db.session.add(nuevo)
+
+        elif historial_activo.horas_semanales != horas:
+
+            historial_activo.fecha_fin = date.today()
+
+            nuevo = HistorialModel(
+                **{fk_field: entidad.id},
+                horas_semanales=horas,
+                fecha_inicio=date.today(),
+                fecha_fin=None,
+                created_by=user_id
+            )
+            db.session.add(nuevo)
+
+        entidad.horas_semanales = horas
 
     if "activo" in data:
         entidad.activo = data["activo"]
@@ -140,11 +189,21 @@ def eliminar_personal_por_rol(id, rol, user_id):
         raise ValueError("Rol inválido.")
 
     if not entidad:
-        raise ValueError("Personal no encontrado.")
+        raise ValueError("Registro no encontrado.")
 
     if entidad.deleted_at is not None:
         raise ValueError("El registro ya se encuentra eliminado.")
 
+    # Cerrar historial activo
+    historial_activo = next(
+        (h for h in entidad.historial_horas if h.fecha_fin is None),
+        None
+    )
+
+    if historial_activo:
+        historial_activo.fecha_fin = date.today()
+
+    entidad.activo = False
     entidad.soft_delete(user_id)
 
     db.session.commit()
@@ -153,8 +212,6 @@ def eliminar_personal_por_rol(id, rol, user_id):
         "message": "Personal eliminado correctamente (soft delete).",
         "id": entidad.id
     }
-
-
 # =====================================================
 # RESTORE
 # =====================================================

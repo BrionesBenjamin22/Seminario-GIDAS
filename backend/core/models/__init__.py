@@ -9,7 +9,7 @@ from .erogacion import Erogacion, TipoErogacion
 from .fuente_financiamiento import FuenteFinanciamiento
 from .grupo import GrupoInvestigacionUtn
 from .participacion_relevante import ParticipacionRelevante
-from .personal import Investigador, Becario, TipoFormacion, TipoDedicacion, Personal
+from .personal import Investigador, Becario, TipoFormacion, TipoDedicacion, Personal, BecarioHorasHistorial, InvestigadorHorasHistorial
 from .becas import Beca, Beca_Becario
 from .programa_actividades import PlanificacionGrupo
 from .programa_incentivos import ProgramaIncentivos

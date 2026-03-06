@@ -11,10 +11,17 @@ from core.services.investigador_service import (
 
 class InvestigadorController:
 
+    # =====================================================
+    # CREATE
+    # =====================================================
     @staticmethod
     def crear(req: Request) -> Response:
         try:
             data = req.get_json()
+
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id
 
             investigador = crear_investigador(data, user_id)
@@ -23,10 +30,17 @@ class InvestigadorController:
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
 
 
+    # =====================================================
+    # LISTAR
+    # =====================================================
     @staticmethod
     def listar(req: Request) -> Response:
         try:
@@ -36,9 +50,15 @@ class InvestigadorController:
             return jsonify([i.serialize() for i in investigadores]), 200
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
 
 
+    # =====================================================
+    # OBTENER POR ID
+    # =====================================================
     @staticmethod
     def obtener_por_id(req: Request, id: int) -> Response:
         try:
@@ -48,14 +68,25 @@ class InvestigadorController:
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 404
+
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
 
 
+    # =====================================================
+    # UPDATE
+    # =====================================================
     @staticmethod
     def actualizar(req: Request, id: int) -> Response:
         try:
             data = req.get_json()
+
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id
 
             investigador = actualizar_investigador(id, data, user_id)
@@ -64,13 +95,23 @@ class InvestigadorController:
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
 
 
+    # =====================================================
+    # DELETE
+    # =====================================================
     @staticmethod
     def eliminar(req: Request, id: int) -> Response:
         try:
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id
 
             result = eliminar_investigador(id, user_id)
@@ -79,10 +120,17 @@ class InvestigadorController:
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 404
+
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500
 
 
+    # =====================================================
+    # RESTAURAR
+    # =====================================================
     @staticmethod
     def restaurar(req: Request, id: int) -> Response:
         try:
@@ -92,5 +140,9 @@ class InvestigadorController:
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({
+                "error": "Error interno del servidor",
+                "detail": str(e)
+            }), 500

@@ -20,12 +20,33 @@ class Personal(db.Model, AuditMixin):
     tipo_personal = db.relationship('TipoPersonal', back_populates='personal')
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='personal')
     
+    
+    historial_horas = db.relationship(
+        "PersonalHorasHistorial",
+        back_populates="personal",
+        cascade="all, delete-orphan"
+    )
+
 
     def serialize(self):
         data = self.to_dict()
+        horas_activas = next(
+            (h.horas_semanales for h in self.historial_horas if h.fecha_fin is None),
+            self.horas_semanales
+        )
         data.update({
+            "horas_semanales": horas_activas,
             "tipo_personal": self.tipo_personal.nombre if self.tipo_personal else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
+            "historial_horas": [
+                {
+                    "id": h.id,
+                    "horas_semanales": h.horas_semanales,
+                    "fecha_inicio": str(h.fecha_inicio),
+                    "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
+                }
+                for h in self.historial_horas
+            ]
         })
         return data
 
@@ -71,37 +92,36 @@ class Becario(db.Model, AuditMixin):
         cascade="all, delete-orphan"
     )
 
+    historial_horas = db.relationship(
+    "BecarioHorasHistorial",
+    back_populates="becario",
+    cascade="all, delete-orphan"
+    )
+
     def serialize(self):
         data = self.to_dict()
 
+        horas_activas = next(
+            (h.horas_semanales for h in self.historial_horas if h.fecha_fin is None),
+            self.horas_semanales
+        )
+
         data.update({
+            "horas_semanales": horas_activas,
             "tipo_formacion": self.tipo_formacion.nombre if self.tipo_formacion else None,
             "grupo": self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None,
-            "proyectos": [
+            "historial_horas": [
                 {
-                    "id": p.proyecto.id,
-                    "codigo": p.proyecto.codigo_proyecto,
-                    "nombre": p.proyecto.nombre_proyecto,
-                    "fecha_inicio": str(p.fecha_inicio),
-                    "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
+                    "id": h.id,
+                    "horas_semanales": h.horas_semanales,
+                    "fecha_inicio": str(h.fecha_inicio),
+                    "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
                 }
-                for p in self.participaciones_proyecto
-            ],
-            "becas": [
-                {
-                    "id": b.beca.id,
-                    "nombre_beca": b.beca.nombre_beca,
-                    "descripcion": b.beca.descripcion,
-                    "fecha_inicio": str(b.fecha_inicio),
-                    "fecha_fin": str(b.fecha_fin) if b.fecha_fin else None,
-                    "monto_percibido": b.monto_percibido
-                }
-                for b in self.becas
+                for h in self.historial_horas
             ]
         })
 
         return data
-
 
 class TipoFormacion(db.Model):
     __tablename__ = 'tipo_formacion_becario'
@@ -182,6 +202,12 @@ class Investigador(db.Model, AuditMixin):
         back_populates='investigador',
         cascade='all, delete-orphan'
     )
+    
+    historial_horas = db.relationship(
+        "InvestigadorHorasHistorial",
+        back_populates="investigador",
+        cascade="all, delete-orphan"
+    )
 
     actividades_docencia = db.relationship('ActividadDocencia',
                                            back_populates="investigador")
@@ -201,7 +227,19 @@ class Investigador(db.Model, AuditMixin):
     def serialize(self):
         data = self.to_dict()
 
+        historial_activo = next(
+            (h for h in self.historial_horas if h.fecha_fin is None),
+            None
+        )
+
+        horas_activas = (
+            historial_activo.horas_semanales
+            if historial_activo
+            else self.horas_semanales
+        )
+
         data.update({
+            "horas_semanales": horas_activas,
             "categoria_utn": self.categoria_utn.nombre if self.categoria_utn else None,
             "programa_incentivos": self.programa_incentivos.nombre if self.programa_incentivos else None,
             "tipo_dedicacion": self.tipo_dedicacion.nombre if self.tipo_dedicacion else None,
@@ -223,9 +261,92 @@ class Investigador(db.Model, AuditMixin):
             "trabajos_reunion_cientifica": [
                 {"id": t.id, "trabajo": t.titulo_trabajo}
                 for t in self.trabajos_reunion_cientifica
+            ],
+            "historial_horas": [
+                {
+                    "id": h.id,
+                    "horas_semanales": h.horas_semanales,
+                    "fecha_inicio": str(h.fecha_inicio),
+                    "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
+                }
+                for h in self.historial_horas
             ]
         })
 
         return data
 
+    
+    
+class BecarioHorasHistorial(db.Model, AuditMixin):
+    __tablename__ = "becario_historial_horas"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    becario_id = db.Column(
+        db.Integer,
+        db.ForeignKey("becario.id"),
+        nullable=False
+    )
+
+    horas_semanales = db.Column(db.Integer, nullable=False)
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    becario = db.relationship(
+        "Becario",
+        back_populates="historial_horas"
+    )
+
+    __table_args__ = ()
+    
+    
+    
+class InvestigadorHorasHistorial(db.Model, AuditMixin):
+    __tablename__ = "investigador_historial_horas"
+    id = db.Column(db.Integer, primary_key=True)
+
+    investigador_id = db.Column(
+        db.Integer,
+        db.ForeignKey("investigador.id"),
+        nullable=False
+    )
+
+    horas_semanales = db.Column(db.Integer, nullable=False)
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    investigador = db.relationship(
+        "Investigador",
+        back_populates="historial_horas"
+    )
+
+    __table_args__ = ()
+    
+    
+    
+    
+    
+class PersonalHorasHistorial(db.Model, AuditMixin):
+    __tablename__ = "personal_historial_horas"
+    id = db.Column(db.Integer, primary_key=True)
+
+    personal_id = db.Column(
+        db.Integer,
+        db.ForeignKey("personal.id"),
+        nullable=False
+    )
+
+    horas_semanales = db.Column(db.Integer, nullable=False)
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    personal = db.relationship(
+        "Personal",
+        back_populates="historial_horas"
+    )
+
+    __table_args__ = ()
     

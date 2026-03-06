@@ -1,7 +1,8 @@
 from extension import db
-from core.models.personal import Becario, TipoFormacion
+from core.models.personal import Becario, TipoFormacion, BecarioHorasHistorial
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.proyecto_investigacion import ProyectoInvestigacion
+from datetime import date
 
 
 # =====================================================
@@ -20,7 +21,6 @@ def _get_activo_or_404(id: int):
 # =====================================================
 # CREATE
 # =====================================================
-
 def crear_becario(data: dict, user_id: int):
 
     if not data:
@@ -53,7 +53,21 @@ def crear_becario(data: dict, user_id: int):
         created_by=user_id
     )
 
-    # Asignar proyectos (M:N)
+    db.session.add(becario)
+    db.session.flush()  # necesario para obtener becario.id
+
+    # 🔹 Crear historial inicial SIEMPRE
+    historial = BecarioHorasHistorial(
+        becario_id=becario.id,
+        horas_semanales=horas,
+        fecha_inicio=date.today(),
+        fecha_fin=None,
+        created_by=user_id
+    )
+
+    db.session.add(historial)
+
+    # 🔹 Asignar proyectos (si vienen)
     if proyectos_ids:
         proyectos = ProyectoInvestigacion.query.filter(
             ProyectoInvestigacion.id.in_(proyectos_ids)
@@ -64,8 +78,6 @@ def crear_becario(data: dict, user_id: int):
 
         becario.participaciones_proyecto = proyectos
 
-    db.session.add(becario)
-
     try:
         db.session.commit()
         return becario
@@ -73,12 +85,11 @@ def crear_becario(data: dict, user_id: int):
         db.session.rollback()
         raise
 
-
 # =====================================================
 # UPDATE
 # =====================================================
 
-def actualizar_becario(id: int, data: dict):
+def actualizar_becario(id: int, data: dict, user_id:int):
 
     becario = _get_activo_or_404(id)
 
@@ -96,10 +107,45 @@ def actualizar_becario(id: int, data: dict):
 
     if "horas_semanales" in data:
         horas = data["horas_semanales"]
+
         if not isinstance(horas, int) or horas <= 0:
             raise ValueError("Horas inválidas.")
-        becario.horas_semanales = horas
 
+        # Buscar registro activo
+        historial_activo = next(
+            (h for h in becario.historial_horas if h.fecha_fin is None),
+            None
+        )
+
+        # Si no existe historial activo → crear uno
+        if not historial_activo:
+            nuevo_historial = BecarioHorasHistorial(
+                becario_id=becario.id,
+                horas_semanales=horas,
+                fecha_inicio=date.today(),
+                fecha_fin=None,
+                created_by=user_id
+            )
+            db.session.add(nuevo_historial)
+
+        # Si existe y las horas cambian → cerrar y crear nuevo
+        elif historial_activo.horas_semanales != horas:
+
+            historial_activo.fecha_fin = date.today()
+
+            nuevo_historial = BecarioHorasHistorial(
+                becario_id=becario.id,
+                horas_semanales=horas,
+                fecha_inicio=date.today(),
+                fecha_fin=None,
+                created_by=user_id
+            )
+
+            db.session.add(nuevo_historial)
+
+        # Actualizar campo actual
+        becario.horas_semanales = horas
+        
     if "tipo_formacion_id" in data:
         if not TipoFormacion.query.get(data["tipo_formacion_id"]):
             raise ValueError("Tipo de formación inválido.")
@@ -143,6 +189,15 @@ def eliminar_becario(id: int, user_id: int):
 
     if not becario.activo:
         raise ValueError("El becario ya se encuentra dado de baja.")
+    
+    # Cerrar historial activo
+    historial_activo = next(
+        (h for h in becario.historial_horas if h.fecha_fin is None),
+        None
+    )
+
+    if historial_activo:
+        historial_activo.fecha_fin = date.today()
 
     becario.activo = False
     becario.soft_delete(user_id)

@@ -60,7 +60,7 @@ class TransferenciaSocioProductivaService:
         query = TransferenciaSocioProductiva.query
         filters = filters or {}
 
-        # 🔥 Filtro activos
+        
         activos = filters.get("activos", "true")
 
         if activos == "true":

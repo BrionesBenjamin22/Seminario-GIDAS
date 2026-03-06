@@ -17,7 +17,7 @@ class PersonalController:
         data = req.get_json(force=True, silent=False)
 
         try:
-            user_id = g.current_user_id  # ✅ CORRECTO
+            user_id = g.current_user_id  
 
             personal = crear_personal(data, user_id)
 
@@ -69,21 +69,22 @@ class PersonalController:
         data = req.get_json()
 
         try:
-            personal = actualizar_personal(id, data, rol)
+            user_id = g.current_user_id
+            personal = actualizar_personal(id, data, rol, user_id)
 
             return jsonify(personal.serialize()), 200
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
 
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e :
+            return jsonify({"error": str(e)}), 500
 
 
     @staticmethod
     def eliminar(req, rol, id):
         try:
-            user_id = g.current_user_id  # ✅ CORRECTO
+            user_id = g.current_user_id  
 
             result = eliminar_personal_por_rol(id, rol, user_id)
 

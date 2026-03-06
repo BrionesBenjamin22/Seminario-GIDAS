@@ -70,12 +70,18 @@ class BecarioController:
     # =====================================================
     # UPDATE
     # =====================================================
+
     @staticmethod
     def actualizar(req: Request, id: int) -> Response:
         try:
             data = req.get_json()
 
-            becario = actualizar_becario(id, data)
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
+            user_id = g.current_user_id
+
+            becario = actualizar_becario(id, data, user_id)
             return jsonify(becario.serialize()), 200
 
         except ValueError as ve:
@@ -86,7 +92,6 @@ class BecarioController:
                 "error": "Error interno del servidor",
                 "detail": str(e)
             }), 500
-
 
     # =====================================================
     # SOFT DELETE
