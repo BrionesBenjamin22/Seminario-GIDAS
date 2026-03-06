@@ -1,4 +1,4 @@
-from core.models.actividad_docencia import ActividadDocencia, GradoAcademico, RolActividad
+from core.models.actividad_docencia import ActividadDocencia, GradoAcademico, RolActividad, InvestigadorActividadGrado
 from core.models.personal import Investigador
 from extension import db
 from datetime import datetime, date
@@ -92,6 +92,7 @@ class ActividadDocenciaService:
 
     @staticmethod
     def create(data: dict, user_id: int):
+
         try:
             fecha_inicio = datetime.strptime(
                 data["fecha_inicio"], "%Y-%m-%d"
@@ -137,19 +138,30 @@ class ActividadDocenciaService:
             institucion=institucion,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            grado_academico_id=grado.id,
             rol_actividad_id=rol.id,
             investigador_id=investigador.id,
             created_by=user_id
         )
 
         db.session.add(actividad)
+        db.session.flush()  
+
+        historial = InvestigadorActividadGrado(
+            investigador_id=investigador.id,
+            actividad_docencia_id=actividad.id,
+            grado_academico_id=grado.id,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=None,
+            created_by=user_id
+        )
+
+        db.session.add(historial)
 
         try:
             db.session.commit()
-        except Exception:
+        except Exception as e:
             db.session.rollback()
-            raise Exception("Error al guardar la actividad")
+            raise e
 
         return actividad.serialize()
 
@@ -193,12 +205,35 @@ class ActividadDocenciaService:
             )
 
         if "grado_academico_id" in data:
-            grado = ActividadDocenciaService._get_or_404(
+
+            nuevo_grado = ActividadDocenciaService._get_or_404(
                 GradoAcademico,
                 data["grado_academico_id"],
                 "Grado Académico inválido"
             )
-            actividad.grado_academico_id = grado.id
+
+            # Buscar grado activo actual
+            historial_activo = InvestigadorActividadGrado.query.filter_by(
+                investigador_id=actividad.investigador_id,
+                actividad_docencia_id=actividad.id,
+                fecha_fin=None
+            ).first()
+
+            # Si existe y es distinto → cerrar y abrir nuevo
+            if historial_activo and historial_activo.grado_academico_id != nuevo_grado.id:
+
+                historial_activo.fecha_fin = date.today()
+
+                nuevo_historial = InvestigadorActividadGrado(
+                    investigador_id=actividad.investigador_id,
+                    actividad_docencia_id=actividad.id,
+                    grado_academico_id=nuevo_grado.id,
+                    fecha_inicio=date.today(),
+                    fecha_fin=None,
+                    created_by=data.get("user_id")
+                )
+
+                db.session.add(nuevo_historial)
 
         if "rol_actividad_id" in data:
             rol = ActividadDocenciaService._get_or_404(

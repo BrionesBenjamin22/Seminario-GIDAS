@@ -17,22 +17,18 @@ class ActividadDocencia(db.Model, AuditMixin):
         db.ForeignKey('investigador.id'),
         nullable=False
     )
-
+    
     investigador = db.relationship(
-        'Investigador',
-        back_populates='actividades_docencia'
+    "Investigador",
+    back_populates="actividades_docencia"
     )
 
-    grado_academico_id = db.Column(
-        db.Integer,
-        db.ForeignKey('grado_academico.id')
+    investigadores_grado = db.relationship(
+        "InvestigadorActividadGrado",
+        back_populates="actividad_docencia",
+        cascade="all, delete-orphan"
     )
-
-    grado_academico = db.relationship(
-        'GradoAcademico',
-        back_populates='actividades_docencia'
-    )
-
+        
     rol_actividad_id = db.Column(
         db.Integer,
         db.ForeignKey('rol_actividad_docencia.id')
@@ -46,6 +42,15 @@ class ActividadDocencia(db.Model, AuditMixin):
     def serialize(self):
         data = self.to_dict()
 
+        grado_activo = next(
+            (
+                h.grado_academico
+                for h in self.investigadores_grado
+                if h.fecha_fin is None
+            ),
+            None
+        )
+
         data.update({
             "investigador": (
                 self.investigador.nombre_apellido
@@ -54,10 +59,10 @@ class ActividadDocencia(db.Model, AuditMixin):
             ),
             "grado_academico": (
                 {
-                    "id": self.grado_academico.id,
-                    "nombre": self.grado_academico.nombre
+                    "id": grado_activo.id,
+                    "nombre": grado_activo.nombre
                 }
-                if self.grado_academico else None
+                if grado_activo else None
             ),
             "rol_actividad": (
                 {
@@ -65,7 +70,20 @@ class ActividadDocencia(db.Model, AuditMixin):
                     "nombre": self.rol_actividad.nombre
                 }
                 if self.rol_actividad else None
-            )
+            ),
+            
+            "historial_grados": [
+                {
+                    "id": h.id,
+                    "grado": {
+                        "id": h.grado_academico.id,
+                        "nombre": h.grado_academico.nombre
+                    },
+                    "fecha_inicio": str(h.fecha_inicio),
+                    "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
+                }
+                for h in self.investigadores_grado
+            ]
         })
 
         return data
@@ -95,10 +113,10 @@ class GradoAcademico(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
 
-    actividades_docencia = db.relationship(
-        'ActividadDocencia',
-        back_populates='grado_academico',
-        lazy='select'
+    participaciones = db.relationship(
+        "InvestigadorActividadGrado",
+        back_populates="grado_academico",
+        cascade="all, delete-orphan"
     )
 
     def serialize(self):
@@ -106,3 +124,55 @@ class GradoAcademico(db.Model):
             "id": self.id,
             "nombre": self.nombre
         }
+        
+        
+class InvestigadorActividadGrado(db.Model, AuditMixin):
+    __tablename__ = "investigador_actividad_grado"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    investigador_id = db.Column(
+        db.Integer,
+        db.ForeignKey("investigador.id"),
+        nullable=False
+    )
+
+    actividad_docencia_id = db.Column(
+        db.Integer,
+        db.ForeignKey("actividad_y_catedra_posgrado.id"),
+        nullable=False
+    )
+
+    grado_academico_id = db.Column(
+        db.Integer,
+        db.ForeignKey("grado_academico.id"),
+        nullable=False
+    )
+
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    investigador = db.relationship(
+        "Investigador",
+        back_populates="grados_actividad"
+    )
+
+    actividad_docencia = db.relationship(
+        "ActividadDocencia",
+        back_populates="investigadores_grado"
+    )
+
+    grado_academico = db.relationship(
+        "GradoAcademico",
+        back_populates="participaciones"
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            "investigador_id",
+            "actividad_docencia_id",
+            "grado_academico_id",
+            "fecha_inicio",
+            name="uq_hist_grado_actividad"
+        ),
+    )

@@ -171,10 +171,10 @@ class Investigador(db.Model, AuditMixin):
         back_populates='investigadores'
     )
 
-    actividades_docencia = db.relationship(
-        'ActividadDocencia',
-        back_populates='investigador',
-        cascade='all, delete-orphan'
+    grados_actividad = db.relationship(
+        "InvestigadorActividadGrado",
+        back_populates="investigador",
+        cascade="all, delete-orphan"
     )
 
     participaciones_relevantes = db.relationship(
@@ -183,6 +183,9 @@ class Investigador(db.Model, AuditMixin):
         cascade='all, delete-orphan'
     )
 
+    actividades_docencia = db.relationship('ActividadDocencia',
+                                           back_populates="investigador")
+    
     trabajos_revistas = db.relationship(
         'TrabajosRevistasReferato',
         secondary=investigador_x_trabajo_revista,
