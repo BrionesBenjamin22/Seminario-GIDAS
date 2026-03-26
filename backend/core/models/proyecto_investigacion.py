@@ -89,7 +89,7 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
     codigo_proyecto = db.Column(db.Integer, nullable=False)
     nombre_proyecto = db.Column(db.Text, nullable=False)
     descripcion_proyecto = db.Column(db.Text, nullable=False)
-    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False) 
     fecha_fin = db.Column(db.Date, nullable=True)
     dificultades_proyecto = db.Column(db.Text, nullable=True)
     monto_destinado = db.Column(db.Float, nullable=True)

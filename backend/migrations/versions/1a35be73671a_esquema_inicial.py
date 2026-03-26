@@ -1,8 +1,8 @@
-"""empty message
+"""Esquema inicial
 
-Revision ID: 473310c32aa6
+Revision ID: 1a35be73671a
 Revises: 
-Create Date: 2026-03-03 14:32:16.240911
+Create Date: 2026-03-26 15:00:48.216396
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '473310c32aa6'
+revision = '1a35be73671a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -44,20 +44,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('nombre')
     )
-    op.create_table('persona',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('nombre_apellido', sa.String(length=100), nullable=False),
-    sa.Column('dni', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('activo', sa.Boolean(), nullable=False),
-    sa.Column('created_by', sa.Integer(), nullable=True),
-    sa.Column('deleted_by', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
-    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('dni')
-    )
+
     op.create_table('programa_incentivos_investigador',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
@@ -132,12 +119,32 @@ def upgrade():
     sa.Column('deleted_by', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
-    sa.ForeignKeyConstraint(['id_persona'], ['persona.id'], ),
     sa.ForeignKeyConstraint(['id_rol'], ['rol.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('id_persona'),
     sa.UniqueConstraint('mail'),
     sa.UniqueConstraint('nombre_usuario')
+    )
+    op.create_table('persona',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('nombre_apellido', sa.String(length=100), nullable=False),
+    sa.Column('dni', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('activo', sa.Boolean(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('dni')
+    )
+    op.create_foreign_key(
+        'fk_usuario_id_persona_persona',
+        'usuario',
+        'persona',
+        ['id_persona'],
+        ['id']
     )
     op.create_table('adoptante',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -494,6 +501,38 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('id_beca', 'id_becario', 'deleted_at', name='uq_beca_becario_activo')
     )
+    op.create_table('becario_historial_horas',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('becario_id', sa.Integer(), nullable=False),
+    sa.Column('horas_semanales', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('activo', sa.Boolean(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['becario_id'], ['becario.id'], ),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('investigador_historial_horas',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('investigador_id', sa.Integer(), nullable=False),
+    sa.Column('horas_semanales', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('activo', sa.Boolean(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['investigador_id'], ['investigador.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('investigador_x_trabajo_reunion',
     sa.Column('investigador_id', sa.Integer(), nullable=False),
     sa.Column('trabajo_reunion_id', sa.Integer(), nullable=False),
@@ -515,6 +554,22 @@ def upgrade():
     sa.Column('fecha', sa.Date(), nullable=False),
     sa.Column('investigador_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['investigador_id'], ['investigador.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('personal_historial_horas',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('personal_id', sa.Integer(), nullable=False),
+    sa.Column('horas_semanales', sa.Integer(), nullable=False),
+    sa.Column('fecha_inicio', sa.Date(), nullable=False),
+    sa.Column('fecha_fin', sa.Date(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('activo', sa.Boolean(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['usuario.id'], ),
+    sa.ForeignKeyConstraint(['personal_id'], ['personal.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('proyecto_investigacion',
@@ -617,9 +672,12 @@ def downgrade():
     op.drop_table('distincion_recibida')
     op.drop_table('becarioxproyecto')
     op.drop_table('proyecto_investigacion')
+    op.drop_table('personal_historial_horas')
     op.drop_table('participacion_relevante')
     op.drop_table('investigador_x_trabajo_revista')
     op.drop_table('investigador_x_trabajo_reunion')
+    op.drop_table('investigador_historial_horas')
+    op.drop_table('becario_historial_horas')
     op.drop_table('beca_becario')
     op.drop_table('autorxlibro')
     op.drop_table('adoptante_x_transferencia')
