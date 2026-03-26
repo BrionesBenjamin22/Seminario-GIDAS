@@ -15,13 +15,15 @@ class PlanificacionGrupoController:
         data = req.get_json()
         try:
             plan = crear_planificacion_grupo(data)
+            return jsonify(plan.serialize()), 201
+
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception as e:
             import traceback
             traceback.print_exc()
             return jsonify({"error": f"Internal Error: {str(e)}"}), 500
-
+        
     @staticmethod
     def listar(req: Request) -> Response:
         try:

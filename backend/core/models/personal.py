@@ -93,9 +93,9 @@ class Becario(db.Model, AuditMixin):
     )
 
     historial_horas = db.relationship(
-    "BecarioHorasHistorial",
-    back_populates="becario",
-    cascade="all, delete-orphan"
+        "BecarioHorasHistorial",
+        back_populates="becario",
+        cascade="all, delete-orphan"
     )
 
     def serialize(self):
@@ -118,6 +118,18 @@ class Becario(db.Model, AuditMixin):
                     "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
                 }
                 for h in self.historial_horas
+            ],
+            "becas": [
+                {
+                    "id": b.beca.id,
+                    "nombre_beca": b.beca.nombre_beca,
+                    "descripcion": b.beca.descripcion,
+                    "fecha_inicio": b.fecha_inicio.isoformat(),
+                    "fecha_fin": b.fecha_fin.isoformat() if b.fecha_fin else None,
+                    "monto_percibido": b.monto_percibido
+                }
+                for b in self.becas
+                if b.deleted_at is None and b.beca
             ]
         })
 

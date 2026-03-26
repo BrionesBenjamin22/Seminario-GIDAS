@@ -131,6 +131,47 @@ class AuthController:
 
 
     @staticmethod
+    def recover_password(req: Request) -> Response:
+        data = req.get_json() or {}
+        mail_usuario = data.get("mail")
+
+        if not mail_usuario:
+            return jsonify({"error": "mail es requerido"}), 400
+
+        try:
+            resultado = AuthService.recover_password_by_mail(mail_usuario)
+            return jsonify(resultado), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+
+    @staticmethod
+    def reset_password(req: Request) -> Response:
+        data = req.get_json() or {}
+        token = data.get("token")
+        password_nueva = data.get("password_nueva")
+        password_confirmacion = data.get("password_confirmacion")
+
+        if not token:
+            return jsonify({"error": "token es requerido"}), 400
+
+        if not password_nueva or not password_confirmacion:
+            return jsonify({"error": "password_nueva y password_confirmacion son requeridos"}), 400
+
+        if password_nueva != password_confirmacion:
+            return jsonify({"error": "La nueva contraseña y la confirmación no coinciden"}), 400
+
+        if len(password_nueva) < 6:
+            return jsonify({"error": "La contraseña debe tener al menos 6 caracteres"}), 400
+
+        try:
+            AuthService.reset_password_with_token(token, password_nueva)
+            return jsonify({"mensaje": "Contraseña restablecida exitosamente"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+
+    @staticmethod
     def change_password(req: Request) -> Response:
 
         auth_header = req.headers.get("Authorization")

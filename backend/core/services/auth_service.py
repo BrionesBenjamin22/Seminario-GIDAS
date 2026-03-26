@@ -1,12 +1,29 @@
 import jwt
 import datetime
+from flask_mail import Message
 from core.models.persona import Persona
 from core.models.usuario import Usuario, RolUsuario
-from extension import db
+from extension import db, mail
 from config import Config
 
 
 class AuthService:
+
+    @staticmethod
+    def generate_password_reset_token(usuario: Usuario) -> str:
+        payload = {
+            "sub": str(usuario.id),
+            "mail": usuario.mail,
+            "type": "password_reset",
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            "iss": "auth-service"
+        }
+
+        return jwt.encode(
+            payload,
+            Config.JWT_SECRET,
+            algorithm=Config.JWT_ALGORITHM
+        )
 
     @staticmethod
     def generate_tokens(user: Usuario) -> dict:
@@ -200,6 +217,83 @@ class AuthService:
     # Cambiar contraseña    
     # -------------------------
         
+    @staticmethod
+    def recover_password_by_mail(mail_usuario: str) -> dict:
+        usuario = Usuario.query.filter_by(
+            mail=mail_usuario,
+            activo=True
+        ).first()
+
+        if not usuario:
+            raise Exception("Usuario no encontrado")
+
+        if not Config.MAIL_DEFAULT_SENDER:
+            raise Exception("MAIL_DEFAULT_SENDER no está configurado")
+
+        token_recuperacion = AuthService.generate_password_reset_token(usuario)
+        reset_url = f"{Config.FRONTEND_URL}/reset-password?token={token_recuperacion}"
+
+        mensaje = Message(
+            subject="Recuperación de contraseña",
+            recipients=[usuario.mail]
+        )
+        mensaje.body = (
+            f"Hola {usuario.nombre_usuario},\n\n"
+            "Recibimos una solicitud para restablecer tu contraseña.\n"
+            f"Podés hacerlo desde el siguiente enlace:\n{reset_url}\n\n"
+            "Este enlace vence en 1 hora.\n"
+            "Si no solicitaste este cambio, podés ignorar este correo."
+        )
+
+        try:
+            mail.send(mensaje)
+            return {
+                "mensaje": "Se envió el correo de recuperación",
+                "mail": usuario.mail
+            }
+        except Exception:
+            raise Exception("Error al enviar el correo de recuperación")
+
+    @staticmethod
+    def verify_password_reset_token(token: str) -> Usuario:
+        try:
+            payload = jwt.decode(
+                token,
+                Config.JWT_SECRET,
+                algorithms=[Config.JWT_ALGORITHM]
+            )
+        except jwt.ExpiredSignatureError:
+            raise Exception("Token de recuperación expirado")
+        except jwt.InvalidTokenError:
+            raise Exception("Token de recuperación inválido")
+
+        if payload.get("type") != "password_reset":
+            raise Exception("Token de recuperación inválido")
+
+        usuario = Usuario.query.filter_by(
+            id=int(payload["sub"]),
+            mail=payload.get("mail"),
+            activo=True
+        ).first()
+
+        if not usuario:
+            raise Exception("Usuario no encontrado")
+
+        return usuario
+
+    @staticmethod
+    def reset_password_with_token(token: str, password_nueva: str):
+        usuario = AuthService.verify_password_reset_token(token)
+
+        usuario.set_password(password_nueva)
+        usuario.primer_login = False
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise Exception("Error al restablecer la contraseña")
+
     @staticmethod
     def change_password(user_id: int, password_actual: str, password_nueva: str, es_primer_cambio: bool = False):
         user = Usuario.query.get(user_id)

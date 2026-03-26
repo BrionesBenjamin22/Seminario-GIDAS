@@ -48,6 +48,16 @@ def refresh():
 # -------------------------
 # Change password (POST según especificación del frontend)
 # -------------------------
+@auth_bp.route("/recuperar-password", methods=["POST"])
+def recover_password():
+    return AuthController.recover_password(request)
+
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    return AuthController.reset_password(request)
+
+
 @auth_bp.route("/cambiar-password", methods=["POST"])
 def change_password():
     return AuthController.change_password(request)
