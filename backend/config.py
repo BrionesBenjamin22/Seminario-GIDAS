@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, ".env"))
 
 class Config:
     # -------------------------
@@ -23,7 +24,11 @@ class Config:
     # -------------------------
     # Database
     # -------------------------
-    SQLALCHEMY_DATABASE_URI = "sqlite:///gidas.db"
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:Br4ndsen8.@localhost:5432/gidas_db"
+    )
+
 
     SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False") == "True"
 
