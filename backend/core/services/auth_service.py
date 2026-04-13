@@ -90,18 +90,22 @@ class AuthService:
         }
 
     # -------------------------
-    # Registro (primer usuario o por admin)
+    # ¿Es Primer Usuario?
     # -------------------------
     @staticmethod
-    def register(
-        nombre_usuario: str,
-        mail: str,
-        password: str,
-        rol_id: int = None,
-        nombre_apellido: str = None,
-        dni: int = None,
-        es_primer_usuario: bool = False
-    ) -> Usuario:
+    def es_primer_usuario() -> bool:
+        """Devuelve True si NO hay ningún usuario en la base de datos."""
+        count = Usuario.query.count()
+        return count == 0
+
+    # -------------------------
+    # Registro
+    # -------------------------
+    @staticmethod
+    def register(nombre_usuario: str, mail: str, password: str) -> Usuario:
+        # Solo permitir registro si la base de datos está vacía (primer admin)
+        if not AuthService.es_primer_usuario():
+            raise Exception("El sistema ya ha sido inicializado. No se permiten nuevos registros abiertos.")
 
         existe = Usuario.query.filter(
             (Usuario.nombre_usuario == nombre_usuario) |

@@ -86,8 +86,18 @@ class AuthController:
             return jsonify({"error": str(e)}), 400
 
     @staticmethod
-    def login(req: Request = None) -> Response:
-        req = req or request
+    def primer_usuario() -> Response:
+        try:
+            es_primero = AuthService.es_primer_usuario()
+            # El frontend espera { "existe": boolean } donde "existe" es True si YA HAY usuarios.
+            # Por lo tanto, si es_primer_usuario es True, significa que "existe" = False
+            return jsonify({"existe": not es_primero}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+
+    @staticmethod
+    def login(req: Request) -> Response:
         data = req.get_json()
 
         try:

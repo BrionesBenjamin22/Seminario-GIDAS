@@ -6,15 +6,14 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 # -------------------------
-# Verificar primer usuario
+# ¿Primer Usuario? (Para habilitar registro inicial)
 # -------------------------
 @auth_bp.route("/primer-usuario", methods=["GET"])
 def primer_usuario():
     return AuthController.primer_usuario()
 
-
 # -------------------------
-# Registro (primer usuario o por admin)
+# Registro
 # -------------------------
 @auth_bp.route("/register", methods=["POST"])
 def register():
