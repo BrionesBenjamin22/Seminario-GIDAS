@@ -1,7 +1,6 @@
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.documentacion_autores import DocumentacionBibliografica, Autor
 from extension import db
-from datetime import datetime
 
 
 class DocumentacionBibliograficaService:
@@ -14,17 +13,40 @@ class DocumentacionBibliograficaService:
     def _get_activo_or_404(doc_id: int):
         doc = db.session.get(DocumentacionBibliografica, doc_id)
         if not doc or doc.deleted_at is not None:
-            raise Exception("Documentación bibliográfica no encontrada")
+            raise Exception("Documentacion bibliografica no encontrada")
         return doc
+
+    @staticmethod
+    def _normalizar_texto(valor: str, campo: str):
+        if not isinstance(valor, str) or not valor.strip():
+            raise Exception(f"{campo} es obligatorio")
+
+        return " ".join(valor.strip().split()).lower()
 
     # =========================
     # GET ALL
     # =========================
     @staticmethod
     def get_all(filters: dict = None):
-        query = DocumentacionBibliografica.query.filter(
-            DocumentacionBibliografica.deleted_at.is_(None)
-        )
+        query = DocumentacionBibliografica.query
+
+        if not filters:
+            filters = {"activos": "true"}
+
+        activos = filters.get("activos", "true")
+        if activos is None:
+            activos = "true"
+
+        activos = activos.strip().lower()
+
+        if activos == "true":
+            query = query.filter(DocumentacionBibliografica.deleted_at.is_(None))
+        elif activos == "false":
+            query = query.filter(DocumentacionBibliografica.deleted_at.isnot(None))
+        elif activos == "all":
+            pass
+        else:
+            query = query.filter(DocumentacionBibliografica.deleted_at.is_(None))
 
         if filters:
             orden = filters.get("orden")
@@ -40,7 +62,9 @@ class DocumentacionBibliograficaService:
     # =========================
     @staticmethod
     def get_by_id(doc_id: int):
-        doc = DocumentacionBibliograficaService._get_activo_or_404(doc_id)
+        doc = db.session.get(DocumentacionBibliografica, doc_id)
+        if not doc:
+            raise Exception("Documentacion bibliografica no encontrada")
         return doc.serialize()
 
     # =========================
@@ -48,19 +72,22 @@ class DocumentacionBibliograficaService:
     # =========================
     @staticmethod
     def create(data: dict, user_id: int):
-
         grupo = db.session.get(GrupoInvestigacionUtn, data["grupo_id"])
         if not grupo or grupo.deleted_at is not None:
-                raise Exception("Grupo no encontrado")
+            raise Exception("Grupo no encontrado")
         if not data.get("titulo") or not data.get("editorial"):
-            raise Exception("Título y editorial son obligatorios")
+            raise Exception("Titulo y editorial son obligatorios")
 
         if not isinstance(data.get("anio"), int):
-            raise Exception("El año debe ser numérico")
+            raise Exception("El anio debe ser numerico")
 
         doc = DocumentacionBibliografica(
-            titulo=data["titulo"].strip(),
-            editorial=data["editorial"].strip(),
+            titulo=DocumentacionBibliograficaService._normalizar_texto(
+                data["titulo"], "Titulo"
+            ),
+            editorial=DocumentacionBibliograficaService._normalizar_texto(
+                data["editorial"], "Editorial"
+            ),
             anio=data["anio"],
             grupo_id=data["grupo_id"],
             created_by=user_id
@@ -79,10 +106,14 @@ class DocumentacionBibliograficaService:
         doc = DocumentacionBibliograficaService._get_activo_or_404(doc_id)
 
         if "titulo" in data:
-            doc.titulo = data["titulo"].strip()
+            doc.titulo = DocumentacionBibliograficaService._normalizar_texto(
+                data["titulo"], "Titulo"
+            )
 
         if "editorial" in data:
-            doc.editorial = data["editorial"].strip()
+            doc.editorial = DocumentacionBibliograficaService._normalizar_texto(
+                data["editorial"], "Editorial"
+            )
 
         if "anio" in data:
             doc.anio = data["anio"]
@@ -105,10 +136,10 @@ class DocumentacionBibliograficaService:
 
         db.session.commit()
 
-        return {"message": "Documentación bibliográfica eliminada correctamente"}
+        return {"message": "Documentacion bibliografica eliminada correctamente"}
 
     # =========================
-    # RELACIÓN DOCUMENTO - AUTOR
+    # RELACION DOCUMENTO - AUTOR
     # =========================
     @staticmethod
     def add_autor(doc_id: int, autor_id: int):
@@ -119,7 +150,7 @@ class DocumentacionBibliograficaService:
             raise ValueError("Autor no encontrado")
 
         if autor in doc.autores:
-            raise ValueError("El autor ya está asociado")
+            raise ValueError("El autor ya esta asociado")
 
         doc.autores.append(autor)
         db.session.commit()
@@ -135,7 +166,7 @@ class DocumentacionBibliograficaService:
             raise Exception("Autor no encontrado")
 
         if autor not in doc.autores:
-            raise Exception("La relación no existe")
+            raise Exception("La relacion no existe")
 
         doc.autores.remove(autor)
         db.session.commit()

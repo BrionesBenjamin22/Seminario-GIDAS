@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint
 from core.controllers.articulo_divulgacion_controller import (
     ArticuloDivulgacionController
 )
@@ -16,7 +16,7 @@ articulo_divulgacion_bp = Blueprint(
 @articulo_divulgacion_bp.route("/", methods=["POST"])
 @requiere_rol("ADMIN", "GESTOR")
 def crear():
-    return ArticuloDivulgacionController.crear(request)
+    return ArticuloDivulgacionController.crear()
 
 
 # -------------------------------------------------
@@ -25,7 +25,7 @@ def crear():
 @articulo_divulgacion_bp.route("/", methods=["GET"])
 @requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def listar():
-    return ArticuloDivulgacionController.listar(request)
+    return ArticuloDivulgacionController.listar()
 
 
 # -------------------------------------------------
@@ -34,7 +34,7 @@ def listar():
 @articulo_divulgacion_bp.route("/<int:articulo_id>", methods=["GET"])
 @requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def obtener_por_id(articulo_id):
-    return ArticuloDivulgacionController.obtener_por_id(request, articulo_id)
+    return ArticuloDivulgacionController.obtener_por_id(articulo_id)
 
 
 # -------------------------------------------------
@@ -43,13 +43,13 @@ def obtener_por_id(articulo_id):
 @articulo_divulgacion_bp.route("/<int:articulo_id>", methods=["PUT"])
 @requiere_rol("ADMIN", "GESTOR")
 def actualizar(articulo_id):
-    return ArticuloDivulgacionController.actualizar(request, articulo_id)
+    return ArticuloDivulgacionController.actualizar(articulo_id)
 
 
 # -------------------------------------------------
-# ELIMINAR (solo ADMIN)
+# ELIMINAR (ADMIN o GESTOR)
 # -------------------------------------------------
 @articulo_divulgacion_bp.route("/<int:articulo_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar(articulo_id):
-    return ArticuloDivulgacionController.eliminar(request, articulo_id)
+    return ArticuloDivulgacionController.eliminar(articulo_id)

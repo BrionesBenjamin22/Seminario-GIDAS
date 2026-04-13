@@ -44,7 +44,7 @@ def update(doc_id):
 
 
 @documentacion_bibliografica_bp.route("/<int:doc_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(doc_id):
     return DocumentacionBibliograficaController.delete(doc_id)
 

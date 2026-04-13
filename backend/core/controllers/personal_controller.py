@@ -17,6 +17,9 @@ class PersonalController:
         data = req.get_json(force=True, silent=False)
 
         try:
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id  
 
             personal = crear_personal(data, user_id)
@@ -69,6 +72,9 @@ class PersonalController:
         data = req.get_json()
 
         try:
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id
             personal = actualizar_personal(id, data, rol, user_id)
 
@@ -84,6 +90,9 @@ class PersonalController:
     @staticmethod
     def eliminar(req, rol, id):
         try:
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+
             user_id = g.current_user_id  
 
             result = eliminar_personal_por_rol(id, rol, user_id)

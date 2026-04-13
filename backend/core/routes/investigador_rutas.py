@@ -48,7 +48,7 @@ def actualizar(id):
 # ELIMINAR (soft delete)
 # =========================
 @investigador_bp.route("/<int:id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar(id):
     return InvestigadorController.eliminar(request, id)
 
@@ -57,6 +57,6 @@ def eliminar(id):
 # RESTORE
 # =========================
 @investigador_bp.route("/<int:id>/restore", methods=["PUT"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def restaurar(id):
     return InvestigadorController.restaurar(request, id)

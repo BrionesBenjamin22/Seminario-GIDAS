@@ -1,4 +1,4 @@
-from flask import Request, Response, jsonify
+from flask import Request, Response, jsonify, g
 from core.services.programa_actividades_service import (
     crear_planificacion_grupo,
     actualizar_planificacion_grupo,
@@ -14,7 +14,9 @@ class PlanificacionGrupoController:
     def crear(req: Request) -> Response:
         data = req.get_json()
         try:
-            plan = crear_planificacion_grupo(data)
+            user_id = g.current_user_id
+            plan = crear_planificacion_grupo(data, user_id)
+            return jsonify(plan.serialize()), 201
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception as e:
@@ -25,7 +27,8 @@ class PlanificacionGrupoController:
     @staticmethod
     def listar(req: Request) -> Response:
         try:
-            planes = listar_planificaciones()
+            activos = req.args.get("activos")
+            planes = listar_planificaciones(activos)
             return jsonify([p.serialize() for p in planes]), 200
         except Exception as e:
             import traceback
@@ -56,7 +59,9 @@ class PlanificacionGrupoController:
     @staticmethod
     def eliminar(req: Request, id: int) -> Response:
         try:
-            eliminar_planificacion_grupo(id)
+            if not hasattr(g, "current_user_id"):
+                return jsonify({"error": "Usuario no autenticado"}), 401
+            eliminar_planificacion_grupo(id, g.current_user_id)
             return jsonify(
                 {"message": "Planificación eliminada correctamente"}
             ), 200

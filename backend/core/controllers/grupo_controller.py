@@ -6,7 +6,7 @@ from core.services.grupo_service import (
     eliminar_grupo_utn,
     restaurar_grupo_utn
 )
-from core.services.exportacion_service import ExportService
+from core.services.exportacion_service_impl import ExportService
 
 class GrupoUtnController:
 

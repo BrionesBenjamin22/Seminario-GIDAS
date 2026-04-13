@@ -56,11 +56,9 @@ class TransferenciaSocioProductivaService:
 
     @staticmethod
     def get_all(filters: dict = None):
-
-        query = TransferenciaSocioProductiva.query
+        query = db.session.query(TransferenciaSocioProductiva)
         filters = filters or {}
 
-        
         activos = filters.get("activos", "true")
 
         if activos == "true":

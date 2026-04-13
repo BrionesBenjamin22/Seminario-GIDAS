@@ -48,6 +48,6 @@ def actualizar(id):
 # DELETE (SOFT DELETE)
 # =====================================================
 @becario_bp.route("/<int:id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar(id):
     return BecarioController.eliminar(request, id)

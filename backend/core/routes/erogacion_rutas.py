@@ -36,6 +36,6 @@ def update(erogacion_id):
 
 
 @erogacion_bp.route("/<int:erogacion_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(erogacion_id):
     return ErogacionController.delete(erogacion_id)

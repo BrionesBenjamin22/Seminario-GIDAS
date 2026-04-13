@@ -1,0 +1,381 @@
+ENDPOINT DE DASHBOARD PARA FRONTEND
+==================================
+
+Endpoint principal
+------------------
+GET /dashboards/resumen
+
+Autorizacion
+------------
+- Requiere token Bearer en header Authorization
+- Roles permitidos: ADMIN, GESTOR, LECTURA
+
+Objetivo
+--------
+Este endpoint devuelve un resumen agregado para construir dashboards sin que
+el frontend tenga que hacer multiples requests por modulo.
+
+
+PARAMETROS DISPONIBLES
+======================
+
+1. anios
+- Tipo: entero
+- Default: 5
+- Uso: define cuantos anios hacia atras se usan para las series anuales
+- Ejemplo: ?anios=7
+
+2. fecha_desde
+- Tipo: fecha YYYY-MM-DD
+- Opcional
+- Uso: filtra proyectos, transferencias, erogaciones y becas por rango
+- Ejemplo: ?fecha_desde=2024-01-01
+
+3. fecha_hasta
+- Tipo: fecha YYYY-MM-DD
+- Opcional
+- Uso: extremo superior del rango de fechas
+- Ejemplo: ?fecha_hasta=2024-12-31
+
+4. solo_becarios_con_beca_activa
+- Tipo: booleano
+- Opciones validas: true, false, 1, 0, si, no, sí
+- Default: false
+- Uso:
+  cuando vale true, "total_becarios" y "becarios_por_tipo_formacion"
+  se calculan solo sobre becarios que tengan al menos una beca activa
+  dentro del rango consultado
+- Ejemplo: ?solo_becarios_con_beca_activa=true
+
+
+REGLAS DE FILTRADO TEMPORAL
+===========================
+
+1. Proyectos
+- Se filtran por solapamiento entre fecha_inicio/fecha_fin del proyecto y el
+  rango enviado.
+
+2. Transferencias
+- Se filtran por solapamiento entre fecha_inicio/fecha_fin y el rango enviado.
+
+3. Erogaciones
+- Se filtran por su fecha puntual.
+
+4. Becas
+- "total_becas" se calcula segun asignaciones beca_becario activas en el rango.
+
+5. Becarios
+- Si solo_becarios_con_beca_activa=true, "total_becarios" y
+  "becarios_por_tipo_formacion" se calculan solo sobre becarios con beca
+  activa en el rango.
+
+
+EJEMPLOS DE LLAMADAS
+====================
+
+1. Resumen general sin filtros
+GET /dashboards/resumen
+
+2. Series de 10 anios
+GET /dashboards/resumen?anios=10
+
+3. Periodo anual cerrado
+GET /dashboards/resumen?fecha_desde=2024-01-01&fecha_hasta=2024-12-31
+
+4. Periodo anual filtrando becarios con beca activa
+GET /dashboards/resumen?fecha_desde=2024-01-01&fecha_hasta=2024-12-31&solo_becarios_con_beca_activa=true
+
+
+ESTRUCTURA GENERAL DE RESPUESTA
+===============================
+
+{
+  "generado_en": "2026-04-05T12:34:56.000000Z",
+  "parametros": {
+    "anios": 5,
+    "fecha_desde": "2024-01-01",
+    "fecha_hasta": "2024-12-31",
+    "solo_becarios_con_beca_activa": true
+  },
+  "resumen": { ... },
+  "distribuciones": { ... },
+  "series": { ... },
+  "alertas": { ... }
+}
+
+
+SECCION RESUMEN
+===============
+
+Campos disponibles
+------------------
+- total_proyectos
+- proyectos_activos
+- proyectos_finalizados
+- total_investigadores
+- investigadores_con_proyectos_activos
+- total_becarios
+- becarios_con_proyectos_activos
+- total_personal
+- total_grupos
+- total_becas
+- total_erogaciones
+- total_transferencias
+- total_fuentes_financiamiento
+- monto_total_proyectos
+- promedio_monto_proyecto
+
+Sugerencias de graficos
+-----------------------
+- total_proyectos, total_investigadores, total_becarios, total_personal:
+  tarjetas KPI
+- proyectos_activos vs proyectos_finalizados:
+  dona o barra apilada
+- investigadores_con_proyectos_activos y becarios_con_proyectos_activos:
+  KPI + barra comparativa contra el total
+- total_becas, total_erogaciones, total_transferencias:
+  tarjetas KPI
+- monto_total_proyectos y promedio_monto_proyecto:
+  KPI monetario
+
+
+SECCION DISTRIBUCIONES
+======================
+
+1. proyectos_por_tipo
+Formato:
+[
+  { "tipo": "I+D", "total": 10 },
+  { "tipo": "Extension", "total": 4 }
+]
+
+Grafico sugerido:
+- barra horizontal
+- dona si hay pocas categorias
+
+
+2. proyectos_por_fuente
+Formato:
+[
+  { "fuente": "CONICET", "total": 8 },
+  { "fuente": "Sin fuente", "total": 3 }
+]
+
+Grafico sugerido:
+- barra horizontal
+- dona
+
+
+3. proyectos_por_distinciones
+Formato:
+[
+  { "categoria": "Con distinciones", "total": 5 },
+  { "categoria": "Sin distinciones", "total": 12 }
+]
+
+Grafico sugerido:
+- dona
+- barra simple de 2 categorias
+
+
+4. erogaciones_por_tipo
+Formato:
+[
+  {
+    "tipo": "Equipamiento",
+    "total_registros": 12,
+    "total_egresos": 150000.0,
+    "total_ingresos": 20000.0,
+    "balance": -130000.0
+  }
+]
+
+Grafico sugerido:
+- barra agrupada para ingresos vs egresos
+- waterfall o barra divergente para balance
+- tabla resumen si se quieren ver montos exactos
+
+
+5. transferencias_por_tipo_contrato
+Formato:
+[
+  {
+    "tipo_contrato": "Convenio",
+    "total": 6,
+    "monto_total": 250000.0
+  }
+]
+
+Grafico sugerido:
+- barra horizontal por cantidad
+- barra secundaria o tooltip con monto_total
+- scatter si quieren cruzar cantidad y monto
+
+
+6. becarios_por_tipo_formacion
+Formato:
+[
+  {
+    "tipo_formacion": "Doctorado",
+    "total": 7
+  }
+]
+
+Grafico sugerido:
+- barra vertical u horizontal
+- dona si hay pocas categorias
+
+
+7. integrantes_por_grupo
+Formato:
+[
+  {
+    "grupo_id": 1,
+    "grupo": "GIDAS",
+    "unidad_academica": "FRLP",
+    "investigadores": 10,
+    "becarios": 4,
+    "personal": 3,
+    "total_integrantes": 17,
+    "proyectos_activos": 5
+  }
+]
+
+Grafico sugerido:
+- barra apilada por grupo usando investigadores/becarios/personal
+- barra simple por total_integrantes
+- heatmap o scatter si quieren comparar total_integrantes vs proyectos_activos
+
+
+SECCION SERIES
+==============
+
+1. proyectos_por_anio_inicio
+Formato:
+[
+  { "anio": 2022, "total": 3 },
+  { "anio": 2023, "total": 5 },
+  { "anio": 2024, "total": 4 }
+]
+
+Grafico sugerido:
+- linea
+- barra vertical
+
+
+2. proyectos_finalizados_por_anio
+Formato:
+[
+  { "anio": 2022, "total": 1 },
+  { "anio": 2023, "total": 2 }
+]
+
+Grafico sugerido:
+- linea
+- barra vertical
+
+
+3. monto_proyectos_por_anio_inicio
+Formato:
+[
+  { "anio": 2022, "total": 100000.0 },
+  { "anio": 2023, "total": 160000.0 }
+]
+
+Grafico sugerido:
+- linea
+- area chart
+- barra vertical
+
+
+SECCION ALERTAS
+===============
+
+1. proyectos_sin_financiamiento
+- Tipo: entero
+- Grafico sugerido:
+  KPI o badge de alerta
+
+2. proyectos_sin_grupo
+- Tipo: entero
+- Grafico sugerido:
+  KPI o badge de alerta
+
+3. proyectos_por_vencer
+Formato:
+[
+  {
+    "id": 10,
+    "codigo_proyecto": 123,
+    "nombre_proyecto": "Proyecto X",
+    "fecha_fin": "2026-06-15",
+    "dias_restantes": 45,
+    "grupo": "GIDAS"
+  }
+]
+
+Grafico sugerido:
+- tabla
+- lista priorizada por dias_restantes
+- barra horizontal corta con dias restantes
+
+
+RECOMENDACIONES DE UX PARA FRONTEND
+===================================
+
+1. Dashboard superior
+- Usar tarjetas KPI para la seccion "resumen"
+
+2. Distribuciones
+- Usar barras horizontales cuando haya muchas categorias
+- Usar dona solo cuando haya pocas categorias y los labels sean cortos
+
+3. Series temporales
+- Unificar escalas y colores entre series anuales
+
+4. Alertas
+- Mostrar proyectos_por_vencer en una tabla o panel lateral
+
+5. Filtros
+- Colocar anios, fecha_desde, fecha_hasta y solo_becarios_con_beca_activa
+  en una barra superior de filtros
+
+
+ERRORES ESPERABLES
+==================
+
+1. anios invalido
+{
+  "error": "El parámetro \"anios\" debe ser un entero mayor a 0"
+}
+
+2. fecha invalida
+{
+  "error": "El parámetro \"fecha_desde\" debe tener formato YYYY-MM-DD"
+}
+
+3. rango invalido
+{
+  "error": "\"fecha_desde\" no puede ser mayor que \"fecha_hasta\""
+}
+
+4. booleano invalido
+{
+  "error": "El parámetro \"solo_becarios_con_beca_activa\" debe ser booleano"
+}
+
+
+NOTAS IMPORTANTES
+=================
+
+1. total_becarios puede cambiar segun el flag solo_becarios_con_beca_activa.
+
+2. investigadores_con_proyectos_activos y becarios_con_proyectos_activos
+cuentan personas unicas, no cantidad de participaciones.
+
+3. proyectos_por_distinciones trabaja sobre el conjunto de proyectos ya
+filtrado por fechas.
+
+4. Si el frontend necesita nombres de colores o metadata para graficar,
+eso todavia no viene en la respuesta y deberia resolverse del lado front
+o agregarse mas adelante al endpoint.

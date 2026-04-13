@@ -17,11 +17,17 @@ class SearchController:
                     alf_desc
                     fecha_asc
                     fecha_desc
+            - eliminados: filtro de eliminados logicos (opcional)
+                valores posibles:
+                    false
+                    true
+                    all
         """
 
         try:
             query_text = request.args.get("q", "").strip()
             orden = request.args.get("orden", "alf_asc")
+            eliminados = request.args.get("eliminados", "false").strip().lower()
 
             if not query_text:
                 return jsonify({
@@ -33,14 +39,24 @@ class SearchController:
                     "error": "El texto debe tener al menos 2 caracteres"
                 }), 400
 
+            if eliminados not in ("false", "true", "all"):
+                return jsonify({
+                    "error": (
+                        'El parámetro "eliminados" debe ser '
+                        '"false", "true" o "all"'
+                    )
+                }), 400
+
             resultados = SearchService.search(
                 query_text=query_text,
-                orden=orden
+                orden=orden,
+                eliminados=eliminados
             )
 
             return jsonify({
                 "query": query_text,
                 "orden": orden,
+                "eliminados": eliminados,
                 "total_resultados": len(resultados),
                 "resultados": resultados
             }), 200

@@ -25,10 +25,25 @@ class ErogacionService:
 
     @staticmethod
     def get_all(filters: dict = None):
+        query = Erogacion.query
 
-        query = Erogacion.query.filter(
-            Erogacion.deleted_at.is_(None)
-        )
+        if not filters:
+            filters = {"activos": "true"}
+
+        activos = filters.get("activos", "true")
+        if activos is None:
+            activos = "true"
+
+        activos = activos.strip().lower()
+
+        if activos == "true":
+            query = query.filter(Erogacion.deleted_at.is_(None))
+        elif activos == "false":
+            query = query.filter(Erogacion.deleted_at.isnot(None))
+        elif activos == "all":
+            pass
+        else:
+            query = query.filter(Erogacion.deleted_at.is_(None))
 
         if filters:
 
@@ -42,6 +57,12 @@ class ErogacionService:
                     Erogacion.tipo_erogacion_id == filters["tipo_erogacion_id"]
                 )
 
+            orden = filters.get("orden")
+            if orden == "asc":
+                query = query.order_by(Erogacion.fecha.asc())
+            elif orden == "desc":
+                query = query.order_by(Erogacion.fecha.desc())
+
         return [e.serialize() for e in query.all()]
 
 
@@ -51,7 +72,9 @@ class ErogacionService:
 
     @staticmethod
     def get_by_id(erogacion_id: int):
-        erogacion = ErogacionService._get_activa_or_404(erogacion_id)
+        erogacion = db.session.get(Erogacion, erogacion_id)
+        if not erogacion:
+            raise Exception("Erogación no encontrada")
         return erogacion.serialize()
 
 

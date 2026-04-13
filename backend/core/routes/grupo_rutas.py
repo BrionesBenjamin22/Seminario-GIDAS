@@ -12,7 +12,7 @@ grupo_utn_bp = Blueprint(
 # Crear grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["POST"], strict_slashes=False)
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def crear():
     return GrupoUtnController.crear()
 
@@ -29,7 +29,7 @@ def obtener():
 # Actualizar grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["PUT"], strict_slashes=False)
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def actualizar():
     return GrupoUtnController.actualizar()
 
@@ -37,16 +37,17 @@ def actualizar():
 # Eliminar grupo UTN
 # -------------------------
 @grupo_utn_bp.route("/", methods=["DELETE"], strict_slashes=False)
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar():
     return GrupoUtnController.eliminar()
 
 
 @grupo_utn_bp.route("/restore", methods=["PUT"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def restaurar():
     return GrupoUtnController.restaurar()
 
 @grupo_utn_bp.route("/exportar-excel", methods=["GET"])
+@requiere_rol("ADMIN", "GESTOR")
 def exportar():
     return GrupoUtnController.exportar_excel()

@@ -45,6 +45,6 @@ def actualizar(id):
 # =========================
 
 @fuente_financiamiento_bp.route("/<int:id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar(id):
     return FuenteFinanciamientoController.eliminar(request, id)

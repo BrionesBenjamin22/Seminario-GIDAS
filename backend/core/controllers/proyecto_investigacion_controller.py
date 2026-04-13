@@ -13,6 +13,8 @@ class ProyectoInvestigacionController:
             args = request.args
             filters = {}
 
+            filters["activos"] = args.get("activos", "true")
+
             if args.get("tipo_proyecto_id", type=int):
                 filters["tipo_proyecto_id"] = args.get("tipo_proyecto_id", type=int)
 
@@ -79,8 +81,10 @@ class ProyectoInvestigacionController:
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
+            user_id = g.current_user_id
+
             return jsonify(
-                ProyectoInvestigacionService.update(proyecto_id, data)
+                ProyectoInvestigacionService.update(proyecto_id, data, user_id)
             ), 200
 
         except ValueError as ve:
@@ -95,8 +99,22 @@ class ProyectoInvestigacionController:
     @staticmethod
     def cerrar(proyecto_id):
         try:
+            user_id = g.current_user_id
             return jsonify(
-                ProyectoInvestigacionService.cerrar_proyecto(proyecto_id)
+                ProyectoInvestigacionService.cerrar_proyecto(proyecto_id, user_id)
+            ), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    # =========================
+    # REABRIR PROYECTO
+    # =========================
+    @staticmethod
+    def reabrir(proyecto_id):
+        try:
+            return jsonify(
+                ProyectoInvestigacionService.reabrir_proyecto(proyecto_id)
             ), 200
 
         except Exception as e:

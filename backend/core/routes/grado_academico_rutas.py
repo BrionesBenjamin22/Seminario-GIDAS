@@ -45,6 +45,6 @@ def update(grado_id):
 # =========================
 
 @grado_academico_bp.route("/<int:grado_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(grado_id):
     return GradoAcademicoController.delete(grado_id)

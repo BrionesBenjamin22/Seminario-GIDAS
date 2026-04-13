@@ -67,6 +67,14 @@ class TransferenciaSocioProductiva(db.Model, AuditMixin):
     grupo_utn_id = db.Column(db.Integer, db.ForeignKey('grupo_utn.id'), nullable=False)
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='transferencias_socio_productivas')
 
+    @property
+    def adoptante(self):
+        return ", ".join(
+            p.adoptante.nombre
+            for p in self.participaciones
+            if p.deleted_at is None and p.adoptante
+        )
+
     def serialize(self):
         data = self.to_dict()
         data["tipo_contrato"] = (

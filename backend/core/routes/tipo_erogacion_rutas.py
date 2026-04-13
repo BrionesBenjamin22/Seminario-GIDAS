@@ -1,5 +1,6 @@
 from flask import Blueprint
 from core.controllers.tipo_erogacion_controller import TipoErogacionController
+from core.services.middleware import requiere_rol
 
 tipo_erogacion_bp = Blueprint(
     "tipo_erogacion",
@@ -8,21 +9,21 @@ tipo_erogacion_bp = Blueprint(
 )
 
 tipo_erogacion_bp.route("/", methods=["GET"])(
-    TipoErogacionController.get_all
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(TipoErogacionController.get_all)
 )
 
 tipo_erogacion_bp.route("/<int:tipo_id>", methods=["GET"])(
-    TipoErogacionController.get_by_id
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(TipoErogacionController.get_by_id)
 )
 
 tipo_erogacion_bp.route("/", methods=["POST"])(
-    TipoErogacionController.create
+    requiere_rol("ADMIN", "GESTOR")(TipoErogacionController.create)
 )
 
 tipo_erogacion_bp.route("/<int:tipo_id>", methods=["PUT"])(
-    TipoErogacionController.update
+    requiere_rol("ADMIN", "GESTOR")(TipoErogacionController.update)
 )
 
 tipo_erogacion_bp.route("/<int:tipo_id>", methods=["DELETE"])(
-    TipoErogacionController.delete
+    requiere_rol("ADMIN", "GESTOR")(TipoErogacionController.delete)
 )

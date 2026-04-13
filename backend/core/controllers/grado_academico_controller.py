@@ -1,62 +1,52 @@
-from core.models.actividad_docencia import GradoAcademico
 from flask import jsonify, request
-from extension import db
+from core.services.grado_academico_service import GradoAcademicoService
+
 
 class GradoAcademicoController:
 
     @staticmethod
     def get_all():
         try:
-            grados = GradoAcademico.query.all()
-            return jsonify([g.serialize() for g in grados]), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
+            return jsonify(GradoAcademicoService.get_all()), 200
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
     def get_by_id(grado_id):
         try:
-            grado = GradoAcademico.query.get(grado_id)
-            if not grado:
-                return jsonify({"error": "Grado Académico no encontrado"}), 404
-            return jsonify(grado.serialize()), 200
-        except Exception as e:
+            return jsonify(GradoAcademicoService.get_by_id(grado_id)), 200
+        except ValueError as e:
             return jsonify({"error": str(e)}), 404
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
     def create():
         data = request.get_json()
         try:
-            grado = GradoAcademico(nombre=data["nombre"])
-            db.session.add(grado)
-            db.session.commit()
-            return jsonify(grado.serialize()), 201
-        except Exception as e:
-            db.session.rollback()
+            return jsonify(GradoAcademicoService.create(data)), 201
+        except ValueError as e:
             return jsonify({"error": str(e)}), 400
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
     def update(grado_id):
         data = request.get_json()
         try:
-            grado = GradoAcademico.query.get(grado_id)
-            if not grado:
-                return jsonify({"error": "Grado Académico no encontrado"}), 404
-            grado.nombre = data.get("nombre", grado.nombre)
-            db.session.commit()
-            return jsonify(grado.serialize()), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 400
+            return jsonify(GradoAcademicoService.update(grado_id, data)), 200
+        except ValueError as e:
+            status = 404 if "no encontrado" in str(e).lower() else 400
+            return jsonify({"error": str(e)}), status
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
     def delete(grado_id):
         try:
-            grado = GradoAcademico.query.get(grado_id)
-            if not grado:
-                return jsonify({"error": "Grado Académico no encontrado"}), 404
-            db.session.delete(grado)
-            db.session.commit()
-            return jsonify({"message": "Eliminado correctamente"}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": str(e)}), 400
+            return jsonify(GradoAcademicoService.delete(grado_id)), 200
+        except ValueError as e:
+            status = 404 if "no encontrado" in str(e).lower() else 400
+            return jsonify({"error": str(e)}), status
+        except Exception:
+            return jsonify({"error": "Error interno del servidor"}), 500

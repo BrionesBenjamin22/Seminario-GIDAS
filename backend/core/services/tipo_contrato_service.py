@@ -10,33 +10,55 @@ class TipoContratoService:
     # -------------------------------------------------
 
     @staticmethod
+    def _validar_id(tipo_contrato_id):
+        if (
+            isinstance(tipo_contrato_id, bool)
+            or not isinstance(tipo_contrato_id, int)
+            or tipo_contrato_id <= 0
+        ):
+            raise ValueError("El id debe ser un entero positivo")
+        return tipo_contrato_id
+
+    @staticmethod
+    def _validar_payload(data):
+        if data is None or not isinstance(data, dict) or not data:
+            raise ValueError("Los datos no pueden estar vacios")
+        return data
+
+    @staticmethod
     def _validar_nombre(nombre, contrato_id=None):
         if nombre is None:
-            raise Exception("El nombre es obligatorio")
+            raise ValueError("El nombre es obligatorio")
 
         if not isinstance(nombre, str):
-            raise Exception("El nombre debe ser texto")
+            raise ValueError("El nombre debe ser texto")
 
         nombre = nombre.strip()
 
         if not nombre:
-            raise Exception("El nombre no puede estar vacío")
+            raise ValueError("El nombre no puede estar vacio")
 
         if len(nombre) < 2:
-            raise Exception("El nombre debe tener al menos 2 caracteres")
+            raise ValueError("El nombre debe tener al menos 2 caracteres")
 
-        # Unicidad (case-insensitive)
         query = TipoContrato.query.filter(
             func.lower(TipoContrato.nombre) == nombre.lower()
         )
 
-        if contrato_id:
+        if contrato_id is not None:
             query = query.filter(TipoContrato.id != contrato_id)
 
         if query.first():
-            raise Exception("Ya existe un tipo de contrato con ese nombre")
+            raise ValueError("Ya existe un tipo de contrato con ese nombre")
 
         return nombre
+
+    @staticmethod
+    def _get_or_404(tipo_contrato_id):
+        tipo = TipoContrato.query.get(TipoContratoService._validar_id(tipo_contrato_id))
+        if not tipo:
+            raise ValueError("Tipo de contrato no encontrado")
+        return tipo
 
     # -------------------------------------------------
     # CRUD
@@ -51,16 +73,13 @@ class TipoContratoService:
 
     @staticmethod
     def get_by_id(tipo_contrato_id):
-        tipo = TipoContrato.query.get(tipo_contrato_id)
-        if not tipo:
-            raise Exception("Tipo de contrato no encontrado")
+        tipo = TipoContratoService._get_or_404(tipo_contrato_id)
         return tipo.serialize()
 
     @staticmethod
     def create(data: dict):
-        nombre = TipoContratoService._validar_nombre(
-            data.get("nombre")
-        )
+        TipoContratoService._validar_payload(data)
+        nombre = TipoContratoService._validar_nombre(data.get("nombre"))
 
         tipo = TipoContrato(nombre=nombre)
 
@@ -69,15 +88,14 @@ class TipoContratoService:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("Error al guardar el tipo de contrato")
+            raise
 
         return tipo.serialize()
 
     @staticmethod
     def update(tipo_contrato_id, data: dict):
-        tipo = TipoContrato.query.get(tipo_contrato_id)
-        if not tipo:
-            raise Exception("Tipo de contrato no encontrado")
+        TipoContratoService._validar_payload(data)
+        tipo = TipoContratoService._get_or_404(tipo_contrato_id)
 
         if "nombre" in data:
             tipo.nombre = TipoContratoService._validar_nombre(
@@ -89,21 +107,24 @@ class TipoContratoService:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("Error al actualizar el tipo de contrato")
+            raise
 
         return tipo.serialize()
 
     @staticmethod
     def delete(tipo_contrato_id):
-        tipo = TipoContrato.query.get(tipo_contrato_id)
-        if not tipo:
-            raise Exception("Tipo de contrato no encontrado")
+        tipo = TipoContratoService._get_or_404(tipo_contrato_id)
+
+        if any(t.deleted_at is None for t in tipo.transferencias):
+            raise ValueError(
+                "No se puede eliminar el tipo de contrato porque tiene transferencias asociadas"
+            )
 
         db.session.delete(tipo)
         try:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("No se puede eliminar el tipo de contrato")
+            raise
 
         return {"message": "Tipo de contrato eliminado correctamente"}

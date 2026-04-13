@@ -1,5 +1,6 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.distincion_service import DistincionRecibidaService
+
 
 class DistincionRecibidaController:
 
@@ -8,7 +9,8 @@ class DistincionRecibidaController:
         try:
             filtros = {
                 "proyecto_id": request.args.get("proyecto_id", type=int),
-                "orden": request.args.get("orden")
+                "orden": request.args.get("orden"),
+                "activos": request.args.get("activos", "true")
             }
 
             return jsonify(
@@ -31,8 +33,9 @@ class DistincionRecibidaController:
     def create():
         try:
             data = request.get_json()
+            user_id = g.current_user_id
             return jsonify(
-                DistincionRecibidaService.create(data)
+                DistincionRecibidaService.create(data, user_id)
             ), 201
         except Exception as e:
             return jsonify({"error": str(e)}), 400
@@ -50,8 +53,9 @@ class DistincionRecibidaController:
     @staticmethod
     def delete(distincion_id):
         try:
+            user_id = g.current_user_id
             return jsonify(
-                DistincionRecibidaService.delete(distincion_id)
+                DistincionRecibidaService.delete(distincion_id, user_id)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400

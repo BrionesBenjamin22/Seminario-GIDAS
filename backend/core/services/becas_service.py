@@ -1,8 +1,10 @@
 from datetime import datetime
+from sqlalchemy import func
 from sqlalchemy import extract, or_
 from extension import db
 from core.models.becas import Beca, Beca_Becario
 from core.models.personal import Becario
+from core.models.fuente_financiamiento import FuenteFinanciamiento
 
 
 # =====================================================
@@ -24,6 +26,57 @@ def _get_relacion_activa(beca_id: int, becario_id: int):
     ).first()
 
 
+def _validar_nombre_beca(nombre):
+    if not isinstance(nombre, str):
+        raise ValueError("El nombre de la beca es obligatorio.")
+
+    nombre = " ".join(nombre.strip().split())
+    if not nombre:
+        raise ValueError("El nombre de la beca es obligatorio.")
+
+    return nombre
+
+
+def _validar_fuente_financiamiento(fuente_financiamiento_id):
+    if fuente_financiamiento_id is None:
+        return None
+
+    fuente = db.session.get(FuenteFinanciamiento, fuente_financiamiento_id)
+    if not fuente:
+        raise ValueError("Fuente de financiamiento invalida.")
+
+    return fuente.id
+
+
+def _parsear_fecha(valor, campo):
+    try:
+        return datetime.strptime(valor, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        raise ValueError(f"Formato de {campo} invalido.")
+
+
+def _validar_beca_unica(nombre_beca, fuente_financiamiento_id, beca_id=None):
+    query = Beca.query.filter(
+        func.lower(Beca.nombre_beca) == nombre_beca.lower(),
+        Beca.deleted_at.is_(None)
+    )
+
+    if fuente_financiamiento_id is None:
+        query = query.filter(Beca.fuente_financiamiento_id.is_(None))
+    else:
+        query = query.filter(
+            Beca.fuente_financiamiento_id == fuente_financiamiento_id
+        )
+
+    if beca_id is not None:
+        query = query.filter(Beca.id != beca_id)
+
+    if query.first():
+        raise ValueError(
+            "Ya existe una beca con ese nombre para la misma fuente de financiamiento."
+        )
+
+
 # =====================================================
 # CRUD BECA
 # =====================================================
@@ -37,19 +90,23 @@ class BecaService:
 
     @staticmethod
     def get_by_id(beca_id):
-        beca = _get_beca_activa_or_404(beca_id)
-        return beca.serialize()
+        return _get_beca_activa_or_404(beca_id).serialize()
 
     @staticmethod
     def create(data, user_id):
+        if not data:
+            raise ValueError("Los datos no pueden estar vacios.")
 
-        if not data.get("nombre_beca"):
-            raise ValueError("El nombre de la beca es obligatorio.")
+        nombre_beca = _validar_nombre_beca(data.get("nombre_beca"))
+        fuente_financiamiento_id = _validar_fuente_financiamiento(
+            data.get("fuente_financiamiento_id")
+        )
+        _validar_beca_unica(nombre_beca, fuente_financiamiento_id)
 
         nueva_beca = Beca(
-            nombre_beca=data["nombre_beca"],
+            nombre_beca=nombre_beca,
             descripcion=data.get("descripcion"),
-            fuente_financiamiento_id=data.get("fuente_financiamiento_id"),
+            fuente_financiamiento_id=fuente_financiamiento_id,
             created_by=user_id
         )
 
@@ -60,16 +117,32 @@ class BecaService:
 
     @staticmethod
     def update(beca_id, data):
+        if not data:
+            raise ValueError("Los datos no pueden estar vacios.")
+
         beca = _get_beca_activa_or_404(beca_id)
 
+        nombre_beca = beca.nombre_beca
         if "nombre_beca" in data:
-            beca.nombre_beca = data["nombre_beca"]
+            nombre_beca = _validar_nombre_beca(data["nombre_beca"])
 
         if "descripcion" in data:
             beca.descripcion = data["descripcion"]
 
+        fuente_financiamiento_id = beca.fuente_financiamiento_id
         if "fuente_financiamiento_id" in data:
-            beca.fuente_financiamiento_id = data["fuente_financiamiento_id"]
+            fuente_financiamiento_id = _validar_fuente_financiamiento(
+                data["fuente_financiamiento_id"]
+            )
+
+        _validar_beca_unica(
+            nombre_beca,
+            fuente_financiamiento_id,
+            beca_id=beca.id
+        )
+
+        beca.nombre_beca = nombre_beca
+        beca.fuente_financiamiento_id = fuente_financiamiento_id
 
         db.session.commit()
         return beca.serialize()
@@ -90,6 +163,8 @@ class BecaService:
 
     @staticmethod
     def vincular_becario(beca_id, data, user_id):
+        if not data:
+            raise ValueError("Los datos no pueden estar vacios.")
 
         beca = _get_beca_activa_or_404(beca_id)
 
@@ -97,14 +172,25 @@ class BecaService:
         if not becario or becario.deleted_at is not None:
             raise ValueError("Becario no encontrado.")
 
-        try:
-            fecha_inicio = datetime.strptime(data["fecha_inicio"], "%Y-%m-%d").date()
-        except:
-            raise ValueError("Formato de fecha_inicio inválido.")
+        fecha_inicio = _parsear_fecha(data.get("fecha_inicio"), "fecha_inicio")
 
         fecha_fin = None
         if data.get("fecha_fin"):
-            fecha_fin = datetime.strptime(data["fecha_fin"], "%Y-%m-%d").date()
+            fecha_fin = _parsear_fecha(data["fecha_fin"], "fecha_fin")
+            if fecha_fin < fecha_inicio:
+                raise ValueError(
+                    "La fecha_fin no puede ser anterior a la fecha_inicio."
+                )
+
+        monto_percibido = data.get("monto_percibido")
+        if monto_percibido is not None:
+            try:
+                monto_percibido = float(monto_percibido)
+            except (TypeError, ValueError):
+                raise ValueError("El monto_percibido debe ser numerico.")
+
+            if monto_percibido < 0:
+                raise ValueError("El monto_percibido no puede ser negativo.")
 
         existe = _get_relacion_activa(beca.id, becario.id)
         if existe:
@@ -115,7 +201,7 @@ class BecaService:
             id_becario=becario.id,
             fecha_inicio=fecha_inicio,
             fecha_fin=fecha_fin,
-            monto_percibido=data.get("monto_percibido"),
+            monto_percibido=monto_percibido,
             created_by=user_id
         )
 

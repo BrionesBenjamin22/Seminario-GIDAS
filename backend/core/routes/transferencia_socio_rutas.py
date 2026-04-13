@@ -21,7 +21,7 @@ def get_all():
 def get_by_id(transferencia_id):
     return TransferenciaSocioProductivaController.get_by_id(transferencia_id)
 
-@transferencia_socio_productiva_bp.route("/", methods=["POST"])
+@transferencia_socio_productiva_bp.route("", methods=["POST"])
 @requiere_rol("ADMIN", "GESTOR")
 def create():
     return TransferenciaSocioProductivaController.create()
@@ -33,7 +33,7 @@ def update(transferencia_id):
     return TransferenciaSocioProductivaController.update(transferencia_id)
 
 @transferencia_socio_productiva_bp.route("/<int:transferencia_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(transferencia_id):
     return TransferenciaSocioProductivaController.delete(transferencia_id)
 

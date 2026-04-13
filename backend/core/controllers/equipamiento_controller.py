@@ -7,7 +7,8 @@ class EquipamientoController:
     @staticmethod
     def get_all():
         try:
-            return jsonify(EquipamientoService.get_all()), 200
+            activos = request.args.get("activos", "true")
+            return jsonify(EquipamientoService.get_all(activos)), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 

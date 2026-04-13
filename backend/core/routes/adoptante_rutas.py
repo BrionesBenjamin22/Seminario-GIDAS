@@ -12,11 +12,11 @@ adoptante_bp = Blueprint(
 # GET (puede ser público o lectura)
 # -------------------------
 adoptante_bp.route("", methods=["GET"])(
-    AdoptanteController.get_all
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(AdoptanteController.get_all)
 )
 
 adoptante_bp.route("/<int:adoptante_id>", methods=["GET"])(
-    AdoptanteController.get_by_id
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(AdoptanteController.get_by_id)
 )
 
 # -------------------------
@@ -37,5 +37,5 @@ adoptante_bp.route("/<int:adoptante_id>", methods=["PUT"])(
 # DELETE
 # -------------------------
 adoptante_bp.route("/<int:adoptante_id>", methods=["DELETE"])(
-    requiere_rol("ADMIN")(AdoptanteController.delete)
+    requiere_rol("ADMIN", "GESTOR")(AdoptanteController.delete)
 )

@@ -29,6 +29,6 @@ def actualizar(rol, id):
     return PersonalController.actualizar(request, rol, id)
 
 @personal_bp.route("/<string:rol>/<int:id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def eliminar(rol, id):
     return PersonalController.eliminar(request, rol, id)

@@ -41,7 +41,7 @@ def update(autor_id):
 
 
 @autor_bp.route("/<int:autor_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(autor_id):
     return AutorController.delete(autor_id)
 

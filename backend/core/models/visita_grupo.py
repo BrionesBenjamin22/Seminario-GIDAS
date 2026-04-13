@@ -1,8 +1,9 @@
 from extension import db
+from core.models.audit_mixin import AuditMixin
 from core.models.trabajo_reunion import TipoReunion
 
 
-class VisitaAcademica(db.Model):
+class VisitaAcademica(db.Model, AuditMixin):
     __tablename__ = 'visita_grupo'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -21,7 +22,7 @@ class VisitaAcademica(db.Model):
     grupo_utn = db.relationship('GrupoInvestigacionUtn', back_populates='visitas')
 
     def serialize(self):
-        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data = self.to_dict()
         data["grupo"] = self.grupo_utn.nombre_sigla_grupo if self.grupo_utn else None
         # Procedencia ahora es un string simple
         data["procedencia"] = self.procedencia

@@ -36,6 +36,6 @@ def update(equipamiento_id):
 
 
 @equipamiento_bp.route("/<int:equipamiento_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(equipamiento_id):
     return EquipamientoController.delete(equipamiento_id)

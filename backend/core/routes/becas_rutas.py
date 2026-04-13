@@ -56,7 +56,7 @@ def update(beca_id):
 
 
 @beca_bp.route("/<int:beca_id>", methods=["DELETE"])
-@requiere_rol("ADMIN")
+@requiere_rol("ADMIN", "GESTOR")
 def delete(beca_id):
     return BecaController.delete(beca_id)
 

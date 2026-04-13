@@ -14,7 +14,7 @@ proyecto_investigacion_bp = Blueprint(
 # =========================
 # CRUD 
 
-@proyecto_investigacion_bp.route("/", methods=["GET"])
+@proyecto_investigacion_bp.route("", methods=["GET"])
 @requiere_rol("ADMIN", "GESTOR", "LECTURA")
 def get_all():
     return ProyectoInvestigacionController.get_all()
@@ -38,6 +38,11 @@ def update(proyecto_id):
 @requiere_rol("ADMIN", "GESTOR")
 def cerrar(proyecto_id):
     return ProyectoInvestigacionController.cerrar(proyecto_id)
+
+@proyecto_investigacion_bp.route("/<int:proyecto_id>/reabrir", methods=["PUT"])
+@requiere_rol("ADMIN", "GESTOR")
+def reabrir(proyecto_id):
+    return ProyectoInvestigacionController.reabrir(proyecto_id)
 
 # =========================
 # BECARIOS ↔ PROYECTO

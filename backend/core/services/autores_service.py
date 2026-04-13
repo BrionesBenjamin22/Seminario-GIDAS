@@ -9,8 +9,25 @@ class AutorService:
     # =========================
 
     @staticmethod
+    def _validar_payload(data: dict):
+        if not isinstance(data, dict) or not data:
+            raise Exception("Los datos no pueden estar vacios")
+
+    @staticmethod
+    def _validar_id(valor, campo: str):
+        if not isinstance(valor, int) or valor <= 0:
+            raise Exception(f"El campo '{campo}' debe ser un entero positivo")
+        return valor
+
+    @staticmethod
+    def _validar_nombre(nombre: str):
+        if not nombre or not isinstance(nombre, str) or not nombre.strip():
+            raise Exception("El nombre es obligatorio")
+        return nombre.strip()
+
+    @staticmethod
     def _get_or_404(autor_id: int):
-        autor = db.session.get(Autor, autor_id)
+        autor = db.session.get(Autor, AutorService._validar_id(autor_id, "autor_id"))
         if not autor:
             raise Exception("Autor no encontrado")
         return autor
@@ -31,14 +48,9 @@ class AutorService:
 
     @staticmethod
     def create(data: dict):
-        nombre = data.get("nombre_apellido")
+        AutorService._validar_payload(data)
+        nombre = AutorService._validar_nombre(data.get("nombre_apellido"))
 
-        if not nombre or not isinstance(nombre, str) or not nombre.strip():
-            raise Exception("El nombre es obligatorio")
-
-        nombre = nombre.strip()
-
-        # Evitar duplicados exactos
         existente = (
             Autor.query
             .filter(Autor.nombre_apellido == nombre)
@@ -51,23 +63,41 @@ class AutorService:
         autor = Autor(nombre_apellido=nombre)
 
         db.session.add(autor)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         return autor.serialize()
 
     @staticmethod
     def update(autor_id: int, data: dict):
+        AutorService._validar_payload(data)
         autor = AutorService._get_or_404(autor_id)
 
         if "nombre_apellido" in data:
-            nombre = data["nombre_apellido"]
+            nombre = AutorService._validar_nombre(data["nombre_apellido"])
 
-            if not nombre or not isinstance(nombre, str) or not nombre.strip():
-                raise Exception("El nombre no puede estar vacío")
+            existente = (
+                Autor.query
+                .filter(
+                    Autor.nombre_apellido == nombre,
+                    Autor.id != autor.id
+                )
+                .first()
+            )
 
-            autor.nombre_apellido = nombre.strip()
+            if existente:
+                raise Exception("Ya existe un autor con ese nombre")
 
-        db.session.commit()
+            autor.nombre_apellido = nombre
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         return autor.serialize()
 
@@ -75,32 +105,42 @@ class AutorService:
     def delete(autor_id: int):
         autor = AutorService._get_or_404(autor_id)
 
-        # opcional: evitar borrar si tiene libros asociados
         if autor.libros:
             raise Exception("No se puede eliminar un autor con libros asociados")
 
         db.session.delete(autor)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         return {"message": "Autor eliminado correctamente"}
 
     # =========================
-    # RELACIÓN AUTOR - LIBRO
+    # RELACION AUTOR - LIBRO
     # =========================
 
     @staticmethod
     def add_libro(autor_id: int, libro_id: int):
         autor = AutorService._get_or_404(autor_id)
 
-        libro = db.session.get(DocumentacionBibliografica, libro_id)
-        if not libro:
+        libro = db.session.get(
+            DocumentacionBibliografica,
+            AutorService._validar_id(libro_id, "libro_id")
+        )
+        if not libro or libro.deleted_at is not None:
             raise Exception("Libro no encontrado")
 
         if libro in autor.libros:
-            raise Exception("El libro ya está asociado a este autor")
+            raise Exception("El libro ya esta asociado a este autor")
 
         autor.libros.append(libro)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         return autor.serialize()
 
@@ -108,14 +148,21 @@ class AutorService:
     def remove_libro(autor_id: int, libro_id: int):
         autor = AutorService._get_or_404(autor_id)
 
-        libro = db.session.get(DocumentacionBibliografica, libro_id)
-        if not libro:
+        libro = db.session.get(
+            DocumentacionBibliografica,
+            AutorService._validar_id(libro_id, "libro_id")
+        )
+        if not libro or libro.deleted_at is not None:
             raise Exception("Libro no encontrado")
 
         if libro not in autor.libros:
-            raise Exception("La relación no existe")
+            raise Exception("La relacion no existe")
 
         autor.libros.remove(libro)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
         return autor.serialize()

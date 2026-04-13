@@ -249,6 +249,7 @@ class Investigador(db.Model, AuditMixin):
                     "id": p.proyecto.id,
                     "codigo": p.proyecto.codigo_proyecto,
                     "nombre": p.proyecto.nombre_proyecto,
+                    "es_coordinador": p.es_coordinador,
                     "fecha_inicio": str(p.fecha_inicio),
                     "fecha_fin": str(p.fecha_fin) if p.fecha_fin else None
                 }

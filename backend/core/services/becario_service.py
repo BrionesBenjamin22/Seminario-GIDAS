@@ -1,15 +1,119 @@
+from datetime import date
+
 from extension import db
 from core.models.personal import Becario, TipoFormacion, BecarioHorasHistorial
 from core.models.grupo import GrupoInvestigacionUtn
 from core.models.proyecto_investigacion import ProyectoInvestigacion
-from datetime import date
 
 
 # =====================================================
 # HELPERS
 # =====================================================
 
+def _validar_payload(data: dict):
+    if not isinstance(data, dict) or not data:
+        raise ValueError("Los datos no pueden estar vacios.")
+
+
+def _validar_id_positivo(valor, campo: str, permitir_none: bool = False):
+    if valor is None and permitir_none:
+        return valor
+
+    if not isinstance(valor, int) or valor <= 0:
+        raise ValueError(f"El campo '{campo}' debe ser un entero positivo.")
+
+    return valor
+
+
+def _validar_user_id(user_id: int):
+    if not isinstance(user_id, int) or user_id <= 0:
+        raise ValueError("El user_id es invalido.")
+
+
+def _validar_nombre(nombre: str):
+    if not isinstance(nombre, str):
+        raise ValueError("El nombre y apellido es obligatorio.")
+
+    nombre = nombre.strip()
+
+    if not nombre:
+        raise ValueError("El nombre y apellido es obligatorio.")
+
+    if len(nombre) > 120:
+        raise ValueError("El nombre y apellido no puede superar los 120 caracteres.")
+
+    return nombre
+
+
+def _validar_horas(horas):
+    if not isinstance(horas, int) or horas <= 0:
+        raise ValueError("Las horas semanales deben ser un numero positivo.")
+
+    return horas
+
+
+def _validar_proyectos_ids(proyectos_ids):
+    if not isinstance(proyectos_ids, list):
+        raise ValueError("El campo 'proyectos' debe ser una lista.")
+
+    ids_normalizados = []
+    ids_vistos = set()
+
+    for proyecto_id in proyectos_ids:
+        proyecto_id = _validar_id_positivo(proyecto_id, "proyectos")
+
+        if proyecto_id in ids_vistos:
+            raise ValueError("El campo 'proyectos' no puede contener IDs repetidos.")
+
+        ids_vistos.add(proyecto_id)
+        ids_normalizados.append(proyecto_id)
+
+    return ids_normalizados
+
+
+def _obtener_proyectos_validos(proyectos_ids):
+    if not proyectos_ids:
+        return []
+
+    proyectos = ProyectoInvestigacion.query.filter(
+        ProyectoInvestigacion.id.in_(proyectos_ids)
+    ).all()
+
+    proyectos_activos = [
+        proyecto
+        for proyecto in proyectos
+        if getattr(proyecto, "deleted_at", None) is None
+    ]
+
+    if len(proyectos_activos) != len(proyectos_ids):
+        raise ValueError("Uno o mas proyectos son invalidos.")
+
+    return proyectos_activos
+
+
+def _obtener_historiales_activos(becario):
+    return [h for h in becario.historial_horas if h.fecha_fin is None]
+
+
+def _obtener_historial_activo_unico(becario):
+    historiales_activos = _obtener_historiales_activos(becario)
+
+    if len(historiales_activos) > 1:
+        raise ValueError("El becario tiene mas de un historial de horas activo.")
+
+    return historiales_activos[0] if historiales_activos else None
+
+
+def _cerrar_historial(historial_activo):
+    if historial_activo.fecha_inicio > date.today():
+        raise ValueError("El historial activo tiene una fecha de inicio invalida.")
+
+    historial_activo.fecha_fin = date.today()
+
+
 def _get_activo_or_404(id: int):
+    _validar_id_positivo(id, "id")
+
     becario = db.session.get(Becario, id)
 
     if not becario or becario.deleted_at is not None:
@@ -22,30 +126,27 @@ def _get_activo_or_404(id: int):
 # CREATE
 # =====================================================
 def crear_becario(data: dict, user_id: int):
+    _validar_payload(data)
+    _validar_user_id(user_id)
 
-    if not data:
-        raise ValueError("Los datos no pueden estar vacíos.")
-
-    nombre = data.get("nombre_apellido")
-    horas = data.get("horas_semanales")
-    tipo_formacion_id = data.get("tipo_formacion_id")
-    grupo_utn_id = data.get("grupo_utn_id")
-    proyectos_ids = data.get("proyectos", [])
-
-    if not nombre or not isinstance(nombre, str):
-        raise ValueError("El nombre y apellido es obligatorio.")
-
-    if not isinstance(horas, int) or horas <= 0:
-        raise ValueError("Las horas semanales deben ser un número positivo.")
+    nombre = _validar_nombre(data.get("nombre_apellido"))
+    horas = _validar_horas(data.get("horas_semanales"))
+    tipo_formacion_id = _validar_id_positivo(
+        data.get("tipo_formacion_id"), "tipo_formacion_id"
+    )
+    grupo_utn_id = _validar_id_positivo(
+        data.get("grupo_utn_id"), "grupo_utn_id", permitir_none=True
+    )
+    proyectos_ids = _validar_proyectos_ids(data.get("proyectos", []))
 
     if not TipoFormacion.query.get(tipo_formacion_id):
-        raise ValueError("Tipo de formación inválido.")
+        raise ValueError("Tipo de formacion invalido.")
 
     if grupo_utn_id and not GrupoInvestigacionUtn.query.get(grupo_utn_id):
-        raise ValueError("Grupo UTN inválido.")
+        raise ValueError("Grupo UTN invalido.")
 
     becario = Becario(
-        nombre_apellido=nombre.strip(),
+        nombre_apellido=nombre,
         horas_semanales=horas,
         tipo_formacion_id=tipo_formacion_id,
         grupo_utn_id=grupo_utn_id,
@@ -54,9 +155,8 @@ def crear_becario(data: dict, user_id: int):
     )
 
     db.session.add(becario)
-    db.session.flush()  # necesario para obtener becario.id
+    db.session.flush()
 
-    # 🔹 Crear historial inicial SIEMPRE
     historial = BecarioHorasHistorial(
         becario_id=becario.id,
         horas_semanales=horas,
@@ -67,15 +167,8 @@ def crear_becario(data: dict, user_id: int):
 
     db.session.add(historial)
 
-    # 🔹 Asignar proyectos (si vienen)
     if proyectos_ids:
-        proyectos = ProyectoInvestigacion.query.filter(
-            ProyectoInvestigacion.id.in_(proyectos_ids)
-        ).all()
-
-        if len(proyectos) != len(proyectos_ids):
-            raise ValueError("Uno o más proyectos son inválidos.")
-
+        proyectos = _obtener_proyectos_validos(proyectos_ids)
         becario.participaciones_proyecto = proyectos
 
     try:
@@ -85,11 +178,14 @@ def crear_becario(data: dict, user_id: int):
         db.session.rollback()
         raise
 
+
 # =====================================================
 # UPDATE
 # =====================================================
 
-def actualizar_becario(id: int, data: dict, user_id:int):
+def actualizar_becario(id: int, data: dict, user_id: int):
+    _validar_payload(data)
+    _validar_user_id(user_id)
 
     becario = _get_activo_or_404(id)
 
@@ -97,27 +193,18 @@ def actualizar_becario(id: int, data: dict, user_id:int):
         if not isinstance(data["activo"], bool):
             raise ValueError("El campo 'activo' debe ser booleano.")
 
+        if data["activo"] is False:
+            raise ValueError("Para dar de baja un becario debe utilizarse el metodo eliminar.")
+
         becario.activo = data["activo"]
 
     if "nombre_apellido" in data:
-        nombre = data["nombre_apellido"]
-        if not nombre or not isinstance(nombre, str):
-            raise ValueError("Nombre inválido.")
-        becario.nombre_apellido = nombre.strip()
+        becario.nombre_apellido = _validar_nombre(data["nombre_apellido"])
 
     if "horas_semanales" in data:
-        horas = data["horas_semanales"]
+        horas = _validar_horas(data["horas_semanales"])
+        historial_activo = _obtener_historial_activo_unico(becario)
 
-        if not isinstance(horas, int) or horas <= 0:
-            raise ValueError("Horas inválidas.")
-
-        # Buscar registro activo
-        historial_activo = next(
-            (h for h in becario.historial_horas if h.fecha_fin is None),
-            None
-        )
-
-        # Si no existe historial activo → crear uno
         if not historial_activo:
             nuevo_historial = BecarioHorasHistorial(
                 becario_id=becario.id,
@@ -127,11 +214,8 @@ def actualizar_becario(id: int, data: dict, user_id:int):
                 created_by=user_id
             )
             db.session.add(nuevo_historial)
-
-        # Si existe y las horas cambian → cerrar y crear nuevo
         elif historial_activo.horas_semanales != horas:
-
-            historial_activo.fecha_fin = date.today()
+            _cerrar_historial(historial_activo)
 
             nuevo_historial = BecarioHorasHistorial(
                 becario_id=becario.id,
@@ -143,32 +227,27 @@ def actualizar_becario(id: int, data: dict, user_id:int):
 
             db.session.add(nuevo_historial)
 
-        # Actualizar campo actual
         becario.horas_semanales = horas
-        
+
     if "tipo_formacion_id" in data:
-        if not TipoFormacion.query.get(data["tipo_formacion_id"]):
-            raise ValueError("Tipo de formación inválido.")
-        becario.tipo_formacion_id = data["tipo_formacion_id"]
+        tipo_formacion_id = _validar_id_positivo(
+            data["tipo_formacion_id"], "tipo_formacion_id"
+        )
+        if not TipoFormacion.query.get(tipo_formacion_id):
+            raise ValueError("Tipo de formacion invalido.")
+        becario.tipo_formacion_id = tipo_formacion_id
 
     if "grupo_utn_id" in data:
-        if data["grupo_utn_id"] and not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
-            raise ValueError("Grupo UTN inválido.")
-        becario.grupo_utn_id = data["grupo_utn_id"]
+        grupo_utn_id = _validar_id_positivo(
+            data["grupo_utn_id"], "grupo_utn_id", permitir_none=True
+        )
+        if grupo_utn_id and not GrupoInvestigacionUtn.query.get(grupo_utn_id):
+            raise ValueError("Grupo UTN invalido.")
+        becario.grupo_utn_id = grupo_utn_id
 
     if "proyectos" in data:
-        proyectos_ids = data["proyectos"]
-
-        if not isinstance(proyectos_ids, list):
-            raise ValueError("El campo 'proyectos' debe ser una lista.")
-
-        proyectos = ProyectoInvestigacion.query.filter(
-            ProyectoInvestigacion.id.in_(proyectos_ids)
-        ).all()
-
-        if len(proyectos) != len(proyectos_ids):
-            raise ValueError("Uno o más proyectos son inválidos.")
-
+        proyectos_ids = _validar_proyectos_ids(data["proyectos"])
+        proyectos = _obtener_proyectos_validos(proyectos_ids)
         becario.participaciones_proyecto = proyectos
 
     try:
@@ -184,20 +263,17 @@ def actualizar_becario(id: int, data: dict, user_id:int):
 # =====================================================
 
 def eliminar_becario(id: int, user_id: int):
+    _validar_user_id(user_id)
 
     becario = _get_activo_or_404(id)
 
     if not becario.activo:
         raise ValueError("El becario ya se encuentra dado de baja.")
-    
-    # Cerrar historial activo
-    historial_activo = next(
-        (h for h in becario.historial_horas if h.fecha_fin is None),
-        None
-    )
+
+    historial_activo = _obtener_historial_activo_unico(becario)
 
     if historial_activo:
-        historial_activo.fecha_fin = date.today()
+        _cerrar_historial(historial_activo)
 
     becario.activo = False
     becario.soft_delete(user_id)
@@ -219,17 +295,21 @@ def eliminar_becario(id: int, user_id: int):
 # =====================================================
 
 def listar_becarios(activos=None):
+    query = Becario.query
 
-    query = Becario.query.filter(Becario.deleted_at.is_(None))
+    if activos is None:
+        activos = "true"
+
+    activos = str(activos).strip().lower()
 
     if activos == "true":
-        query = query.filter_by(activo=True)
+        query = query.filter(Becario.deleted_at.is_(None))
     elif activos == "false":
-        query = query.filter_by(activo=False)
+        query = query.filter(Becario.deleted_at.isnot(None))
     elif activos == "all":
         pass
     else:
-        query = query.filter_by(activo=True)
+        query = query.filter(Becario.deleted_at.is_(None))
 
     return query.all()
 
@@ -239,4 +319,10 @@ def listar_becarios(activos=None):
 # =====================================================
 
 def obtener_becario_por_id(id: int):
-    return _get_activo_or_404(id)
+    _validar_id_positivo(id, "id")
+
+    becario = db.session.get(Becario, id)
+    if not becario:
+        raise ValueError("Becario no encontrado.")
+
+    return becario

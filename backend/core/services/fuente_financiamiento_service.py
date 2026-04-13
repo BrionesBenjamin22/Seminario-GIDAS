@@ -14,7 +14,7 @@ def crear_fuente_financiamiento(data):
     if not nombre_original:
         raise ValueError("El nombre no puede estar vacío.")
 
-    # 🔹 Normalización SOLO para validar duplicados
+    # Normalización SOLO para validar duplicados
     nombre_normalizado = nombre_original.lower()
 
     existe = FuenteFinanciamiento.query.filter(
@@ -24,7 +24,7 @@ def crear_fuente_financiamiento(data):
     if existe:
         raise ValueError("Ya existe una fuente de financiamiento con ese nombre.")
 
-    # 🔹 Se guarda el nombre tal como lo escribió el usuario
+    # Se guarda el nombre tal como lo escribió el usuario
     nueva = FuenteFinanciamiento(nombre=nombre_original)
     db.session.add(nueva)
 

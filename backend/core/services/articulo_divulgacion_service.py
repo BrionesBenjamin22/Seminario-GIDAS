@@ -1,35 +1,48 @@
+﻿from datetime import datetime, date
+
+from extension import db
 from core.models.articulo_divulgacion import ArticuloDivulgacion
 from core.models.grupo import GrupoInvestigacionUtn
-from extension import db
-from datetime import datetime, date
 
 
 class ArticuloDivulgacionService:
+    @staticmethod
+    def _validar_payload(data):
+        if not isinstance(data, dict) or not data:
+            raise ValueError("Los datos enviados son invalidos")
 
-    # -------------------------------------------------
-    # Validadores internos
-    # -------------------------------------------------
+    @staticmethod
+    def _validar_user_id(user_id):
+        if not isinstance(user_id, int) or user_id <= 0:
+            raise ValueError("El user_id es invalido")
+        return user_id
+
+    @staticmethod
+    def _normalizar_activos(activos):
+        if activos is None:
+            return "true"
+        return str(activos).strip().lower()
 
     @staticmethod
     def _validar_texto(valor, campo, min_len=3, max_len=500):
         if valor is None:
-            raise Exception(f"El campo '{campo}' es obligatorio")
+            raise ValueError(f"El campo '{campo}' es obligatorio")
 
         if not isinstance(valor, str):
-            raise Exception(f"El campo '{campo}' debe ser texto")
+            raise ValueError(f"El campo '{campo}' debe ser texto")
 
         valor = valor.strip()
 
         if not valor:
-            raise Exception(f"El campo '{campo}' no puede estar vacío")
+            raise ValueError(f"El campo '{campo}' no puede estar vacio")
 
         if len(valor) < min_len:
-            raise Exception(
+            raise ValueError(
                 f"El campo '{campo}' debe tener al menos {min_len} caracteres"
             )
 
         if len(valor) > max_len:
-            raise Exception(
+            raise ValueError(
                 f"El campo '{campo}' no puede superar los {max_len} caracteres"
             )
 
@@ -38,23 +51,51 @@ class ArticuloDivulgacionService:
     @staticmethod
     def _validar_fecha(fecha_publicacion):
         if fecha_publicacion > date.today():
-            raise Exception("La fecha de publicación no puede ser futura")
+            raise ValueError("La fecha de publicacion no puede ser futura")
 
-    # -------------------------------------------------
-    # CRUD
-    # -------------------------------------------------
+    @staticmethod
+    def _validar_grupo(grupo_utn_id):
+        if not isinstance(grupo_utn_id, int) or grupo_utn_id <= 0:
+            raise ValueError("Grupo UTN invalido")
+
+        grupo = db.session.get(GrupoInvestigacionUtn, grupo_utn_id)
+        if not grupo or grupo.deleted_at is not None:
+            raise ValueError("Grupo UTN invalido")
+
+        return grupo_utn_id
+
+    @staticmethod
+    def _get_articulo_activo_or_404(articulo_id: int):
+        articulo = ArticuloDivulgacion.query.filter(
+            ArticuloDivulgacion.id == articulo_id,
+            ArticuloDivulgacion.deleted_at.is_(None)
+        ).first()
+
+        if not articulo:
+            raise ValueError("Articulo de divulgacion no encontrado")
+
+        return articulo
 
     @staticmethod
     def get_all(filters: dict = None):
         query = ArticuloDivulgacion.query
+        filters = filters or {"activos": "true"}
 
-        grupo_id = filters.get("grupo_utn_id") if filters else None
+        activos = ArticuloDivulgacionService._normalizar_activos(
+            filters.get("activos")
+        )
+        if activos == "true":
+            query = query.filter(ArticuloDivulgacion.deleted_at.is_(None))
+        elif activos == "false":
+            query = query.filter(ArticuloDivulgacion.deleted_at.isnot(None))
+        elif activos != "all":
+            query = query.filter(ArticuloDivulgacion.deleted_at.is_(None))
+
+        grupo_id = filters.get("grupo_utn_id")
         if grupo_id:
-            query = query.filter(
-                ArticuloDivulgacion.grupo_utn_id == grupo_id
-            )
+            query = query.filter(ArticuloDivulgacion.grupo_utn_id == grupo_id)
 
-        orden = filters.get("orden") if filters else None
+        orden = filters.get("orden")
         if orden == "asc":
             query = query.order_by(ArticuloDivulgacion.fecha_publicacion.asc())
         else:
@@ -64,46 +105,44 @@ class ArticuloDivulgacionService:
 
     @staticmethod
     def get_by_id(articulo_id: int):
-        articulo = ArticuloDivulgacion.query.get(articulo_id)
+        articulo = db.session.get(ArticuloDivulgacion, articulo_id)
         if not articulo:
-            raise ValueError("Artículo de divulgación no encontrado")
+            raise ValueError("Articulo de divulgacion no encontrado")
 
         return articulo.serialize()
 
     @staticmethod
-    def create(data: dict):
+    def create(data: dict, user_id: int):
+        ArticuloDivulgacionService._validar_payload(data)
+        ArticuloDivulgacionService._validar_user_id(user_id)
 
-        # ---- Validar fecha ----
         try:
             fecha_publicacion = datetime.strptime(
                 data["fecha_publicacion"], "%Y-%m-%d"
             ).date()
         except (KeyError, ValueError):
-            raise Exception(
-                "La fecha de publicación es obligatoria y debe tener formato YYYY-MM-DD"
+            raise ValueError(
+                "La fecha de publicacion es obligatoria y debe tener formato YYYY-MM-DD"
             )
 
         ArticuloDivulgacionService._validar_fecha(fecha_publicacion)
 
-        # ---- Validar textos ----
         titulo = ArticuloDivulgacionService._validar_texto(
             data.get("titulo"), "titulo", min_len=5
         )
-
         descripcion = ArticuloDivulgacionService._validar_texto(
             data.get("descripcion"), "descripcion", min_len=10
         )
-
-        # ---- Validar relación ----
-        grupo_utn_id = data.get("grupo_utn_id")
-        if not grupo_utn_id or not GrupoInvestigacionUtn.query.get(grupo_utn_id):
-            raise Exception("Grupo UTN inválido")
+        grupo_utn_id = ArticuloDivulgacionService._validar_grupo(
+            data.get("grupo_utn_id")
+        )
 
         articulo = ArticuloDivulgacion(
             titulo=titulo,
             descripcion=descripcion,
             fecha_publicacion=fecha_publicacion,
-            grupo_utn_id=grupo_utn_id
+            grupo_utn_id=grupo_utn_id,
+            created_by=user_id
         )
 
         db.session.add(articulo)
@@ -112,18 +151,20 @@ class ArticuloDivulgacionService:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("Error al guardar el artículo de divulgación")
+            raise
 
         return articulo.serialize()
 
     @staticmethod
-    def update(articulo_id: int, data: dict):
-        articulo = ArticuloDivulgacion.query.get(articulo_id)
+    def update(articulo_id: int, data: dict, user_id: int = None):
+        ArticuloDivulgacionService._validar_payload(data)
 
-        if not articulo:
-            raise Exception("Artículo de divulgación no encontrado")
+        if user_id is not None:
+            ArticuloDivulgacionService._validar_user_id(user_id)
 
-        # ---- Update parcial ----
+        articulo = ArticuloDivulgacionService._get_articulo_activo_or_404(
+            articulo_id
+        )
 
         if "fecha_publicacion" in data:
             try:
@@ -131,7 +172,7 @@ class ArticuloDivulgacionService:
                     data["fecha_publicacion"], "%Y-%m-%d"
                 ).date()
             except ValueError:
-                raise Exception("La fecha debe tener formato YYYY-MM-DD")
+                raise ValueError("La fecha debe tener formato YYYY-MM-DD")
 
             ArticuloDivulgacionService._validar_fecha(fecha_publicacion)
             articulo.fecha_publicacion = fecha_publicacion
@@ -147,31 +188,31 @@ class ArticuloDivulgacionService:
             )
 
         if "grupo_utn_id" in data:
-            if not GrupoInvestigacionUtn.query.get(data["grupo_utn_id"]):
-                raise Exception("Grupo UTN inválido")
-            articulo.grupo_utn_id = data["grupo_utn_id"]
+            articulo.grupo_utn_id = ArticuloDivulgacionService._validar_grupo(
+                data["grupo_utn_id"]
+            )
 
         try:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("Error al actualizar el artículo de divulgación")
+            raise
 
         return articulo.serialize()
 
     @staticmethod
-    def delete(articulo_id: int):
-        articulo = ArticuloDivulgacion.query.get(articulo_id)
+    def delete(articulo_id: int, user_id: int):
+        ArticuloDivulgacionService._validar_user_id(user_id)
+        articulo = ArticuloDivulgacionService._get_articulo_activo_or_404(
+            articulo_id
+        )
 
-        if not articulo:
-            raise Exception("Artículo de divulgación no encontrado")
-
-        db.session.delete(articulo)
+        articulo.soft_delete(user_id)
 
         try:
             db.session.commit()
         except Exception:
             db.session.rollback()
-            raise Exception("Error al eliminar el artículo")
+            raise
 
-        return {"message": "Artículo de divulgación eliminado correctamente"}
+        return {"message": "Articulo de divulgacion eliminado correctamente"}

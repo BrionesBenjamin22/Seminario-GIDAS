@@ -6,7 +6,7 @@ from core.models.fuente_financiamiento import FuenteFinanciamiento
 from core.models.participacion_relevante import ParticipacionRelevante
 from core.models.personal import Personal, Becario, Investigador
 from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioProyecto, InvestigadorProyecto, TipoProyecto
-from core.models.actividad_docencia import ActividadDocencia
+from core.models.actividad_docencia import ActividadDocencia, InvestigadorActividadGrado
 from core.models.articulo_divulgacion import ArticuloDivulgacion
 from core.models.equipamiento import Equipamiento
 from core.models.transferencia_socio import TipoContrato, TransferenciaSocioProductiva
@@ -17,6 +17,7 @@ from core.models.tipo_personal import TipoPersonal
 from core.models.trabajo_reunion import TrabajoReunionCientifica
 from core.models.trabajo_revista import TrabajosRevistasReferato
 from core.models.directivos import Directivo, DirectivoGrupo, Cargo
+from core.models.becas import Beca, Beca_Becario
 import unicodedata
 
 
@@ -34,11 +35,37 @@ class SearchService:
             if unicodedata.category(c) != 'Mn'
         ).lower()
 
+    @staticmethod
+    def matches_deleted_filter(obj, eliminados: str) -> bool:
+        if eliminados == "all":
+            return True
+
+        if not hasattr(obj, "deleted_at"):
+            return eliminados == "false"
+
+        deleted = getattr(obj, "deleted_at", None) is not None
+        return deleted if eliminados == "true" else not deleted
+
+    @staticmethod
+    def with_status(obj, data: dict) -> dict:
+        if hasattr(obj, "deleted_at"):
+            eliminado = getattr(obj, "deleted_at", None) is not None
+            data["activo"] = not eliminado
+            data["eliminado"] = eliminado
+        else:
+            data.setdefault("activo", True)
+            data.setdefault("eliminado", False)
+        return data
+
     # ==================================================
     # SEARCH PRINCIPAL
     # ==================================================
     @staticmethod
-    def search(query_text: str, orden: str = "alf_asc"):
+    def search(
+        query_text: str,
+        orden: str = "alf_asc",
+        eliminados: str = "false"
+    ):
 
         if not query_text or len(query_text.strip()) < 2:
             raise ValueError("El texto debe tener al menos 2 caracteres")
@@ -54,17 +81,19 @@ class SearchService:
             .all()
 
         for p in personal_results:
+            if not SearchService.matches_deleted_filter(p, eliminados):
+                continue
             nombre_normalizado = SearchService.normalize_text(p.nombre_apellido)
 
             if query_normalized in nombre_normalizado:
-                resultados.append({
+                resultados.append(SearchService.with_status(p, {
                     "tipo": "Persona",
                     "id": p.id,
                     "titulo": p.nombre_apellido,
                     "subtitulo": p.tipo_personal.nombre if p.tipo_personal else None,
                     "fecha": None,
                     "url": f"/personal/{p.id}"
-                })
+                }))
 
         # ==================================================
         # BECARIOS
@@ -79,10 +108,12 @@ class SearchService:
 
 
         for b in becario_results:
+            if not SearchService.matches_deleted_filter(b, eliminados):
+                continue
             nombre_normalizado = SearchService.normalize_text(b.nombre_apellido)
 
             if query_normalized in nombre_normalizado:
-                resultados.append({
+                resultados.append(SearchService.with_status(b, {
                     "tipo": "Becario",
                     "id": b.id,
                     "titulo": b.nombre_apellido,
@@ -101,7 +132,72 @@ class SearchService:
                         ]
 
                     }
-                })
+                }))
+
+        # ==================================================
+        # BECAS
+        # ==================================================
+        beca_results = db.session.query(Beca)\
+            .options(
+                joinedload(Beca.fuente_financiamiento),
+                joinedload(Beca.becarios)
+                    .joinedload(Beca_Becario.becario)
+            )\
+            .all()
+
+        for beca in beca_results:
+            if not SearchService.matches_deleted_filter(beca, eliminados):
+                continue
+            nombre_norm = SearchService.normalize_text(beca.nombre_beca)
+            descripcion_norm = SearchService.normalize_text(beca.descripcion)
+            fuente_norm = SearchService.normalize_text(
+                beca.fuente_financiamiento.nombre
+                if beca.fuente_financiamiento else ""
+            )
+            becarios_norm = [
+                SearchService.normalize_text(relacion.becario.nombre_apellido)
+                for relacion in beca.becarios
+                if relacion.becario
+            ]
+
+            if (
+                query_normalized in nombre_norm
+                or query_normalized in descripcion_norm
+                or query_normalized in fuente_norm
+                or any(query_normalized in becario for becario in becarios_norm)
+            ):
+                resultados.append(SearchService.with_status(beca, {
+                    "tipo": "Beca",
+                    "id": beca.id,
+                    "titulo": beca.nombre_beca,
+                    "subtitulo": (
+                        beca.fuente_financiamiento.nombre
+                        if beca.fuente_financiamiento else None
+                    ),
+                    "fecha": None,
+                    "url": f"/becas/{beca.id}",
+                    "extra": {
+                        "descripcion": beca.descripcion,
+                        "fuente_financiamiento": (
+                            beca.fuente_financiamiento.nombre
+                            if beca.fuente_financiamiento else None
+                        ),
+                        "becarios": [
+                            {
+                                "id": relacion.becario.id,
+                                "nombre_apellido": relacion.becario.nombre_apellido,
+                                "fecha_inicio": str(relacion.fecha_inicio),
+                                "fecha_fin": (
+                                    str(relacion.fecha_fin)
+                                    if relacion.fecha_fin else None
+                                ),
+                                "monto_percibido": relacion.monto_percibido
+                            }
+                            for relacion in beca.becarios
+                            if relacion.becario
+                        ]
+                    }
+                }))
 
         # ==================================================
         # INVESTIGADORES
@@ -120,10 +216,12 @@ class SearchService:
         .all()
 
         for i in investigador_results:
+            if not SearchService.matches_deleted_filter(i, eliminados):
+                continue
             nombre_normalizado = SearchService.normalize_text(i.nombre_apellido)
 
             if query_normalized in nombre_normalizado:
-                resultados.append({
+                resultados.append(SearchService.with_status(i, {
                     "tipo": "Investigador",
                     "id": i.id,
                     "titulo": i.nombre_apellido,
@@ -153,7 +251,7 @@ class SearchService:
                             for tr in i.trabajos_reunion_cientifica
                         ]
                     }
-                })
+                }))
 
         # ==================================================
         # ACTIVIDADES DE DOCENCIA
@@ -161,17 +259,28 @@ class SearchService:
         actividad_results = db.session.query(ActividadDocencia)\
             .options(
                 joinedload(ActividadDocencia.investigador),
-                joinedload(ActividadDocencia.grado_academico),
+                joinedload(ActividadDocencia.investigadores_grado)
+                    .joinedload(InvestigadorActividadGrado.grado_academico),
                 joinedload(ActividadDocencia.rol_actividad)
             )\
             .all()
 
         for a in actividad_results:
+            if not SearchService.matches_deleted_filter(a, eliminados):
+                continue
             curso_norm = SearchService.normalize_text(a.curso)
             institucion_norm = SearchService.normalize_text(a.institucion)
+            grado_activo = next(
+                (
+                    h.grado_academico
+                    for h in a.investigadores_grado
+                    if h.fecha_fin is None and h.grado_academico
+                ),
+                None
+            )
 
             if query_normalized in curso_norm or query_normalized in institucion_norm:
-                resultados.append({
+                resultados.append(SearchService.with_status(a, {
                     "tipo": "Actividad de Docencia",
                     "id": a.id,
                     "titulo": a.curso,
@@ -183,15 +292,15 @@ class SearchService:
                         "fecha_fin": str(a.fecha_fin) if a.fecha_fin else None,
                         "investigador": a.investigador.nombre_apellido if a.investigador else None,
                         "grado_academico": {
-                            "id": a.grado_academico.id,
-                            "nombre": a.grado_academico.nombre
-                        } if a.grado_academico else None,
+                            "id": grado_activo.id,
+                            "nombre": grado_activo.nombre
+                        } if grado_activo else None,
                         "rol_actividad": {
                             "id": a.rol_actividad.id,
                             "nombre": a.rol_actividad.nombre
                         } if a.rol_actividad else None
                     }
-                })
+                }))
         # ==================================================
         # PROYECTOS DE INVESTIGACIÓN (por nombre)
         # ==================================================
@@ -209,6 +318,8 @@ class SearchService:
             .all()
 
         for proyecto in proyecto_results:
+            if not SearchService.matches_deleted_filter(proyecto, eliminados):
+                continue
 
             nombre_norm = SearchService.normalize_text(proyecto.nombre_proyecto)
             descripcion_norm = SearchService.normalize_text(proyecto.descripcion_proyecto)
@@ -216,7 +327,7 @@ class SearchService:
             if query_normalized in nombre_norm or query_normalized in descripcion_norm:
 
 
-                resultados.append({
+                resultados.append(SearchService.with_status(proyecto, {
                     "tipo": "Proyecto de Investigación",
                     "id": proyecto.id,
                     "titulo": proyecto.nombre_proyecto,
@@ -249,7 +360,7 @@ class SearchService:
                             for p in proyecto.participaciones_becario
                         ]
                     }
-                })
+                }))
                 
                     
         # ==================================================
@@ -261,6 +372,8 @@ class SearchService:
             .all()
 
         for tipo in tipo_proyecto_results:
+            if not SearchService.matches_deleted_filter(tipo, eliminados):
+                continue
 
             tipo_nombre_norm = SearchService.normalize_text(tipo.nombre)
 
@@ -276,7 +389,7 @@ class SearchService:
                     for proyecto in tipo.proyectos_investigacion
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tipo, {
                     "tipo": "Tipo de Proyecto",
                     "id": tipo.id,
                     "titulo": tipo.nombre,
@@ -287,7 +400,7 @@ class SearchService:
                         "cantidad_proyectos": len(proyectos),
                         "proyectos": proyectos
                     }
-                })
+                }))
                     
         # ==================================================
         # EQUIPAMIENTO
@@ -298,12 +411,14 @@ class SearchService:
             .all()
 
         for e in equipamiento_results:
+            if not SearchService.matches_deleted_filter(e, eliminados):
+                continue
 
             denominacion_norm = SearchService.normalize_text(e.denominacion)
 
             if query_normalized in denominacion_norm:
 
-                resultados.append({
+                resultados.append(SearchService.with_status(e, {
                     "tipo": "Equipamiento",
                     "id": e.id,
                     "titulo": e.denominacion,
@@ -315,7 +430,7 @@ class SearchService:
                         "monto_invertido": e.monto_invertido,
                         "fecha_incorporacion": str(e.fecha_incorporacion)
                     }
-                })
+                }))
 
         # ==================================================
         # DOCUMENTACIÓN BIBLIOGRÁFICA
@@ -329,6 +444,8 @@ class SearchService:
             .all()
 
         for doc in documentos:
+            if not SearchService.matches_deleted_filter(doc, eliminados):
+                continue
 
             titulo_norm = SearchService.normalize_text(doc.titulo)
             editorial_norm = SearchService.normalize_text(doc.editorial)
@@ -338,7 +455,7 @@ class SearchService:
                 or query_normalized in editorial_norm
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(doc, {
                     "tipo": "Documentación",
                     "id": doc.id,
                     "titulo": doc.titulo,
@@ -356,7 +473,7 @@ class SearchService:
                             for a in doc.autores
                         ]
                     }
-                })
+                }))
 
         # ==================================================
         # AUTORES
@@ -367,6 +484,8 @@ class SearchService:
             .all()
 
         for autor in autores:
+            if not SearchService.matches_deleted_filter(autor, eliminados):
+                continue
 
             nombre_norm = SearchService.normalize_text(autor.nombre_apellido)
 
@@ -382,7 +501,7 @@ class SearchService:
                     for l in autor.libros
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(autor, {
                     "tipo": "Autor",
                     "id": autor.id,
                     "titulo": autor.nombre_apellido,
@@ -393,7 +512,7 @@ class SearchService:
                         "cantidad_documentos": len(documentos),
                         "documentos": documentos
                     }
-                })
+                }))
                 
                 
         # ==================================================
@@ -405,6 +524,8 @@ class SearchService:
             .all()
 
         for tipo in tipos_erogacion:
+            if not SearchService.matches_deleted_filter(tipo, eliminados):
+                continue
 
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
@@ -419,17 +540,19 @@ class SearchService:
                 erogaciones_data = [
                     {
                         "id": e.id,
-                        "descripcion": e.descripcion if hasattr(e, "descripcion") else None,
-                        "monto": e.monto,
+                        "numero_erogacion": e.numero_erogacion,
+                        "ingresos": e.ingresos,
+                        "egresos": e.egresos,
                         "fecha": e.fecha,
                         "url": f"/erogaciones/{e.id}"
                     }
                     for e in erogaciones[:5]  # recientes
                 ]
 
-                total_monto = sum(e.monto or 0 for e in tipo.erogaciones)
+                total_egresos = sum(e.egresos or 0 for e in tipo.erogaciones)
+                total_ingresos = sum(e.ingresos or 0 for e in tipo.erogaciones)
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tipo, {
                     "tipo": "Tipo de Erogación",
                     "id": tipo.id,
                     "titulo": tipo.nombre,
@@ -438,10 +561,11 @@ class SearchService:
                     "url": f"/tipos-erogacion/{tipo.id}",
                     "extra": {
                         "cantidad_erogaciones": len(tipo.erogaciones),
-                        "total_monto": total_monto,
+                        "total_egresos": total_egresos,
+                        "total_ingresos": total_ingresos,
                         "erogaciones_recientes": erogaciones_data
                     }
-                })
+                }))
                     
         # ==================================================
         # FUENTE DE FINANCIAMIENTO
@@ -450,6 +574,8 @@ class SearchService:
         fuentes = db.session.query(FuenteFinanciamiento).all()
 
         for fuente in fuentes:
+            if not SearchService.matches_deleted_filter(fuente, eliminados):
+                continue
 
             nombre_norm = SearchService.normalize_text(fuente.nombre)
 
@@ -459,13 +585,13 @@ class SearchService:
                     {
                         "id": p.id,
                         "nombre": p.nombre_proyecto,
-                        "monto_financiamiento": p.monto_financiamiento,
+                        "monto_destinado": p.monto_destinado,
                         "url": f"/proyectos/{p.id}"
                     }
                     for p in fuente.proyectos_investigacion.all()
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(fuente, {
                     "tipo": "Fuente de Financiamiento",
                     "id": fuente.id,
                     "titulo": fuente.nombre,
@@ -476,7 +602,7 @@ class SearchService:
                         "cantidad_proyectos": len(proyectos),
                         "proyectos": proyectos
                     }
-                })
+                }))
                 
         # ==================================================
         # PARTICIPACIÓN RELEVANTE
@@ -487,6 +613,8 @@ class SearchService:
             .all()
 
         for pr in participaciones:
+            if not SearchService.matches_deleted_filter(pr, eliminados):
+                continue
 
             evento_norm = SearchService.normalize_text(pr.nombre_evento)
             forma_norm = SearchService.normalize_text(pr.forma_participacion)
@@ -496,7 +624,7 @@ class SearchService:
                 or query_normalized in forma_norm
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(pr, {
                     "tipo": "Participación Relevante",
                     "id": pr.id,
                     "titulo": pr.nombre_evento,
@@ -506,7 +634,7 @@ class SearchService:
                     "extra": {
                         "investigador": pr.investigador.nombre_apellido if pr.investigador else None
                     }
-                })
+                }))
                 
         # ==================================================
         # REGISTROS DE PROPIEDAD
@@ -520,6 +648,8 @@ class SearchService:
             .all()
 
         for r in registros:
+            if not SearchService.matches_deleted_filter(r, eliminados):
+                continue
 
             articulo_norm = SearchService.normalize_text(r.nombre_articulo)
             organismo_norm = SearchService.normalize_text(r.organismo_registrante)
@@ -529,7 +659,7 @@ class SearchService:
                 or query_normalized in organismo_norm
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(r, {
                     "tipo": "Registro de Propiedad",
                     "id": r.id,
                     "titulo": r.nombre_articulo,
@@ -540,7 +670,7 @@ class SearchService:
                         "tipo_registro": r.tipo_registro.nombre if r.tipo_registro else None,
                         "grupo": r.grupo_utn.nombre_sigla_grupo if r.grupo_utn else None
                     }
-                })
+                }))
                 
         # ==================================================
         # TIPO REGISTRO PROPIEDAD
@@ -551,6 +681,8 @@ class SearchService:
             .all()
 
         for tipo in tipos_registro:
+            if not SearchService.matches_deleted_filter(tipo, eliminados):
+                continue
 
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
@@ -566,7 +698,7 @@ class SearchService:
                     for r in tipo.registros_propiedad
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tipo, {
                     "tipo": "Tipo Registro Propiedad",
                     "id": tipo.id,
                     "titulo": tipo.nombre,
@@ -577,7 +709,7 @@ class SearchService:
                         "cantidad_registros": len(registros),
                         "registros": registros
                     }
-                })
+                }))
         # ==================================================
         # TRANSFERENCIA SOCIO PRODUCTIVA
         # ==================================================
@@ -590,6 +722,8 @@ class SearchService:
             .all()
 
         for t in transferencias:
+            if not SearchService.matches_deleted_filter(t, eliminados):
+                continue
 
             descripcion_norm = SearchService.normalize_text(t.descripcion_actividad)
             demandante_norm = SearchService.normalize_text(t.demandante)
@@ -599,7 +733,7 @@ class SearchService:
                 or query_normalized in demandante_norm
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(t, {
                     "tipo": "Transferencia Socio Productiva",
                     "id": t.id,
                     "titulo": t.descripcion_actividad,
@@ -622,7 +756,7 @@ class SearchService:
                             if p.deleted_at is None and p.adoptante
                         ]
                     }
-                })
+                }))
                 
                         
         # ==================================================
@@ -634,6 +768,8 @@ class SearchService:
             .all()
 
         for tipo in tipos_contrato:
+            if not SearchService.matches_deleted_filter(tipo, eliminados):
+                continue
 
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
@@ -649,7 +785,7 @@ class SearchService:
                     for t in tipo.transferencias
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tipo, {
                     "tipo": "Tipo de Contrato",
                     "id": tipo.id,
                     "titulo": tipo.nombre,
@@ -660,7 +796,7 @@ class SearchService:
                         "cantidad_transferencias": len(transferencias),
                         "transferencias": transferencias
                     }
-                })
+                }))
 
         # ==================================================
         # TIPO PERSONAL
@@ -669,6 +805,8 @@ class SearchService:
         tipos_personal = db.session.query(TipoPersonal).all()
 
         for tipo in tipos_personal:
+            if not SearchService.matches_deleted_filter(tipo, eliminados):
+                continue
 
             tipo_norm = SearchService.normalize_text(tipo.nombre)
 
@@ -679,13 +817,13 @@ class SearchService:
                         "id": p.id,
                         "nombre_apellido": p.nombre_apellido,
                         "horas_semanales": p.horas_semanales,
-                        "activo": p.fecha_baja is None,
+                        "activo": p.activo,
                         "url": f"/personal/{p.id}"
                     }
                     for p in tipo.personal.all()
                 ]
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tipo, {
                     "tipo": "Tipo Personal",
                     "id": tipo.id,
                     "titulo": tipo.nombre,
@@ -696,7 +834,7 @@ class SearchService:
                         "cantidad_personal": len(personal_data),
                         "personal": personal_data
                     }
-                })
+                }))
 
         # ==================================================
         # TRABAJO REUNIÓN CIENTÍFICA
@@ -711,6 +849,8 @@ class SearchService:
             .all()
 
         for tr in trabajos_reunion:
+            if not SearchService.matches_deleted_filter(tr, eliminados):
+                continue
 
             titulo_norm = SearchService.normalize_text(tr.titulo_trabajo)
             reunion_norm = SearchService.normalize_text(tr.nombre_reunion)
@@ -727,7 +867,7 @@ class SearchService:
                 or any(query_normalized in inv for inv in investigadores_norm)
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tr, {
                     "tipo": "Trabajo en Reunión Científica",
                     "id": tr.id,
                     "titulo": tr.titulo_trabajo,
@@ -752,7 +892,7 @@ class SearchService:
                             for inv in tr.investigadores
                         ]
                     }
-                })
+                }))
                 
                 
         # ==================================================
@@ -768,6 +908,8 @@ class SearchService:
             .all()
 
         for tr in trabajos_revista:
+            if not SearchService.matches_deleted_filter(tr, eliminados):
+                continue
 
             titulo_norm = SearchService.normalize_text(tr.titulo_trabajo)
             revista_norm = SearchService.normalize_text(tr.nombre_revista)
@@ -788,7 +930,7 @@ class SearchService:
                 or any(query_normalized in inv for inv in investigadores_norm)
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(tr, {
                     "tipo": "Trabajo en Revista con Referato",
                     "id": tr.id,
                     "titulo": tr.titulo_trabajo,
@@ -809,7 +951,7 @@ class SearchService:
                             for inv in tr.investigadores
                         ]
                     }
-                })
+                }))
 
 
 
@@ -827,6 +969,8 @@ class SearchService:
             .all()
 
         for d in directivo_results:
+            if not SearchService.matches_deleted_filter(d, eliminados):
+                continue
 
             nombre_norm = SearchService.normalize_text(d.nombre_apellido)
 
@@ -839,7 +983,7 @@ class SearchService:
 
                 if participacion_activa:
 
-                    resultados.append({
+                    resultados.append(SearchService.with_status(d, {
                         "tipo": "Directivo",
                         "id": d.id,
                         "titulo": d.nombre_apellido,
@@ -853,7 +997,7 @@ class SearchService:
                             "fecha_inicio": participacion_activa.fecha_inicio,
                             "url_grupo": f"/uct/{participacion_activa.grupo_utn.id}" if participacion_activa.grupo_utn else None
                         }
-                    })
+                    }))
 
 
         # ==================================================
@@ -867,6 +1011,8 @@ class SearchService:
             .all()
 
         for a in articulos:
+            if not SearchService.matches_deleted_filter(a, eliminados):
+                continue
 
             titulo_norm = SearchService.normalize_text(a.titulo)
             descripcion_norm = SearchService.normalize_text(a.descripcion)
@@ -876,7 +1022,7 @@ class SearchService:
                 or query_normalized in descripcion_norm
             ):
 
-                resultados.append({
+                resultados.append(SearchService.with_status(a, {
                     "tipo": "Artículo de Divulgación",
                     "id": a.id,
                     "titulo": a.titulo,
@@ -889,7 +1035,7 @@ class SearchService:
                     "extra": {
                         "descripcion": a.descripcion
                     }
-                })
+                }))
 
 
 

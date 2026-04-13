@@ -10,7 +10,7 @@ actividad_docencia_bp = Blueprint(
     url_prefix="/actividades-docencia"
 )
 
-actividad_docencia_bp.route("/", methods=["GET"])(
+actividad_docencia_bp.route("", methods=["GET"])(
     requiere_rol("ADMIN", "GESTOR", "LECTURA")(
         ActividadDocenciaController.get_all
     )
@@ -35,7 +35,7 @@ actividad_docencia_bp.route("/<int:actividad_id>", methods=["PUT"])(
 )
 
 actividad_docencia_bp.route("/<int:actividad_id>", methods=["DELETE"])(
-    requiere_rol("ADMIN")(
+    requiere_rol("ADMIN", "GESTOR")(
         ActividadDocenciaController.delete
     )
 )

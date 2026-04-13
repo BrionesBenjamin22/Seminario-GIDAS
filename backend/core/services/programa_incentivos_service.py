@@ -1,5 +1,26 @@
 from extension import db
+from sqlalchemy import func
 from core.models.programa_incentivos import ProgramaIncentivos
+
+
+def _validar_nombre(nombre, programa_id=None):
+    if not isinstance(nombre, str):
+        raise ValueError("El nombre debe ser un texto no vacio.")
+
+    nombre = " ".join(nombre.strip().split())
+    if not nombre:
+        raise ValueError("El nombre no puede estar vacio.")
+
+    query = ProgramaIncentivos.query.filter(
+        func.lower(ProgramaIncentivos.nombre) == nombre.lower()
+    )
+    if programa_id is not None:
+        query = query.filter(ProgramaIncentivos.id != programa_id)
+
+    if query.first():
+        raise ValueError("Ya existe un programa de incentivos con ese nombre.")
+
+    return nombre
 
 
 def crear_programa_incentivos(data):

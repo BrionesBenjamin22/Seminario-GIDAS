@@ -148,7 +148,7 @@ class TransferenciaSocioProductivaController:
                     "error": "adoptantes_ids debe ser una lista no vacía"
                 }), 400
 
-            user_id = g.user.id
+            user_id = g.current_user_id
 
             result = TransferenciaSocioProductivaService.add_adoptantes(
                 transferencia_id,

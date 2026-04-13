@@ -1,34 +1,31 @@
-from flask import Request, Response, jsonify
+from flask import g, jsonify, request
 from core.services.articulo_divulgacion_service import ArticuloDivulgacionService
 
 
 class ArticuloDivulgacionController:
 
     @staticmethod
-    def crear(req: Request) -> Response:
-        data = req.get_json(force=True, silent=False)
-
+    def crear():
         try:
-            articulo = ArticuloDivulgacionService.create(data)
+            data = request.get_json()
+            user_id = g.current_user_id
+
+            articulo = ArticuloDivulgacionService.create(data, user_id)
             return jsonify(articulo), 201
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                "error": "Error interno del servidor",
-                "detail": str(e)
-            }), 500
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
-    def listar(req: Request) -> Response:
+    def listar():
         try:
             filters = {
-                "grupo_utn_id": req.args.get("grupo_utn_id", type=int),
-                "orden": req.args.get("orden")
+                "grupo_utn_id": request.args.get("grupo_utn_id", type=int),
+                "orden": request.args.get("orden"),
+                "activos": request.args.get("activos", "true")
             }
 
             articulos = ArticuloDivulgacionService.get_all(filters)
@@ -41,7 +38,7 @@ class ArticuloDivulgacionController:
             return jsonify({"error": "Error interno del servidor"}), 500
 
     @staticmethod
-    def obtener_por_id(req: Request, articulo_id: int) -> Response:
+    def obtener_por_id(articulo_id: int):
         try:
             articulo = ArticuloDivulgacionService.get_by_id(articulo_id)
             return jsonify(articulo), 200
@@ -53,28 +50,29 @@ class ArticuloDivulgacionController:
             return jsonify({"error": str(e)}), 500
 
     @staticmethod
-    def actualizar(req: Request, articulo_id: int) -> Response:
-        data = req.get_json(force=True, silent=False)
-
+    def actualizar(articulo_id: int):
         try:
-            articulo = ArticuloDivulgacionService.update(articulo_id, data)
+            data = request.get_json()
+            articulo = ArticuloDivulgacionService.update(
+                articulo_id,
+                data,
+                user_id=g.current_user_id
+            )
             return jsonify(articulo), 200
 
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return jsonify({
-                "error": "Error interno del servidor",
-                "detail": str(e)
-            }), 500
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
-    def eliminar(req: Request, articulo_id: int) -> Response:
+    def eliminar(articulo_id: int):
         try:
-            result = ArticuloDivulgacionService.delete(articulo_id)
+            result = ArticuloDivulgacionService.delete(
+                articulo_id,
+                g.current_user_id
+            )
             return jsonify(result), 200
 
         except ValueError as ve:

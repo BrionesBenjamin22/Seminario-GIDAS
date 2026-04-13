@@ -9,6 +9,18 @@ from config import Config
 class AuthService:
 
     @staticmethod
+    def _get_user_or_error(user_id: int, solo_activos: bool = False) -> Usuario:
+        user = db.session.get(Usuario, user_id)
+
+        if not user:
+            raise Exception("Usuario no encontrado")
+
+        if solo_activos and (not user.activo or user.deleted_at is not None):
+            raise Exception("Usuario no encontrado")
+
+        return user
+
+    @staticmethod
     def generate_tokens(user: Usuario) -> dict:
         access_payload = {
             "sub": str(user.id),
@@ -58,7 +70,7 @@ class AuthService:
         user = Usuario.query.filter_by(
             nombre_usuario=nombre_usuario,
             activo=True   # importante para evitar login de usuarios eliminados
-        ).first()
+        ).filter(Usuario.deleted_at.is_(None)).first()
 
         if not user or not user.verificar_password(password):
             raise Exception("Credenciales inválidas")
@@ -156,16 +168,13 @@ class AuthService:
             )
 
             user_id = int(payload["sub"])
-            user = Usuario.query.get(user_id)
-
-            if not user:
-                raise Exception("Usuario no encontrado")
+            user = AuthService._get_user_or_error(user_id, solo_activos=True)
 
             new_access_payload = {
                 "sub": str(user.id),
                 "nombre_usuario": user.nombre_usuario,
                 "rol": user.rol.nombre,   # 🔥 AGREGAR ESTO
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=15),
+                "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=30),
                 "iss": "auth-service"
             }
 
@@ -202,23 +211,21 @@ class AuthService:
         
     @staticmethod
     def change_password(user_id: int, password_actual: str, password_nueva: str, es_primer_cambio: bool = False):
-        user = Usuario.query.get(user_id)
+        user = AuthService._get_user_or_error(user_id, solo_activos=True)
 
-        if not user:
-            raise Exception("Usuario no encontrado")
+        if not password_nueva:
+            raise Exception("La contraseña nueva es obligatoria")
 
-        # Si es el primer cambio, no validamos password_actual
         if not es_primer_cambio:
-            if not user.verificar_password(password_actual):
-                raise Exception("La contraseña actual es incorrecta")
-        
-        user.set_password(password_nueva)
-        
-        # Actualizar primer_login a False
+            user.cambiar_password(password_actual, password_nueva)
+        else:
+            user.set_password(password_nueva)
+
         user.primer_login = False
 
         try:
             db.session.commit()
+            return user
         except Exception:
             db.session.rollback()
             raise Exception("Error al cambiar la contraseña")
@@ -228,10 +235,7 @@ class AuthService:
     @staticmethod
     def delete_user(user_id: int, current_user_id: int):
 
-        user = Usuario.query.get(user_id)
-
-        if not user:
-            raise Exception("Usuario no encontrado")
+        user = AuthService._get_user_or_error(user_id, solo_activos=True)
         
         # Evitar que un admin se elimine a sí mismo
         if user_id == current_user_id:
@@ -248,7 +252,11 @@ class AuthService:
 
         user.soft_delete(current_user_id)
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise Exception("Error al eliminar usuario")
 
     # -------------------------
     # CRUD Usuarios
@@ -257,23 +265,20 @@ class AuthService:
     @staticmethod
     def get_all_users():
         """Obtener todos los usuarios activos"""
-        return Usuario.query.filter_by(activo=True).all()
+        return Usuario.query.filter(
+            Usuario.activo == True,
+            Usuario.deleted_at.is_(None)
+        ).all()
     
     @staticmethod
     def get_user_by_id(user_id: int):
         """Obtener un usuario por ID"""
-        user = Usuario.query.get(user_id)
-        if not user:
-            raise Exception("Usuario no encontrado")
-        return user
+        return AuthService._get_user_or_error(user_id)
     
     @staticmethod
     def update_user(user_id: int, data: dict, current_user_id: int):
         """Actualizar datos de un usuario"""
-        user = Usuario.query.get(user_id)
-        
-        if not user:
-            raise Exception("Usuario no encontrado")
+        user = AuthService._get_user_or_error(user_id, solo_activos=True)
         
         # Evitar que un admin se desactive a sí mismo
         if user_id == current_user_id and data.get("activo") == False:
@@ -319,3 +324,8 @@ class AuthService:
     def get_rol_by_name(nombre: str):
         """Obtener un rol por nombre"""
         return RolUsuario.query.filter_by(nombre=nombre).first()
+
+    @staticmethod
+    def get_rol_by_id(rol_id: int):
+        """Obtener un rol por ID"""
+        return db.session.get(RolUsuario, rol_id)

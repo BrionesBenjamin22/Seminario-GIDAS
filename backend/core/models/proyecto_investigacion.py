@@ -1,3 +1,5 @@
+from datetime import date
+
 from extension import db
 from core.models.audit_mixin import AuditMixin
 
@@ -8,6 +10,7 @@ class InvestigadorProyecto(db.Model, AuditMixin):
 
     id_investigador = db.Column(db.Integer, db.ForeignKey("investigador.id"))
     id_proyecto = db.Column(db.Integer, db.ForeignKey("proyecto_investigacion.id"))
+    es_coordinador = db.Column(db.Boolean, nullable=False, default=False)
 
     fecha_inicio = db.Column(db.Date, nullable=False)
     fecha_fin = db.Column(db.Date, nullable=True)
@@ -124,6 +127,7 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
 
     def serialize(self):
         data = self.to_dict()
+        data["cerrado"] = bool(self.fecha_fin and self.fecha_fin <= date.today())
 
         # Grupo
         if self.grupo_utn:
@@ -168,6 +172,7 @@ class ProyectoInvestigacion(db.Model, AuditMixin):
                 data["investigadores"].append({
                     "id": p.investigador.id,
                     "nombre_apellido": p.investigador.nombre_apellido,
+                    "es_coordinador": p.es_coordinador,
                     "fecha_inicio": p.fecha_inicio.isoformat(),
                     "fecha_fin": p.fecha_fin.isoformat() if p.fecha_fin else None
                 })

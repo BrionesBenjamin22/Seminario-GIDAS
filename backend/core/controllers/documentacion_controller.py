@@ -8,8 +8,12 @@ class DocumentacionBibliograficaController:
     @staticmethod
     def get_all():
         try:
+            filters = {
+                "activos": request.args.get("activos", "true"),
+                "orden": request.args.get("orden")
+            }
             return jsonify(
-                DocumentacionBibliograficaService.get_all()
+                DocumentacionBibliograficaService.get_all(filters)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
