@@ -55,8 +55,8 @@ class CategoriaUtnController:
     @staticmethod
     def eliminar(req: Request, id: int) -> Response:
         try:
-            categoria = eliminar_categoria_utn(id)
-            return jsonify(categoria.serialize()), 200
+            eliminar_categoria_utn(id)
+            return jsonify({"message": "Categoría UTN eliminada correctamente"}), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
         except Exception:

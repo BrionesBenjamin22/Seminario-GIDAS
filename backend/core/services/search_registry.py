@@ -8,6 +8,8 @@ from core.models.equipamiento import Equipamiento
 from core.models.visita_grupo import VisitaAcademica
 from core.models.trabajo_revista import TrabajosRevistasReferato
 from core.models.participacion_relevante import ParticipacionRelevante
+from core.models.erogacion import Erogacion
+from core.models.becas import Beca
 
 
 
@@ -43,6 +45,22 @@ SEARCH_ENTITIES = [
             "url": f"/personal/{p.id}"
         }
     },
+    
+    {
+        "type": "erogacion",
+        "model": Erogacion,
+        "fields": ["numero_erogacion","ingresos", "egresos", "fuente_financiamiento.nombre", "tipo_erogacion.nombre"],
+        "serializer": lambda e: {
+            "type": "erogacion",
+            "id": e.id,
+            "title": f"Erogación {e.numero_erogacion}",
+            "description": f"Ingresos: ${e.ingresos}, Egresos: ${e.egresos}",
+            "extra": {
+                "grupo": e.grupo_utn.nombre_sigla_grupo if e.grupo_utn else None
+            },
+            "url": f"/erogaciones/{e.id}"
+        }
+    },
 
     # =========================
     # BECARIOS
@@ -60,9 +78,40 @@ SEARCH_ENTITIES = [
             "description": f"Becario – {b.tipo_formacion.nombre}",
             "extra": {
                 "grupo": b.grupo_utn.nombre_sigla_grupo if b.grupo_utn else None,
-                "proyectos": [p.nombre_proyecto for p in b.proyectos]
+                "proyectos": [
+                    p.proyecto.nombre_proyecto
+                    for p in b.participaciones_proyecto
+                    if p.proyecto
+                ]
             },
             "url": f"/becarios/{b.id}"
+        }
+    },
+
+    {
+        "type": "beca",
+        "model": Beca,
+        "fields": ["nombre_beca", "descripcion"],
+        "serializer": lambda b: {
+            "type": "beca",
+            "id": b.id,
+            "title": b.nombre_beca,
+            "description": b.descripcion,
+            "extra": {
+                "fuente_financiamiento": (
+                    b.fuente_financiamiento.nombre
+                    if b.fuente_financiamiento else None
+                ),
+                "becarios": [
+                    {
+                        "id": rel.becario.id,
+                        "nombre_apellido": rel.becario.nombre_apellido
+                    }
+                    for rel in b.becarios
+                    if rel.becario
+                ]
+            },
+            "url": f"/becas/{b.id}"
         }
     },
 
@@ -148,8 +197,14 @@ SEARCH_ENTITIES = [
                 "codigo": p.codigo_proyecto,
                 "tipo": p.tipo_proyecto.nombre if p.tipo_proyecto else None,
                 "grupo": p.grupo_utn.nombre_sigla_grupo if p.grupo_utn else None,
-                "becarios": len(p.becarios),
-                "investigadores": len(p.investigadores),
+                "becarios": len([
+                    rel for rel in p.participaciones_becario
+                    if rel.becario
+                ]),
+                "investigadores": len([
+                    rel for rel in p.participaciones_investigador
+                    if rel.investigador
+                ]),
                 "distinciones": [
                     {
                         "fecha": d.fecha.isoformat(),
@@ -181,7 +236,7 @@ SEARCH_ENTITIES = [
                     if d.grupo_utn else None
                 )
             },
-            "url": f"/documentacion/{d.id}"
+            "url": f"/documentacion-bibliografica/{d.id}"
         }
     },
     # =========================
@@ -244,7 +299,7 @@ SEARCH_ENTITIES = [
         "fields": [
             "titulo_trabajo",
             "nombre_reunion",
-            "tipo_reunion_cientifica"
+            "procedencia"
         ],
         "serializer": lambda t: {
             "type": "trabajo_reunion_cientifica",
@@ -252,11 +307,11 @@ SEARCH_ENTITIES = [
             "title": t.titulo_trabajo,
             "description": f"{t.nombre_reunion} – {t.tipo_reunion_cientifica}",
             "extra": {
-                "investigador": (
-                    t.investigador.nombre_apellido
-                    if t.investigador else None
-                ),
-                "ciudad": t.ciudad,
+                "investigadores": [
+                    inv.nombre_apellido
+                    for inv in t.investigadores
+                ],
+                "procedencia": t.procedencia,
                 "fecha": (
                     t.fecha_inicio.isoformat()
                     if t.fecha_inicio else None
@@ -304,14 +359,15 @@ SEARCH_ENTITIES = [
         "type": "visita_academica",
         "model": VisitaAcademica,
         "fields": [
-            "tipo_visita",
             "razon",
             "procedencia"
         ],
         "serializer": lambda v: {
             "type": "visita_academica",
             "id": v.id,
-            "title": f"Visita {v.tipo_visita}",
+            "title": (
+                f"Visita {v.tipo_visita.nombre if v.tipo_visita else ''}"
+            ).strip(),
             "description": f"{v.procedencia} – {v.razon}",
             "extra": {
                 "fecha": (
@@ -351,10 +407,14 @@ SEARCH_ENTITIES = [
                     t.grupo_utn.nombre_sigla_grupo
                     if t.grupo_utn else None
                 ),
-                "proyecto": (
-                    t.proyecto_investigacion.codigo_proyecto
-                    if t.proyecto_investigacion else None
-                )
+                "tipo_reunion": (
+                    t.tipo_reunion.nombre
+                    if t.tipo_reunion else None
+                ),
+                "investigadores": [
+                    inv.nombre_apellido
+                    for inv in t.investigadores
+                ]
             },
             "url": f"/trabajos-revistas/{t.id}"
         }

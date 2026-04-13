@@ -2,6 +2,7 @@ from flask import Blueprint
 from core.controllers.actividad_docencia_controller import (
     ActividadDocenciaController
 )
+from core.services.middleware import requiere_rol
 
 actividad_docencia_bp = Blueprint(
     "actividad_docencia",
@@ -9,26 +10,32 @@ actividad_docencia_bp = Blueprint(
     url_prefix="/actividades-docencia"
 )
 
-# -------------------------------------------------
-# CRUD ACTIVIDAD DOCENCIA
-# -------------------------------------------------
-
-actividad_docencia_bp.route("/", methods=["GET"])(
-    ActividadDocenciaController.get_all
+actividad_docencia_bp.route("", methods=["GET"])(
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(
+        ActividadDocenciaController.get_all
+    )
 )
 
 actividad_docencia_bp.route("/<int:actividad_id>", methods=["GET"])(
-    ActividadDocenciaController.get_by_id
+    requiere_rol("ADMIN", "GESTOR", "LECTURA")(
+        ActividadDocenciaController.get_by_id
+    )
 )
 
 actividad_docencia_bp.route("/", methods=["POST"])(
-    ActividadDocenciaController.create
+    requiere_rol("ADMIN", "GESTOR")(
+        ActividadDocenciaController.create
+    )
 )
 
 actividad_docencia_bp.route("/<int:actividad_id>", methods=["PUT"])(
-    ActividadDocenciaController.update
+    requiere_rol("ADMIN", "GESTOR")(
+        ActividadDocenciaController.update
+    )
 )
 
 actividad_docencia_bp.route("/<int:actividad_id>", methods=["DELETE"])(
-    ActividadDocenciaController.delete
+    requiere_rol("ADMIN", "GESTOR")(
+        ActividadDocenciaController.delete
+    )
 )

@@ -1,42 +1,74 @@
 from extension import db
 from core.models.programa_actividades import PlanificacionGrupo
 from core.models.grupo import GrupoInvestigacionUtn
-from sqlalchemy.exc import IntegrityError
 
 
-def crear_planificacion_grupo(data):
-    if not data:
-        raise ValueError("Los datos no pueden estar vacíos.")
+def _validar_user_id(user_id):
+    if not isinstance(user_id, int) or user_id <= 0:
+        raise ValueError("El user_id es invalido.")
 
-    descripcion = data.get("descripcion")
-    anio = data.get("anio")
-    grupo_id = data.get("grupo_id")
 
-    if not descripcion or not isinstance(descripcion, str):
-        raise ValueError("La descripción es obligatoria.")
+def _validar_descripcion(descripcion):
+    if not isinstance(descripcion, str):
+        raise ValueError("La descripcion es obligatoria.")
 
+    descripcion = " ".join(descripcion.strip().split())
+    if not descripcion:
+        raise ValueError("La descripcion es obligatoria.")
+
+    return descripcion
+
+
+def _validar_anio(anio):
     if not isinstance(anio, int) or anio < 2000:
-        raise ValueError("El año es inválido.")
+        raise ValueError("El anio es invalido.")
 
-    grupo = GrupoInvestigacionUtn.query.get(grupo_id)
-    if not grupo:
-        raise ValueError("Grupo UTN inválido.")
+    return anio
 
-    # 🔒 Regla: una planificación por grupo y año
-    existente = PlanificacionGrupo.query.filter_by(
-        grupo_id=grupo_id,
-        anio=anio
-    ).first()
 
-    if existente:
+def _obtener_grupo_activo(grupo_id):
+    if not isinstance(grupo_id, int) or grupo_id <= 0:
+        raise ValueError("Grupo UTN invalido.")
+
+    grupo = db.session.get(GrupoInvestigacionUtn, grupo_id)
+    if not grupo or grupo.deleted_at is not None:
+        raise ValueError("Grupo UTN invalido.")
+
+    return grupo
+
+
+def _validar_planificacion_unica(grupo_id, anio, planificacion_id=None):
+    query = PlanificacionGrupo.query.filter(
+        PlanificacionGrupo.grupo_id == grupo_id,
+        PlanificacionGrupo.anio == anio,
+        PlanificacionGrupo.deleted_at.is_(None)
+    )
+
+    if planificacion_id is not None:
+        query = query.filter(PlanificacionGrupo.id != planificacion_id)
+
+    if query.first():
         raise ValueError(
-            "Ya existe una planificación para ese grupo en el año indicado."
+            "Ya existe una planificacion para ese grupo en el anio indicado."
         )
 
+
+def crear_planificacion_grupo(data, user_id):
+    if not data:
+        raise ValueError("Los datos no pueden estar vacios.")
+
+    _validar_user_id(user_id)
+    descripcion = _validar_descripcion(data.get("descripcion"))
+    anio = _validar_anio(data.get("anio"))
+    grupo = _obtener_grupo_activo(data.get("grupo_id"))
+    _validar_planificacion_unica(grupo.id, anio)
+
     planificacion = PlanificacionGrupo(
-        descripcion=descripcion.strip(),
+        descripcion=descripcion,
         anio=anio,
-        grupo_id=grupo_id
+        grupo_id=grupo.id,
+        activo=True,
+        created_by=user_id,
     )
 
     db.session.add(planificacion)
@@ -49,33 +81,36 @@ def crear_planificacion_grupo(data):
 
 
 def actualizar_planificacion_grupo(id, data):
-    planificacion = PlanificacionGrupo.query.get(id)
-    if not planificacion:
-        raise ValueError("Planificación no encontrada.")
+    if not data:
+        raise ValueError("Los datos no pueden estar vacios.")
+
+    planificacion = db.session.get(PlanificacionGrupo, id)
+    if not planificacion or planificacion.deleted_at is not None:
+        raise ValueError("Planificacion no encontrada.")
 
     if "descripcion" in data:
-        descripcion = data["descripcion"]
-        if not descripcion or not isinstance(descripcion, str):
-            raise ValueError("Descripción inválida.")
-        planificacion.descripcion = descripcion.strip()
+        planificacion.descripcion = _validar_descripcion(data["descripcion"])
 
+    nuevo_anio = planificacion.anio
     if "anio" in data:
-        anio = data["anio"]
-        if not isinstance(anio, int) or anio < 2000:
-            raise ValueError("Año inválido.")
+        nuevo_anio = _validar_anio(data["anio"])
 
-        duplicado = PlanificacionGrupo.query.filter(
-            PlanificacionGrupo.grupo_id == planificacion.grupo_id,
-            PlanificacionGrupo.anio == anio,
-            PlanificacionGrupo.id != id
-        ).first()
+    nuevo_grupo_id = planificacion.grupo_id
+    if "grupo_id" in data:
+        nuevo_grupo_id = _obtener_grupo_activo(data["grupo_id"]).id
 
-        if duplicado:
-            raise ValueError(
-                "Ya existe otra planificación para ese grupo y año."
-            )
+    if (
+        nuevo_anio != planificacion.anio
+        or nuevo_grupo_id != planificacion.grupo_id
+    ):
+        _validar_planificacion_unica(
+            nuevo_grupo_id,
+            nuevo_anio,
+            planificacion_id=id
+        )
 
-        planificacion.anio = anio
+    planificacion.anio = nuevo_anio
+    planificacion.grupo_id = nuevo_grupo_id
 
     try:
         db.session.commit()
@@ -85,26 +120,49 @@ def actualizar_planificacion_grupo(id, data):
         raise
 
 
-def eliminar_planificacion_grupo(id):
-    planificacion = PlanificacionGrupo.query.get(id)
-    if not planificacion:
-        raise ValueError("Planificación no encontrada.")
+def eliminar_planificacion_grupo(id, user_id=None):
+    _validar_user_id(user_id)
+
+    planificacion = db.session.get(PlanificacionGrupo, id)
+    if not planificacion or planificacion.deleted_at is not None:
+        raise ValueError("Planificacion no encontrada.")
 
     if planificacion.proyectos_investigacion:
         raise ValueError(
-            "No se puede eliminar la planificación porque tiene proyectos asociados."
+            "No se puede eliminar la planificacion porque tiene proyectos asociados."
         )
 
-    db.session.delete(planificacion)
-    db.session.commit()
+    planificacion.soft_delete(user_id)
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
 
 
-def listar_planificaciones():
-    return PlanificacionGrupo.query.all()
+def listar_planificaciones(activos="true"):
+    query = PlanificacionGrupo.query
+
+    if activos is None:
+        activos = "true"
+
+    activos = activos.strip().lower()
+
+    if activos == "true":
+        query = query.filter(PlanificacionGrupo.deleted_at.is_(None))
+    elif activos == "false":
+        query = query.filter(PlanificacionGrupo.deleted_at.isnot(None))
+    elif activos == "all":
+        pass
+    else:
+        query = query.filter(PlanificacionGrupo.deleted_at.is_(None))
+
+    return query.all()
 
 
 def obtener_planificacion_por_id(id):
-    planificacion = PlanificacionGrupo.query.get(id)
-    if not planificacion:
-        raise ValueError("Planificación no encontrada.")
+    planificacion = db.session.get(PlanificacionGrupo, id)
+    if not planificacion or planificacion.deleted_at is not None:
+        raise ValueError("Planificacion no encontrada.")
     return planificacion

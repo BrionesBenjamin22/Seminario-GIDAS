@@ -6,18 +6,26 @@ def crear_fuente_financiamiento(data):
     if not data:
         raise ValueError("Los datos no pueden estar vacíos.")
 
-    nombre = data.get("nombre")
-    if not nombre or not isinstance(nombre, str):
+    nombre_original = data.get("nombre")
+    if not nombre_original or not isinstance(nombre_original, str):
         raise ValueError("El nombre debe ser un texto no vacío.")
 
-    nombre = nombre.strip().lower()
-    if not nombre:
+    nombre_original = nombre_original.strip()
+    if not nombre_original:
         raise ValueError("El nombre no puede estar vacío.")
 
-    if FuenteFinanciamiento.query.filter_by(nombre=nombre).first():
+    # Normalización SOLO para validar duplicados
+    nombre_normalizado = nombre_original.lower()
+
+    existe = FuenteFinanciamiento.query.filter(
+        db.func.lower(FuenteFinanciamiento.nombre) == nombre_normalizado
+    ).first()
+
+    if existe:
         raise ValueError("Ya existe una fuente de financiamiento con ese nombre.")
 
-    nueva = FuenteFinanciamiento(nombre=nombre)
+    # Se guarda el nombre tal como lo escribió el usuario
+    nueva = FuenteFinanciamiento(nombre=nombre_original)
     db.session.add(nueva)
 
     try:

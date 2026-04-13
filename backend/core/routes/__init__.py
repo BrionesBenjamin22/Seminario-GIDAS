@@ -1,4 +1,5 @@
 from core.routes.auth_rutas import auth_bp
+from core.routes.articulo_divulgacion_rutas import articulo_divulgacion_bp
 from core.routes.tipo_personal_rutas import tipo_personal_bp
 from core.routes.categoria_utn_routes import categoria_utn_bp
 from core.routes.grupo_rutas import grupo_utn_bp
@@ -28,20 +29,35 @@ from core.routes.trabajo_revista_rutas import trabajos_revistas_referato_bp
 from core.routes.tipo_proyecto_rutas import tipo_proyecto_bp
 from core.routes.proyecto_investigacion_rutas import proyecto_investigacion_bp
 from core.routes.participacion_relevante_rutas import participacion_relevante_bp
+from core.routes.grado_academico_rutas import grado_academico_bp
+from core.routes.rol_actividad_rutas import rol_actividad_bp
+from core.routes.adoptante_rutas import adoptante_bp
 from core.routes.search_rutas import search_bp
+from core.routes.tipo_reunion_rutas import tipo_reunion_bp
+from core.routes.directivo_rutas import directivo_bp
+from core.routes.becas_rutas import beca_bp
+from core.routes.cargos_rutas import cargo_bp
+from core.routes.dashboard_rutas import dashboard_bp
 
 blueprints = [
     actividad_docencia_bp,
+    articulo_divulgacion_bp,
+    adoptante_bp,
     auth_bp,
     autor_bp,
     becario_bp,
+    beca_bp,
     categoria_utn_bp,
+    cargo_bp,
+    dashboard_bp,
     distincion_recibida_bp,
+    directivo_bp,
     documentacion_bibliografica_bp,
     equipamiento_bp,
     erogacion_bp,
     fuente_financiamiento_bp,
     grupo_utn_bp,
+    grado_academico_bp,
     investigador_bp,
     participacion_relevante_bp,
     personal_bp,
@@ -50,6 +66,8 @@ blueprints = [
     proyecto_investigacion_bp,
     programa_incentivos_bp,
     registros_propiedad_bp,
+    rol_actividad_bp,
+    search_bp,
     tipo_contrato_bp,
     tipo_dedicacion_bp,
     tipo_erogacion_bp,
@@ -61,6 +79,6 @@ blueprints = [
     trabajos_revistas_referato_bp,
     transferencia_socio_productiva_bp,
     visita_academica_bp,
-    search_bp
+    tipo_reunion_bp
 
 ]

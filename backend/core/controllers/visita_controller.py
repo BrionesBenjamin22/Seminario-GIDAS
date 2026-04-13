@@ -1,4 +1,4 @@
-from flask import Request, Response, jsonify
+from flask import Request, Response, jsonify, g
 from core.services.visita_service import (
     crear_visita_academica,
     actualizar_visita_academica,
@@ -14,7 +14,7 @@ class VisitaAcademicaController:
     def crear(req: Request) -> Response:
         data = req.get_json()
         try:
-            visita = crear_visita_academica(data)
+            visita = crear_visita_academica(data, g.current_user_id)
             return jsonify(visita.serialize()), 201
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
@@ -24,7 +24,8 @@ class VisitaAcademicaController:
     @staticmethod
     def listar(req: Request) -> Response:
         try:
-            visitas = listar_visitas()
+            activos = req.args.get("activos", "true")
+            visitas = listar_visitas(activos)
             return jsonify([v.serialize() for v in visitas]), 200
         except Exception:
             return jsonify({"error": "Error interno del servidor"}), 500
@@ -53,9 +54,9 @@ class VisitaAcademicaController:
     @staticmethod
     def eliminar(req: Request, id: int) -> Response:
         try:
-            eliminar_visita_academica(id)
+            eliminar_visita_academica(id, g.current_user_id)
             return jsonify(
-                {"message": "Visita académica eliminada correctamente"}
+                {"message": "Visita academica eliminada correctamente"}
             ), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400

@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.actividad_docencia_service import (
     ActividadDocenciaService
 )
@@ -11,7 +11,8 @@ class ActividadDocenciaController:
         try:
             filtros = {
                 "investigador_id": request.args.get("investigador_id", type=int),
-                "orden": request.args.get("orden")
+                "orden": request.args.get("orden"),
+                "activos": request.args.get("activos", "true")
             }
 
             return jsonify(
@@ -35,8 +36,12 @@ class ActividadDocenciaController:
     def create():
         try:
             data = request.get_json()
+
             return jsonify(
-                ActividadDocenciaService.create(data)
+                ActividadDocenciaService.create(
+                    data,
+                    user_id=g.current_user_id
+                )
             ), 201
 
         except Exception as e:
@@ -46,8 +51,13 @@ class ActividadDocenciaController:
     def update(actividad_id):
         try:
             data = request.get_json()
+
             return jsonify(
-                ActividadDocenciaService.update(actividad_id, data)
+                ActividadDocenciaService.update(
+                    actividad_id,
+                    data,
+                    user_id=g.current_user_id
+                )
             ), 200
 
         except Exception as e:
@@ -57,7 +67,10 @@ class ActividadDocenciaController:
     def delete(actividad_id):
         try:
             return jsonify(
-                ActividadDocenciaService.delete(actividad_id)
+                ActividadDocenciaService.delete(
+                    actividad_id,
+                    user_id=g.current_user_id
+                )
             ), 200
 
         except Exception as e:

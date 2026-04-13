@@ -57,5 +57,5 @@ class TipoDedicacionController:
             return jsonify(tipo.serialize()), 200
         except ValueError as ve:
             return jsonify({"error": str(ve)}), 400
-        except Exception:
-            return jsonify({"error": "Error interno del servidor"}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500

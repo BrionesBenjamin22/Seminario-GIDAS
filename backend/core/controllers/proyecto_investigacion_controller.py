@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.proyecto_investigacion_service import ProyectoInvestigacionService
 
 
@@ -13,25 +13,18 @@ class ProyectoInvestigacionController:
             args = request.args
             filters = {}
 
-            # -------------------------
-            # Filtros directos
-            # -------------------------
-            if args.get("tipo_proyecto_id"):
-                filters["tipo_proyecto_id"] = int(args.get("tipo_proyecto_id"))
+            filters["activos"] = args.get("activos", "true")
 
-            if args.get("grupo_utn_id"):
-                filters["grupo_utn_id"] = int(args.get("grupo_utn_id"))
+            if args.get("tipo_proyecto_id", type=int):
+                filters["tipo_proyecto_id"] = args.get("tipo_proyecto_id", type=int)
 
-            # -------------------------
-            # Filtros semánticos
-            # -------------------------
+            if args.get("grupo_utn_id", type=int):
+                filters["grupo_utn_id"] = args.get("grupo_utn_id", type=int)
+
             if args.get("filtro") == "distinciones":
                 filters["tiene_distinciones"] = True
 
-            # -------------------------
-            # Orden
-            # -------------------------
-            if args.get("orden") in ("asc", "desc"):
+            if args.get("orden") in ("asc", "monto_asc", "monto_desc"):
                 filters["orden"] = args.get("orden")
 
             return jsonify(
@@ -40,7 +33,6 @@ class ProyectoInvestigacionController:
 
         except Exception as e:
             return jsonify({"error": str(e)}), 400
-
 
     # =========================
     # GET BY ID
@@ -51,6 +43,7 @@ class ProyectoInvestigacionController:
             return jsonify(
                 ProyectoInvestigacionService.get_by_id(proyecto_id)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 404
 
@@ -61,12 +54,19 @@ class ProyectoInvestigacionController:
     def create():
         try:
             data = request.get_json()
+
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
+            user = g.current_user_id
+            
             return jsonify(
-                ProyectoInvestigacionService.create(data)
+                ProyectoInvestigacionService.create(data, user)
             ), 201
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
@@ -77,85 +77,142 @@ class ProyectoInvestigacionController:
     def update(proyecto_id):
         try:
             data = request.get_json()
+
             if not data:
                 return jsonify({"error": "El body es obligatorio"}), 400
 
+            user_id = g.current_user_id
+
             return jsonify(
-                ProyectoInvestigacionService.update(proyecto_id, data)
+                ProyectoInvestigacionService.update(proyecto_id, data, user_id)
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
     # =========================
-    # DELETE
+    # CERRAR PROYECTO
     # =========================
     @staticmethod
-    def delete(proyecto_id):
+    def cerrar(proyecto_id):
         try:
+            user_id = g.current_user_id
             return jsonify(
-                ProyectoInvestigacionService.delete(proyecto_id)
+                ProyectoInvestigacionService.cerrar_proyecto(proyecto_id, user_id)
             ), 200
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
     # =========================
-    # VINCULAR / DESVINCULAR BECARIOS
+    # REABRIR PROYECTO
     # =========================
+    @staticmethod
+    def reabrir(proyecto_id):
+        try:
+            return jsonify(
+                ProyectoInvestigacionService.reabrir_proyecto(proyecto_id)
+            ), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    # =====================================================
+    # VINCULAR / DESVINCULAR BECARIOS
+    # =====================================================
+
     @staticmethod
     def vincular_becarios(proyecto_id):
         try:
-            data = request.get_json()
-            becarios_ids = data.get("becarios_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_becarios_a_proyecto(
-                    proyecto_id, becarios_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
     @staticmethod
     def desvincular_becarios(proyecto_id):
         try:
-            data = request.get_json()
-            becarios_ids = data.get("becarios_ids") if data else None
+            participaciones = request.get_json()
 
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
+            
+            user_id = g.current_user_id
+            
             return jsonify(
                 ProyectoInvestigacionService.desvincular_becarios_de_proyecto(
-                    proyecto_id, becarios_ids
+                    proyecto_id,
+                    participaciones,
+                    user_id
                 )
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
-    # =========================
+    # =====================================================
     # VINCULAR / DESVINCULAR INVESTIGADORES
-    # =========================
+    # =====================================================
+
     @staticmethod
     def vincular_investigadores(proyecto_id):
         try:
-            data = request.get_json()
-            investigadores_ids = data.get("investigadores_ids") if data else None
+            participaciones = request.get_json()
+
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             return jsonify(
                 ProyectoInvestigacionService.vincular_investigadores_a_proyecto(
-                    proyecto_id, investigadores_ids
+                    proyecto_id,
+                    participaciones
                 )
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
     @staticmethod
     def desvincular_investigadores(proyecto_id):
         try:
-            data = request.get_json()
-            investigadores_ids = data.get("investigadores_ids") if data else None
+            participaciones = request.get_json()
 
+            if not participaciones or not isinstance(participaciones, list):
+                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
+
+            user_id = g.current_user_id
             return jsonify(
                 ProyectoInvestigacionService.desvincular_investigadores_de_proyecto(
-                    proyecto_id, investigadores_ids
+                    proyecto_id,
+                    participaciones,
+                    user_id
                 )
             ), 200
+
+        except ValueError as ve:
+            return jsonify({"error": str(ve)}), 400
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400

@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import jsonify, request, g
 from core.services.erogacion_service import ErogacionService
 
 
@@ -14,6 +14,7 @@ class ErogacionController:
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
+
     @staticmethod
     def get_by_id(erogacion_id):
         try:
@@ -23,37 +24,39 @@ class ErogacionController:
         except Exception as e:
             return jsonify({"error": str(e)}), 404
 
+
     @staticmethod
     def create():
         try:
             data = request.get_json()
-            if not data:
-                return jsonify({"error": "El body es obligatorio"}), 400
+            user_id = g.current_user_id
 
             return jsonify(
-                ErogacionService.create(data)
+                ErogacionService.create(data, user_id)
             ), 201
+
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+
 
     @staticmethod
     def update(erogacion_id):
         try:
             data = request.get_json()
-            if not data:
-                return jsonify({"error": "El body es obligatorio"}), 400
-
             return jsonify(
                 ErogacionService.update(erogacion_id, data)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
 
+
     @staticmethod
     def delete(erogacion_id):
         try:
+            user_id = g.current_user_id
+
             return jsonify(
-                ErogacionService.delete(erogacion_id)
+                ErogacionService.delete(erogacion_id, user_id)
             ), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 400
