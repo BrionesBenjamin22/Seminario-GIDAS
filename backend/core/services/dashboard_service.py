@@ -22,7 +22,36 @@ class DashboardService:
         fecha_hasta: date | None = None,
         solo_becarios_con_beca_activa: bool = False
     ):
+        contexto = DashboardService._build_contexto(
+            anios=anios,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            solo_becarios_con_beca_activa=solo_becarios_con_beca_activa,
+        )
+
+        return {
+            "generado_en": datetime.utcnow().isoformat() + "Z",
+            "parametros": {
+                "anios": anios,
+                "fecha_desde": fecha_desde.isoformat() if fecha_desde else None,
+                "fecha_hasta": fecha_hasta.isoformat() if fecha_hasta else None,
+                "solo_becarios_con_beca_activa": solo_becarios_con_beca_activa,
+            },
+            "resumen": DashboardService._build_resumen(contexto),
+            "distribuciones": DashboardService._build_distribuciones(contexto),
+            "series": DashboardService._build_series(contexto),
+            "alertas": DashboardService._build_alertas(contexto),
+        }
+
+    @staticmethod
+    def _build_contexto(
+        anios: int,
+        fecha_desde: date | None,
+        fecha_hasta: date | None,
+        solo_becarios_con_beca_activa: bool
+    ):
         hoy = date.today()
+
         todos_los_proyectos = ProyectoInvestigacion.query.all()
         investigadores = Investigador.query.all()
         becarios = Becario.query.all()
@@ -43,12 +72,14 @@ class DashboardService:
             lambda proyecto: proyecto.fecha_inicio,
             lambda proyecto: proyecto.fecha_fin
         )
+
         erogaciones = DashboardService._filtrar_fecha_simple(
             todas_las_erogaciones,
             fecha_desde,
             fecha_hasta,
             lambda erogacion: erogacion.fecha
         )
+
         transferencias = DashboardService._filtrar_intervalo(
             todas_las_transferencias,
             fecha_desde,
@@ -56,12 +87,14 @@ class DashboardService:
             lambda transferencia: transferencia.fecha_inicio,
             lambda transferencia: transferencia.fecha_fin
         )
+
         becas = DashboardService._filtrar_becas_por_asignacion(
             todas_las_becas,
             asignaciones_beca,
             fecha_desde,
             fecha_hasta
         )
+
         becarios_para_distribucion = (
             DashboardService._filtrar_becarios_con_beca_activa(
                 becarios,
@@ -73,11 +106,15 @@ class DashboardService:
             else becarios
         )
 
-        proyectos_activos = [
-            proyecto for proyecto in proyectos
-            if proyecto.fecha_fin is None or proyecto.fecha_fin >= hoy
-        ]
+        proyectos_activos = DashboardService._get_proyectos_activos(
+            proyectos=proyectos,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            hoy=hoy
+        )
         proyecto_ids_activos = {proyecto.id for proyecto in proyectos_activos}
+        proyecto_ids_filtrados = {proyecto.id for proyecto in proyectos}
+
         investigadores_con_proyectos_activos = (
             DashboardService._contar_investigadores_con_proyectos_activos(
                 participaciones_investigador,
@@ -87,6 +124,7 @@ class DashboardService:
                 hoy
             )
         )
+
         becarios_con_proyectos_activos = (
             DashboardService._contar_becarios_con_proyectos_activos(
                 participaciones_becario,
@@ -97,27 +135,71 @@ class DashboardService:
             )
         )
 
-        monto_total_proyectos = sum(
-            float(proyecto.monto_destinado or 0)
-            for proyecto in proyectos
-        )
-
         proyectos_con_monto = [
             float(proyecto.monto_destinado)
             for proyecto in proyectos
             if proyecto.monto_destinado is not None
         ]
 
-        resumen = {
+        monto_total_proyectos = sum(proyectos_con_monto)
+
+        return {
+            "hoy": hoy,
+            "anios": anios,
+            "fecha_desde": fecha_desde,
+            "fecha_hasta": fecha_hasta,
+            "solo_becarios_con_beca_activa": solo_becarios_con_beca_activa,
+            "investigadores": investigadores,
+            "becarios": becarios,
+            "becarios_para_distribucion": becarios_para_distribucion,
+            "personal": personal,
+            "grupos": grupos,
+            "fuentes": fuentes,
+            "becas": becas,
+            "asignaciones_beca": asignaciones_beca,
+            "participaciones_investigador": participaciones_investigador,
+            "participaciones_becario": participaciones_becario,
+            "proyectos": proyectos,
+            "proyectos_activos": proyectos_activos,
+            "proyecto_ids_activos": proyecto_ids_activos,
+            "proyecto_ids_filtrados": proyecto_ids_filtrados,
+            "investigadores_con_proyectos_activos": (
+                investigadores_con_proyectos_activos
+            ),
+            "becarios_con_proyectos_activos": becarios_con_proyectos_activos,
+            "erogaciones": erogaciones,
+            "transferencias": transferencias,
+            "proyectos_con_monto": proyectos_con_monto,
+            "monto_total_proyectos": monto_total_proyectos,
+        }
+
+    @staticmethod
+    def _build_resumen(contexto):
+        proyectos = contexto["proyectos"]
+        proyectos_activos = contexto["proyectos_activos"]
+        investigadores = contexto["investigadores"]
+        becarios_para_distribucion = contexto["becarios_para_distribucion"]
+        personal = contexto["personal"]
+        grupos = contexto["grupos"]
+        becas = contexto["becas"]
+        erogaciones = contexto["erogaciones"]
+        transferencias = contexto["transferencias"]
+        fuentes = contexto["fuentes"]
+        monto_total_proyectos = contexto["monto_total_proyectos"]
+        proyectos_con_monto = contexto["proyectos_con_monto"]
+
+        return {
             "total_proyectos": len(proyectos),
             "proyectos_activos": len(proyectos_activos),
             "proyectos_finalizados": len(proyectos) - len(proyectos_activos),
             "total_investigadores": len(investigadores),
             "investigadores_con_proyectos_activos": (
-                investigadores_con_proyectos_activos
+                contexto["investigadores_con_proyectos_activos"]
             ),
             "total_becarios": len(becarios_para_distribucion),
-            "becarios_con_proyectos_activos": becarios_con_proyectos_activos,
+            "becarios_con_proyectos_activos": (
+                contexto["becarios_con_proyectos_activos"]
+            ),
             "total_personal": len(personal),
             "total_grupos": len(grupos),
             "total_becas": len(becas),
@@ -131,46 +213,67 @@ class DashboardService:
             ) if proyectos_con_monto else 0,
         }
 
-        distribuciones = {
-            "proyectos_por_tipo": DashboardService._proyectos_por_tipo(proyectos),
-            "proyectos_por_fuente": DashboardService._proyectos_por_fuente(proyectos),
+    @staticmethod
+    def _build_distribuciones(contexto):
+        return {
+            "proyectos_por_tipo": DashboardService._proyectos_por_tipo(
+                contexto["proyectos"]
+            ),
+            "proyectos_por_fuente": DashboardService._proyectos_por_fuente(
+                contexto["proyectos"]
+            ),
             "proyectos_por_distinciones": (
-                DashboardService._proyectos_por_distinciones(proyectos)
+                DashboardService._proyectos_por_distinciones(
+                    contexto["proyectos"]
+                )
             ),
             "erogaciones_por_tipo": DashboardService._erogaciones_por_tipo(
-                erogaciones
+                contexto["erogaciones"]
             ),
             "transferencias_por_tipo_contrato": (
                 DashboardService._transferencias_por_tipo_contrato(
-                    transferencias
+                    contexto["transferencias"]
                 )
             ),
             "becarios_por_tipo_formacion": (
                 DashboardService._becarios_por_tipo_formacion(
-                    becarios_para_distribucion
+                    contexto["becarios_para_distribucion"]
                 )
             ),
             "integrantes_por_grupo": DashboardService._integrantes_por_grupo(
-                grupos,
-                hoy,
-                {proyecto.id for proyecto in proyectos}
+                contexto["grupos"],
+                contexto["hoy"],
+                contexto["proyecto_ids_filtrados"]
             ),
         }
 
-        series = {
+    @staticmethod
+    def _build_series(contexto):
+        return {
             "proyectos_por_anio_inicio": DashboardService._proyectos_por_anio_inicio(
-                proyectos,
-                anios
+                contexto["proyectos"],
+                contexto["anios"]
             ),
             "proyectos_finalizados_por_anio": (
-                DashboardService._proyectos_finalizados_por_anio(proyectos, anios)
+                DashboardService._proyectos_finalizados_por_anio(
+                    contexto["proyectos"],
+                    contexto["anios"]
+                )
             ),
             "monto_proyectos_por_anio_inicio": (
-                DashboardService._monto_proyectos_por_anio_inicio(proyectos, anios)
+                DashboardService._monto_proyectos_por_anio_inicio(
+                    contexto["proyectos"],
+                    contexto["anios"]
+                )
             ),
         }
 
-        alertas = {
+    @staticmethod
+    def _build_alertas(contexto):
+        proyectos = contexto["proyectos"]
+        proyectos_activos = contexto["proyectos_activos"]
+
+        return {
             "proyectos_sin_financiamiento": len([
                 proyecto for proyecto in proyectos
                 if proyecto.fuente_financiamiento is None
@@ -181,28 +284,48 @@ class DashboardService:
             ]),
             "proyectos_por_vencer": DashboardService._proyectos_por_vencer(
                 proyectos_activos,
-                hoy
+                contexto["hoy"]
             ),
         }
 
-        return {
-            "generado_en": datetime.utcnow().isoformat() + "Z",
-            "parametros": {
-                "anios": anios,
-                "fecha_desde": (
-                    fecha_desde.isoformat() if fecha_desde else None
-                ),
-                "fecha_hasta": (
-                    fecha_hasta.isoformat() if fecha_hasta else None
-                ),
-                "solo_becarios_con_beca_activa": solo_becarios_con_beca_activa,
-            },
-            "resumen": resumen,
-            "distribuciones": distribuciones,
-            "series": series,
-            "alertas": alertas,
-        }
+    @staticmethod
+    def _get_proyectos_activos(proyectos, fecha_desde, fecha_hasta, hoy):
+        if fecha_desde is not None or fecha_hasta is not None:
+            return [
+                proyecto for proyecto in proyectos
+                if DashboardService._intervalo_solapa(
+                    proyecto.fecha_inicio,
+                    proyecto.fecha_fin,
+                    fecha_desde,
+                    fecha_hasta
+                )
+            ]
 
+        return [
+            proyecto for proyecto in proyectos
+            if proyecto.fecha_inicio
+            and proyecto.fecha_inicio <= hoy
+            and (proyecto.fecha_fin is None or proyecto.fecha_fin >= hoy)
+        ]
+        
+    @staticmethod
+    def _get_proyectos_finalizados(proyectos, fecha_desde, fecha_hasta):
+        if fecha_desde is None and fecha_hasta is None:
+            return [
+                proyecto for proyecto in proyectos
+                if proyecto.fecha_fin is not None
+            ]
+
+        return [
+            proyecto for proyecto in proyectos
+            if proyecto.fecha_fin is not None
+            and DashboardService._fecha_en_rango(
+                proyecto.fecha_fin,
+                fecha_desde,
+                fecha_hasta
+            )
+        ]
+        
     @staticmethod
     def _proyectos_por_tipo(proyectos):
         contador = Counter(
@@ -212,10 +335,7 @@ class DashboardService:
         )
 
         return [
-            {
-                "tipo": tipo,
-                "total": total
-            }
+            {"tipo": tipo, "total": total}
             for tipo, total in contador.most_common()
         ]
 
@@ -228,10 +348,7 @@ class DashboardService:
         )
 
         return [
-            {
-                "fuente": fuente,
-                "total": total
-            }
+            {"fuente": fuente, "total": total}
             for fuente, total in contador.most_common()
         ]
 
@@ -244,14 +361,8 @@ class DashboardService:
         sin_distinciones = len(proyectos) - con_distinciones
 
         return [
-            {
-                "categoria": "Con distinciones",
-                "total": con_distinciones
-            },
-            {
-                "categoria": "Sin distinciones",
-                "total": sin_distinciones
-            }
+            {"categoria": "Con distinciones", "total": con_distinciones},
+            {"categoria": "Sin distinciones", "total": sin_distinciones},
         ]
 
     @staticmethod
@@ -491,10 +602,7 @@ class DashboardService:
         )
 
         return [
-            {
-                "tipo_formacion": tipo_formacion,
-                "total": total
-            }
+            {"tipo_formacion": tipo_formacion, "total": total}
             for tipo_formacion, total in contador.most_common()
         ]
 
