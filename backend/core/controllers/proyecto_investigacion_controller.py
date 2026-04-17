@@ -129,9 +129,6 @@ class ProyectoInvestigacionController:
         try:
             participaciones = request.get_json()
 
-            if not participaciones or not isinstance(participaciones, list):
-                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
-
             return jsonify(
                 ProyectoInvestigacionService.vincular_becarios_a_proyecto(
                     proyecto_id,
@@ -149,9 +146,6 @@ class ProyectoInvestigacionController:
     def desvincular_becarios(proyecto_id):
         try:
             participaciones = request.get_json()
-
-            if not participaciones or not isinstance(participaciones, list):
-                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
             
             user_id = g.current_user_id
             
@@ -178,9 +172,6 @@ class ProyectoInvestigacionController:
         try:
             participaciones = request.get_json()
 
-            if not participaciones or not isinstance(participaciones, list):
-                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
-
             return jsonify(
                 ProyectoInvestigacionService.vincular_investigadores_a_proyecto(
                     proyecto_id,
@@ -198,9 +189,6 @@ class ProyectoInvestigacionController:
     def desvincular_investigadores(proyecto_id):
         try:
             participaciones = request.get_json()
-
-            if not participaciones or not isinstance(participaciones, list):
-                return jsonify({"error": "Debe enviarse una lista de participaciones"}), 400
 
             user_id = g.current_user_id
             return jsonify(

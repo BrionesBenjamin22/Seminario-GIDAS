@@ -115,6 +115,49 @@ class ActividadDocenciaService:
         return historiales[0] if historiales else None
 
     @staticmethod
+    def _obtener_ultimo_historial(actividad_id):
+        return InvestigadorActividadGrado.query.filter_by(
+            actividad_docencia_id=actividad_id
+        ).order_by(
+            InvestigadorActividadGrado.fecha_inicio.desc(),
+            InvestigadorActividadGrado.id.desc()
+        ).first()
+
+    @staticmethod
+    def _obtener_fecha_cambio_grado(actividad):
+        return min(date.today(), actividad.fecha_fin)
+
+    @staticmethod
+    def _actividad_finalizada(actividad):
+        return actividad.fecha_fin < date.today()
+
+    @staticmethod
+    def _validar_actividad_editable(actividad):
+        if ActividadDocenciaService._actividad_finalizada(actividad):
+            raise ValueError(
+                "No se puede actualizar una actividad de docencia finalizada"
+            )
+
+    @staticmethod
+    def _sincronizar_historial_con_actividad(actividad):
+        historial_activo = (
+            ActividadDocenciaService._obtener_historial_activo_unico(actividad.id)
+        )
+
+        if not historial_activo:
+            return None
+
+        if historial_activo.fecha_inicio > actividad.fecha_fin:
+            raise ValueError(
+                "El historial activo tiene una fecha de inicio invalida respecto de la actividad"
+            )
+
+        if ActividadDocenciaService._actividad_finalizada(actividad):
+            historial_activo.fecha_fin = actividad.fecha_fin
+
+        return historial_activo
+
+    @staticmethod
     def _validar_grado(grado_id):
         grado_id = ActividadDocenciaService._validar_id(
             grado_id, "grado_academico_id"
@@ -262,7 +305,7 @@ class ActividadDocenciaService:
             actividad_docencia_id=actividad.id,
             grado_academico_id=grado.id,
             fecha_inicio=fecha_inicio,
-            fecha_fin=None,
+            fecha_fin=fecha_fin if fecha_fin < date.today() else None,
             created_by=user_id,
         )
 
@@ -287,11 +330,7 @@ class ActividadDocenciaService:
             actividad_id,
             permitir_eliminado=False
         )
-
-        if "investigador_id" in data and "grado_academico_id" in data:
-            raise ValueError(
-                "No se puede actualizar investigador y grado academico en la misma operacion"
-            )
+        ActividadDocenciaService._validar_actividad_editable(actividad)
 
         if "investigador_id" in data:
             nuevo_investigador = ActividadDocenciaService._validar_investigador(
@@ -349,47 +388,60 @@ class ActividadDocenciaService:
         actividad.institucion = institucion
         actividad.rol_actividad_id = rol_actividad_id
 
-        historial_activo = ActividadDocenciaService._obtener_historial_activo_unico(
-            actividad.id
+        historial_activo = (
+            ActividadDocenciaService._sincronizar_historial_con_actividad(actividad)
         )
-
-        if historial_activo and historial_activo.fecha_inicio > actividad.fecha_fin:
-            raise ValueError(
-                "El historial activo tiene una fecha de inicio invalida respecto de la actividad"
-            )
 
         if "grado_academico_id" in data:
             nuevo_grado = ActividadDocenciaService._validar_grado(
                 data["grado_academico_id"]
             )
+            fecha_cambio_grado = (
+                ActividadDocenciaService._obtener_fecha_cambio_grado(actividad)
+            )
 
             if not historial_activo:
-                nuevo_historial = InvestigadorActividadGrado(
-                    investigador_id=actividad.investigador_id,
-                    actividad_docencia_id=actividad.id,
-                    grado_academico_id=nuevo_grado.id,
-                    fecha_inicio=date.today(),
-                    fecha_fin=None,
-                    created_by=user_id,
+                ultimo_historial = ActividadDocenciaService._obtener_ultimo_historial(
+                    actividad.id
                 )
-                db.session.add(nuevo_historial)
+                if (
+                    ultimo_historial
+                    and ActividadDocenciaService._actividad_finalizada(actividad)
+                ):
+                    ultimo_historial.grado_academico_id = nuevo_grado.id
+                else:
+                    nuevo_historial = InvestigadorActividadGrado(
+                        investigador_id=actividad.investigador_id,
+                        actividad_docencia_id=actividad.id,
+                        grado_academico_id=nuevo_grado.id,
+                        fecha_inicio=actividad.fecha_inicio,
+                        fecha_fin=(
+                            actividad.fecha_fin
+                            if ActividadDocenciaService._actividad_finalizada(actividad)
+                            else None
+                        ),
+                        created_by=user_id,
+                    )
+                    db.session.add(nuevo_historial)
             elif historial_activo.grado_academico_id != nuevo_grado.id:
-                if historial_activo.fecha_inicio > date.today():
+                if ActividadDocenciaService._actividad_finalizada(actividad):
+                    historial_activo.grado_academico_id = nuevo_grado.id
+                elif historial_activo.fecha_inicio > fecha_cambio_grado:
                     raise ValueError(
                         "El historial activo tiene una fecha de inicio invalida"
                     )
+                else:
+                    historial_activo.fecha_fin = fecha_cambio_grado
 
-                historial_activo.fecha_fin = date.today()
-
-                nuevo_historial = InvestigadorActividadGrado(
-                    investigador_id=actividad.investigador_id,
-                    actividad_docencia_id=actividad.id,
-                    grado_academico_id=nuevo_grado.id,
-                    fecha_inicio=date.today(),
-                    fecha_fin=None,
-                    created_by=user_id,
-                )
-                db.session.add(nuevo_historial)
+                    nuevo_historial = InvestigadorActividadGrado(
+                        investigador_id=actividad.investigador_id,
+                        actividad_docencia_id=actividad.id,
+                        grado_academico_id=nuevo_grado.id,
+                        fecha_inicio=fecha_cambio_grado,
+                        fecha_fin=None,
+                        created_by=user_id,
+                    )
+                    db.session.add(nuevo_historial)
 
         try:
             db.session.commit()
@@ -406,6 +458,7 @@ class ActividadDocenciaService:
             actividad_id,
             permitir_eliminado=False
         )
+        ActividadDocenciaService._validar_actividad_editable(actividad)
 
         actividad.soft_delete(user_id)
 

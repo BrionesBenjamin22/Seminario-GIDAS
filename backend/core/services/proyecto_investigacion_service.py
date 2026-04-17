@@ -32,6 +32,40 @@ class ProyectoInvestigacionService:
         return valor
 
     @staticmethod
+    def _validar_payload(data):
+        if data is None or not isinstance(data, dict) or not data:
+            raise ValueError("Los datos enviados son invalidos")
+        return data
+
+    @staticmethod
+    def _normalizar_participaciones(participaciones):
+        if isinstance(participaciones, dict):
+            participaciones = [participaciones]
+
+        if not isinstance(participaciones, list) or not participaciones:
+            raise ValueError("Debe enviarse una lista de participaciones.")
+
+        return participaciones
+
+    @staticmethod
+    def _normalizar_participaciones_investigadores_desvincular(participaciones):
+        if isinstance(participaciones, dict):
+            investigadores_ids = participaciones.get("investigadores_ids")
+
+            if investigadores_ids is not None:
+                if not isinstance(investigadores_ids, list) or not investigadores_ids:
+                    raise ValueError("Debe enviarse una lista de participaciones.")
+
+                return [
+                    {"id_investigador": investigador_id}
+                    for investigador_id in investigadores_ids
+                ]
+
+        return ProyectoInvestigacionService._normalizar_participaciones(
+            participaciones
+        )
+
+    @staticmethod
     def _normalizar_activos(activos):
         if activos is None:
             return "true"
@@ -58,6 +92,16 @@ class ProyectoInvestigacionService:
         if not investigador or investigador.deleted_at is not None:
             raise ValueError("Investigador invalido")
         return investigador_id
+
+    @staticmethod
+    def _validar_becario_activo(becario_id):
+        becario_id = ProyectoInvestigacionService._validar_id(
+            becario_id, "id_becario"
+        )
+        becario = db.session.get(Becario, becario_id)
+        if not becario or becario.deleted_at is not None:
+            raise ValueError("Becario invalido")
+        return becario_id
 
     @staticmethod
     def _get_proyecto_activo_or_404(proyecto_id: int):
@@ -93,16 +137,22 @@ class ProyectoInvestigacionService:
             raise ValueError("El proyecto se encuentra cerrado.")
 
     @staticmethod
+    def _fechas_son_iguales(valor_actual, valor_nuevo):
+        if valor_nuevo in (None, ""):
+            return valor_actual is None
+
+        try:
+            fecha_nueva = datetime.strptime(valor_nuevo, "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            return False
+
+        return valor_actual == fecha_nueva
+
+    @staticmethod
     def _validar_unico_coordinador_activo(
         proyecto_id: int,
         nuevas_participaciones: list[dict]
     ):
-        coordinador_activo_existente = InvestigadorProyecto.query.filter(
-            InvestigadorProyecto.id_proyecto == proyecto_id,
-            InvestigadorProyecto.deleted_at.is_(None),
-            InvestigadorProyecto.es_coordinador.is_(True)
-        ).first()
-
         coordinadores_nuevos = [
             item for item in nuevas_participaciones
             if ProyectoInvestigacionService._validar_bool(
@@ -115,15 +165,13 @@ class ProyectoInvestigacionService:
                 "Un proyecto solo puede tener un investigador coordinador activo"
             )
 
-        if coordinador_activo_existente and coordinadores_nuevos:
-            if (
-                coordinadores_nuevos[0].get("id_investigador")
-                == coordinador_activo_existente.id_investigador
-            ):
-                return
-            raise ValueError(
-                "El proyecto ya tiene un investigador coordinador activo"
-            )
+    @staticmethod
+    def _obtener_coordinador_activo(proyecto_id: int):
+        return InvestigadorProyecto.query.filter(
+            InvestigadorProyecto.id_proyecto == proyecto_id,
+            InvestigadorProyecto.deleted_at.is_(None),
+            InvestigadorProyecto.es_coordinador.is_(True)
+        ).first()
 
     @staticmethod
     def _participacion_investigador_es_igual(
@@ -135,6 +183,17 @@ class ProyectoInvestigacionService:
         return (
             participacion.es_coordinador == es_coordinador
             and participacion.fecha_inicio == fecha_inicio
+            and participacion.fecha_fin == fecha_fin
+        )
+
+    @staticmethod
+    def _participacion_becario_es_igual(
+        participacion: BecarioProyecto,
+        fecha_inicio: date,
+        fecha_fin: date | None
+    ):
+        return (
+            participacion.fecha_inicio == fecha_inicio
             and participacion.fecha_fin == fecha_fin
         )
 
@@ -279,6 +338,7 @@ class ProyectoInvestigacionService:
     # =========================
     @staticmethod
     def update(proyecto_id: int, data: dict, user_id: int = None):
+        ProyectoInvestigacionService._validar_payload(data)
 
         proyecto = ProyectoInvestigacion.query.filter_by(
             id=proyecto_id,
@@ -286,15 +346,21 @@ class ProyectoInvestigacionService:
         ).first()
 
         if not proyecto:
-            raise Exception("Proyecto no encontrado")
+            raise ValueError("Proyecto no encontrado")
 
         if user_id is not None:
             ProyectoInvestigacionService._validar_id(user_id, "user_id")
 
+        ProyectoInvestigacionService._validar_proyecto_abierto(proyecto)
+
         es_cierre_por_update = (
             user_id is not None and
             set(data.keys()) == {"fecha_fin"} and
-            data.get("fecha_fin")
+            data.get("fecha_fin") and
+            not ProyectoInvestigacionService._fechas_son_iguales(
+                proyecto.fecha_fin,
+                data.get("fecha_fin")
+            )
         )
 
         for field in [
@@ -372,7 +438,7 @@ class ProyectoInvestigacionService:
             )
 
         if proyecto.fecha_fin and proyecto.fecha_fin < proyecto.fecha_inicio:
-            raise Exception("La fecha fin no puede ser anterior a la fecha inicio")
+            raise ValueError("La fecha fin no puede ser anterior a la fecha inicio")
 
         if es_cierre_por_update:
             if proyecto.fecha_fin > date.today():
@@ -430,14 +496,41 @@ class ProyectoInvestigacionService:
             proyecto_id
         )
         ProyectoInvestigacionService._validar_proyecto_abierto(proyecto)
-
-        if not isinstance(participaciones, list) or not participaciones:
-            raise ValueError("Debe enviarse una lista de participaciones.")
+        participaciones = ProyectoInvestigacionService._normalizar_participaciones(
+            participaciones
+        )
 
         ProyectoInvestigacionService._validar_unico_coordinador_activo(
             proyecto_id,
             participaciones
         )
+
+        coordinador_solicitado = next(
+            (
+                item for item in participaciones
+                if ProyectoInvestigacionService._validar_bool(
+                    item.get("es_coordinador"), "es_coordinador", default=False
+                )
+            ),
+            None
+        )
+
+        coordinador_activo_existente = (
+            ProyectoInvestigacionService._obtener_coordinador_activo(proyecto_id)
+        )
+
+        if coordinador_solicitado and coordinador_activo_existente:
+            investigador_coordinador_nuevo = (
+                ProyectoInvestigacionService._validar_investigador_activo(
+                    coordinador_solicitado.get("id_investigador")
+                )
+            )
+
+            if (
+                coordinador_activo_existente.id_investigador
+                != investigador_coordinador_nuevo
+            ):
+                coordinador_activo_existente.es_coordinador = False
 
         for item in participaciones:
 
@@ -473,8 +566,10 @@ class ProyectoInvestigacionService:
                     fecha_fin
                 ):
                     continue
-
-                raise ValueError("Ya existe una participación activa.")
+                existente.es_coordinador = es_coordinador
+                existente.fecha_inicio = fecha_inicio
+                existente.fecha_fin = fecha_fin
+                continue
 
             nueva = InvestigadorProyecto(
                 id_investigador=investigador_id,
@@ -497,9 +592,10 @@ class ProyectoInvestigacionService:
             proyecto_id
         )
         ProyectoInvestigacionService._validar_proyecto_abierto(proyecto)
-
-        if not isinstance(participaciones, list) or not participaciones:
-            raise ValueError("Debe enviarse una lista de participaciones.")
+        participaciones = (
+            ProyectoInvestigacionService
+            ._normalizar_participaciones_investigadores_desvincular(participaciones)
+        )
 
         for item in participaciones:
             investigador_id = ProyectoInvestigacionService._validar_investigador_activo(
@@ -534,10 +630,25 @@ class ProyectoInvestigacionService:
             proyecto_id
         )
         ProyectoInvestigacionService._validar_proyecto_abierto(proyecto)
+        participaciones = ProyectoInvestigacionService._normalizar_participaciones(
+            participaciones
+        )
 
         for item in participaciones:
+            becario_id = ProyectoInvestigacionService._validar_becario_activo(
+                item.get("id_becario")
+            )
+            fecha_inicio = ProyectoInvestigacionService._validar_fecha_participacion(
+                item.get("fecha_inicio"), "fecha_inicio"
+            )
+            fecha_fin = ProyectoInvestigacionService._validar_fecha_participacion(
+                item.get("fecha_fin"), "fecha_fin", permitir_none=True
+            )
 
-            becario_id = item.get("id_becario")
+            if fecha_fin and fecha_fin < fecha_inicio:
+                raise ValueError(
+                    "La fecha_fin no puede ser anterior a la fecha_inicio."
+                )
 
             existente = BecarioProyecto.query.filter_by(
                 id_proyecto=proyecto_id,
@@ -546,17 +657,20 @@ class ProyectoInvestigacionService:
             ).first()
 
             if existente:
-                raise ValueError("Ya existe participaciÃ³n activa.")
+                if ProyectoInvestigacionService._participacion_becario_es_igual(
+                    existente,
+                    fecha_inicio,
+                    fecha_fin
+                ):
+                    continue
+
+                raise ValueError("Ya existe una participación activa.")
 
             nueva = BecarioProyecto(
                 id_becario=becario_id,
                 id_proyecto=proyecto_id,
-                fecha_inicio=datetime.strptime(
-                    item["fecha_inicio"], "%Y-%m-%d"
-                ).date(),
-                fecha_fin=datetime.strptime(
-                    item["fecha_fin"], "%Y-%m-%d"
-                ).date() if item.get("fecha_fin") else None
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin
             )
 
             db.session.add(nueva)
@@ -570,6 +684,9 @@ class ProyectoInvestigacionService:
             proyecto_id
         )
         ProyectoInvestigacionService._validar_proyecto_abierto(proyecto)
+        participaciones = ProyectoInvestigacionService._normalizar_participaciones(
+            participaciones
+        )
 
         for item in participaciones:
 

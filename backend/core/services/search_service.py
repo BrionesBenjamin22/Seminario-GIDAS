@@ -9,7 +9,11 @@ from core.models.proyecto_investigacion import ProyectoInvestigacion, BecarioPro
 from core.models.actividad_docencia import ActividadDocencia, InvestigadorActividadGrado
 from core.models.articulo_divulgacion import ArticuloDivulgacion
 from core.models.equipamiento import Equipamiento
-from core.models.transferencia_socio import TipoContrato, TransferenciaSocioProductiva
+from core.models.transferencia_socio import (
+    AdoptanteTransferencia,
+    TipoContrato,
+    TransferenciaSocioProductiva,
+)
 from core.models.erogacion import Erogacion, TipoErogacion
 from core.models.registro_patente import RegistrosPropiedad, TipoRegistroPropiedad
 from core.models.documentacion_autores import DocumentacionBibliografica, Autor
@@ -45,6 +49,20 @@ class SearchService:
 
         deleted = getattr(obj, "deleted_at", None) is not None
         return deleted if eliminados == "true" else not deleted
+
+    @staticmethod
+    def matches_transferencia_filter(obj, eliminados: str) -> bool:
+        if eliminados in ("all", "true"):
+            return SearchService.matches_deleted_filter(obj, eliminados)
+
+        return True
+
+    @staticmethod
+    def matches_registro_propiedad_filter(obj, eliminados: str) -> bool:
+        if eliminados in ("all", "true"):
+            return SearchService.matches_deleted_filter(obj, eliminados)
+
+        return True
 
     @staticmethod
     def with_status(obj, data: dict) -> dict:
@@ -648,15 +666,19 @@ class SearchService:
             .all()
 
         for r in registros:
-            if not SearchService.matches_deleted_filter(r, eliminados):
+            if not SearchService.matches_registro_propiedad_filter(r, eliminados):
                 continue
 
             articulo_norm = SearchService.normalize_text(r.nombre_articulo)
             organismo_norm = SearchService.normalize_text(r.organismo_registrante)
+            tipo_registro_norm = SearchService.normalize_text(
+                r.tipo_registro.nombre if r.tipo_registro else ""
+            )
 
             if (
                 query_normalized in articulo_norm
                 or query_normalized in organismo_norm
+                or query_normalized in tipo_registro_norm
             ):
 
                 resultados.append(SearchService.with_status(r, {
@@ -717,20 +739,42 @@ class SearchService:
         transferencias = db.session.query(TransferenciaSocioProductiva)\
             .options(
                 joinedload(TransferenciaSocioProductiva.tipo_contrato_transferencia),
-                joinedload(TransferenciaSocioProductiva.grupo_utn)
+                joinedload(TransferenciaSocioProductiva.grupo_utn),
+                joinedload(TransferenciaSocioProductiva.participaciones)
+                    .joinedload(AdoptanteTransferencia.adoptante)
             )\
             .all()
 
         for t in transferencias:
-            if not SearchService.matches_deleted_filter(t, eliminados):
+            if not SearchService.matches_transferencia_filter(t, eliminados):
                 continue
 
+            numero_norm = SearchService.normalize_text(str(t.numero_transferencia))
+            denominacion_norm = SearchService.normalize_text(t.denominacion)
             descripcion_norm = SearchService.normalize_text(t.descripcion_actividad)
             demandante_norm = SearchService.normalize_text(t.demandante)
+            tipo_contrato_norm = SearchService.normalize_text(
+                t.tipo_contrato_transferencia.nombre
+                if t.tipo_contrato_transferencia else ""
+            )
+            grupo_norm = SearchService.normalize_text(
+                t.grupo_utn.nombre_sigla_grupo
+                if t.grupo_utn else ""
+            )
+            adoptantes_norm = [
+                SearchService.normalize_text(p.adoptante.nombre)
+                for p in t.participaciones
+                if p.adoptante
+            ]
 
             if (
-                query_normalized in descripcion_norm
+                query_normalized in numero_norm
+                or query_normalized in denominacion_norm
+                or query_normalized in descripcion_norm
                 or query_normalized in demandante_norm
+                or query_normalized in tipo_contrato_norm
+                or query_normalized in grupo_norm
+                or any(query_normalized in adoptante for adoptante in adoptantes_norm)
             ):
 
                 resultados.append(SearchService.with_status(t, {
@@ -741,6 +785,8 @@ class SearchService:
                     "fecha": t.fecha_inicio,
                     "url": f"/transferencias/{t.id}",
                     "extra": {
+                        "numero_transferencia": t.numero_transferencia,
+                        "denominacion": t.denominacion,
                         "tipo_contrato": (
                             t.tipo_contrato_transferencia.nombre
                             if t.tipo_contrato_transferencia else None
@@ -780,9 +826,12 @@ class SearchService:
                         "id": t.id,
                         "descripcion": t.descripcion_actividad,
                         "demandante": t.demandante,
+                        "activo": t.deleted_at is None,
+                        "eliminado": t.deleted_at is not None,
                         "url": f"/transferencias/{t.id}"
                     }
                     for t in tipo.transferencias
+                    if SearchService.matches_transferencia_filter(t, eliminados)
                 ]
 
                 resultados.append(SearchService.with_status(tipo, {

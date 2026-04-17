@@ -1,3 +1,5 @@
+from datetime import date
+
 from extension import db
 from core.models.audit_mixin import AuditMixin
 
@@ -42,13 +44,22 @@ class ActividadDocencia(db.Model, AuditMixin):
     def serialize(self):
         data = self.to_dict()
 
-        grado_activo = next(
-            (
-                h.grado_academico
-                for h in self.investigadores_grado
-                if h.fecha_fin is None
-            ),
-            None
+        historial_ordenado = sorted(
+            self.investigadores_grado,
+            key=lambda h: (
+                h.fecha_inicio or "",
+                h.id or 0
+            )
+        )
+
+        historial_actual = next(
+            (h for h in historial_ordenado if h.fecha_fin is None),
+            historial_ordenado[-1] if historial_ordenado else None
+        )
+
+        grado_actual = (
+            historial_actual.grado_academico
+            if historial_actual else None
         )
 
         data.update({
@@ -59,10 +70,10 @@ class ActividadDocencia(db.Model, AuditMixin):
             ),
             "grado_academico": (
                 {
-                    "id": grado_activo.id,
-                    "nombre": grado_activo.nombre
+                    "id": grado_actual.id,
+                    "nombre": grado_actual.nombre
                 }
-                if grado_activo else None
+                if grado_actual else None
             ),
             "rol_actividad": (
                 {
@@ -80,9 +91,17 @@ class ActividadDocencia(db.Model, AuditMixin):
                         "nombre": h.grado_academico.nombre
                     },
                     "fecha_inicio": str(h.fecha_inicio),
-                    "fecha_fin": str(h.fecha_fin) if h.fecha_fin else None
+                    "fecha_fin": (
+                        str(h.fecha_fin)
+                        if h.fecha_fin
+                        else (
+                            str(self.fecha_fin)
+                            if self.fecha_fin and self.fecha_fin < date.today()
+                            else None
+                        )
+                    )
                 }
-                for h in self.investigadores_grado
+                for h in historial_ordenado
             ]
         })
 

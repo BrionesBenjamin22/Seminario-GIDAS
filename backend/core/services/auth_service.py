@@ -102,7 +102,7 @@ class AuthService:
     # Registro
     # -------------------------
     @staticmethod
-    def register(nombre_usuario: str, mail: str, password: str) -> Usuario:
+    def register(nombre_usuario: str, mail: str, password: str, rol_id: int, nombre_apellido: str = None, dni: int = None) -> Usuario:
         # Solo permitir registro si la base de datos está vacía (primer admin)
         if not AuthService.es_primer_usuario():
             raise Exception("El sistema ya ha sido inicializado. No se permiten nuevos registros abiertos.")
@@ -116,7 +116,7 @@ class AuthService:
             raise Exception("Usuario o mail ya existe")
 
         # Si es el primer usuario, asignar rol ADMIN automáticamente
-        if es_primer_usuario:
+        if AuthService.es_primer_usuario():
             rol = RolUsuario.query.filter_by(nombre="ADMIN").first()
             if not rol:
                 raise Exception("Rol ADMIN no encontrado en el sistema")

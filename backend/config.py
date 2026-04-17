@@ -6,20 +6,11 @@ load_dotenv(os.path.join(basedir, ".env"))
 
 class Config:
     # -------------------------
-    # Security Keys (⚠️  En producción usar variables de entorno seguras)
     # -------------------------
     SECRET_KEY = os.getenv("SECRET_KEY") or "gidas-dev-secret-key-do-not-use-in-production-2024"
     FRONTEND_URL = os.getenv("FRONTEND_URL") or "http://localhost:5173"
 
-    # -------------------------
-    # Mail
-    # -------------------------
-    MAIL_SERVER = os.getenv("MAIL_SERVER")
-    MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
-    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "True") == "True"
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER")
+
 
     # -------------------------
     # Database
@@ -34,8 +25,7 @@ class Config:
 
     # -------------------------
     # JWT Configuration
-    # Si no hay variables de entorno, usar secrets de desarrollo
-    # ⚠️  IMPORTANTE: En producción configurar JWT_SECRET y REFRESH_SECRET
+
     # -------------------------
     JWT_SECRET = os.getenv("JWT_SECRET") or SECRET_KEY
     REFRESH_SECRET = os.getenv("REFRESH_SECRET") or SECRET_KEY

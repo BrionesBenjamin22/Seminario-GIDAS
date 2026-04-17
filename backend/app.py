@@ -1,12 +1,10 @@
-from flask import Flask, request
-from extension import db, mail, migrate
+from flask import Flask
+from extension import db, migrate
 from flask_cors import CORS
 from config import DevelopmentConfig
 import logging
 from core.routes import blueprints
-from sqlalchemy.orm import with_loader_criteria
-from sqlalchemy import event
-from core.models.audit_mixin import AuditMixin
+
 
 
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +26,6 @@ def create_app():
     )
 
     db.init_app(app)
-    mail.init_app(app)
     migrate.init_app(app, db)
 
 
