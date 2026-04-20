@@ -102,9 +102,16 @@ class AuthService:
     # Registro
     # -------------------------
     @staticmethod
-    def register(nombre_usuario: str, mail: str, password: str) -> Usuario:
-        # Solo permitir registro si la base de datos está vacía (primer admin)
-        if not AuthService.es_primer_usuario():
+    def register(
+        nombre_usuario: str,
+        mail: str,
+        password: str,
+        rol_id: int | None = None,
+        nombre_apellido: str | None = None,
+        dni: str | None = None,
+        es_primer_usuario: bool = False
+    ) -> Usuario:
+        if not es_primer_usuario and not AuthService.es_primer_usuario():
             raise Exception("El sistema ya ha sido inicializado. No se permiten nuevos registros abiertos.")
 
         existe = Usuario.query.filter(
@@ -115,7 +122,6 @@ class AuthService:
         if existe:
             raise Exception("Usuario o mail ya existe")
 
-        # Si es el primer usuario, asignar rol ADMIN automáticamente
         if es_primer_usuario:
             rol = RolUsuario.query.filter_by(nombre="ADMIN").first()
             if not rol:
@@ -127,7 +133,6 @@ class AuthService:
             if not rol:
                 raise Exception("Rol inválido")
 
-        # Crear Persona solo si se proporcionan datos (opcional ahora)
         persona_id = None
         if nombre_apellido and dni:
             persona = Persona(
@@ -135,16 +140,15 @@ class AuthService:
                 dni=dni
             )
             db.session.add(persona)
-            db.session.flush()  # importante para obtener persona.id
+            db.session.flush()
             persona_id = persona.id
 
-        # Crear Usuario
         nuevo_usuario = Usuario(
             nombre_usuario=nombre_usuario,
             mail=mail,
             id_persona=persona_id,
             id_rol=rol.id,
-            primer_login=True  # Siempre true al crear
+            primer_login=True
         )
 
         nuevo_usuario.set_password(password)
@@ -156,8 +160,7 @@ class AuthService:
             return nuevo_usuario
         except Exception:
             db.session.rollback()
-            raise Exception("Error al registrar usuario")
-        
+            raise Exception("Error al registrar usuario")        
         
     # -------------------------
     # Refresh token

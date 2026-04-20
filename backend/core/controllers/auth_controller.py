@@ -97,8 +97,8 @@ class AuthController:
 
 
     @staticmethod
-    def login(req: Request) -> Response:
-        data = req.get_json()
+    def login() -> Response:
+        data = request.get_json()
 
         try:
             result = AuthService.login(

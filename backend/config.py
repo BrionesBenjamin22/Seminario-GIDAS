@@ -2,18 +2,13 @@ import os
 from dotenv import load_dotenv
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(basedir, ".env"))
+env_file = os.getenv("ENV_FILE", ".env.local")
+load_dotenv(os.path.join(basedir, env_file))
 
 class Config:
-    # -------------------------
-    # Security Keys (⚠️  En producción usar variables de entorno seguras)
-    # -------------------------
     SECRET_KEY = os.getenv("SECRET_KEY") or "gidas-dev-secret-key-do-not-use-in-production-2024"
     FRONTEND_URL = os.getenv("FRONTEND_URL") or "http://localhost:5173"
 
-    # -------------------------
-    # Mail
-    # -------------------------
     MAIL_SERVER = os.getenv("MAIL_SERVER")
     MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
     MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "True") == "True"
@@ -21,22 +16,13 @@ class Config:
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER")
 
-    # -------------------------
-    # Database
-    # -------------------------
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
-        "postgresql://postgres:Br4ndsen8.@localhost:5432/gidas_db"
+        "postgresql://postgres:postgres@localhost:5432/gidas_db"
     )
-
 
     SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS", "False") == "True"
 
-    # -------------------------
-    # JWT Configuration
-    # Si no hay variables de entorno, usar secrets de desarrollo
-    # ⚠️  IMPORTANTE: En producción configurar JWT_SECRET y REFRESH_SECRET
-    # -------------------------
     JWT_SECRET = os.getenv("JWT_SECRET") or SECRET_KEY
     REFRESH_SECRET = os.getenv("REFRESH_SECRET") or SECRET_KEY
     JWT_ALGORITHM = "HS256"
@@ -46,6 +32,8 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
 
+class DockerConfig(Config):
+    DEBUG = True
 
 class ProductionConfig(Config):
     DEBUG = False
