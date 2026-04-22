@@ -1,0 +1,26 @@
+# ENV
+.env*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+.env/
+
+# Flask
+instance/
+
+# Backend
+/backend/venv/
+
+# Alembic (solo cache)
+/backend/migrations/versions/*.pyc
+
+# OS / editor
+.vscode/
+.DS_Store
