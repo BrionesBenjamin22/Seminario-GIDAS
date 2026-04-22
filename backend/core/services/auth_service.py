@@ -126,7 +126,9 @@ class AuthService:
             rol = RolUsuario.query.filter_by(nombre="ADMIN").first()
             if not rol:
                 raise Exception("Rol ADMIN no encontrado en el sistema")
+            primer_login = False
         else:
+            primer_login = True
             if not rol_id:
                 raise Exception("rol_id es obligatorio para crear usuarios")
             rol = RolUsuario.query.get(rol_id)
@@ -148,7 +150,7 @@ class AuthService:
             mail=mail,
             id_persona=persona_id,
             id_rol=rol.id,
-            primer_login=True
+            primer_login=primer_login
         )
 
         nuevo_usuario.set_password(password)
